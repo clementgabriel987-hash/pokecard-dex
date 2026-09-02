@@ -47,21 +47,14 @@ export default function PokedexPage() {
 
     if (!cleanPseudo || !password) return;
 
+    // Utilisation du système Auth natif de Supabase (fini les erreurs de cache de tables)
+    const fakeEmail = `${cleanPseudo}@pokedex-app.local`;
+
     if (isSignUp) {
-      const { data: existingUser } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("username", cleanPseudo)
-        .single();
-
-      if (existingUser) {
-        setAuthMessage("Ce pseudo est déjà pris ! Choisis-en un autre.");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("profiles")
-        .insert([{ username: cleanPseudo, password }]);
+      const { error } = await supabase.auth.signUp({
+        email: fakeEmail,
+        password: password,
+      });
 
       if (error) {
         setAuthMessage("Erreur : " + error.message);
@@ -71,14 +64,12 @@ export default function PokedexPage() {
         setAuthMessage("Compte créé avec succès ! 🎉");
       }
     } else {
-      const { data: userRecord, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("username", cleanPseudo)
-        .eq("password", password)
-        .single();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: fakeEmail,
+        password: password,
+      });
 
-      if (error || !userRecord) {
+      if (error) {
         setAuthMessage("Pseudo ou mot de passe incorrect.");
       } else {
         localStorage.setItem("pokedex_pseudo", cleanPseudo);
@@ -88,7 +79,8 @@ export default function PokedexPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("pokedex_pseudo");
     setCurrentUser("");
     setUsername("");
