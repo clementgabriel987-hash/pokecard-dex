@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 
-// Définition du type d'une carte
+// Définition du type d'une carte avec l'image
 interface Card {
   id: number;
   name: string;
   serieId: string;
   number: string;
+  imageUrl: string;
   normalOwned: boolean;
   foilOwned: boolean;
 }
@@ -22,21 +23,69 @@ const POKEMON_SERIES = [
   { id: "neo", name: "Neo Genesis / Discovery" }
 ];
 
-// Exemple de cartes initiales
+// Exemple de cartes initiales avec de vraies images (liens officiels / TCG)
 const INITIAL_CARDS: Card[] = [
-  { id: 1, name: "Dracaufeu", serieId: "base", number: "4/102", normalOwned: false, foilOwned: false },
-  { id: 2, name: "Pikachu", serieId: "base", number: "58/102", normalOwned: true, foilOwned: false },
-  { id: 3, name: "Tortank", serieId: "base", number: "2/102", normalOwned: false, foilOwned: true },
-  { id: 4, name: "Voltali", serieId: "jungle", number: "16/64", normalOwned: false, foilOwned: false },
-  { id: 5, name: "Ronflex", serieId: "jungle", number: "11/64", normalOwned: true, foilOwned: true },
-  { id: 6, name: "Aerodactyl", serieId: "fossil", number: "1/62", normalOwned: false, foilOwned: false }
+  { 
+    id: 1, 
+    name: "Dracaufeu", 
+    serieId: "base", 
+    number: "4/102", 
+    imageUrl: "https://images.pokemontcg.io/base1/4_hires.png", 
+    normalOwned: false, 
+    foilOwned: false 
+  },
+  { 
+    id: 2, 
+    name: "Pikachu", 
+    serieId: "base", 
+    number: "58/102", 
+    imageUrl: "https://images.pokemontcg.io/base1/58_hires.png", 
+    normalOwned: true, 
+    foilOwned: false 
+  },
+  { 
+    id: 3, 
+    name: "Tortank", 
+    serieId: "base", 
+    number: "2/102", 
+    imageUrl: "https://images.pokemontcg.io/base1/2_hires.png", 
+    normalOwned: false, 
+    foilOwned: true 
+  },
+  { 
+    id: 4, 
+    name: "Voltali", 
+    serieId: "jungle", 
+    number: "16/64", 
+    imageUrl: "https://images.pokemontcg.io/base2/16_hires.png", 
+    normalOwned: false, 
+    foilOwned: false 
+  },
+  { 
+    id: 5, 
+    name: "Ronflex", 
+    serieId: "jungle", 
+    number: "11/64", 
+    imageUrl: "https://images.pokemontcg.io/base2/11_hires.png", 
+    normalOwned: true, 
+    foilOwned: true 
+  },
+  { 
+    id: 6, 
+    name: "Aerodactyl", 
+    serieId: "fossil", 
+    number: "1/62", 
+    imageUrl: "https://images.pokemontcg.io/base3/1_hires.png", 
+    normalOwned: false, 
+    foilOwned: false 
+  }
 ];
 
 export default function PokedexPage() {
   const [cards, setCards] = useState<Card[]>(INITIAL_CARDS);
   const [selectedSeries, setSelectedSeries] = useState<string>("all");
 
-  // Fonction pour basculer l'état possédés (Normal ou Foil) avec typage strict
+  // Fonction pour basculer l'état possédés (Normal ou Foil)
   const toggleCardOwnership = (id: number, type: 'normal' | 'foil') => {
     setCards(cards.map(card => {
       if (card.id === id) {
@@ -123,6 +172,15 @@ export default function PokedexPage() {
           {filteredCards.map(card => (
             <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
               <div>
+                {/* Image de la carte */}
+                <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60">
+                  <img 
+                    src={card.imageUrl} 
+                    alt={card.name} 
+                    className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
+                  />
+                </div>
+
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="text-lg font-bold">{card.name}</h3>
                   <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">{card.number}</span>
