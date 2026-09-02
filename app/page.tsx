@@ -10,18 +10,17 @@ interface Card {
   foilOwned: boolean;
 }
 
-// Séries officielles en français
+// Séries avec gestion de la langue (fr ou en)
 const POKEMON_SERIES = [
-  { id: "base1", name: "Base Set (1999)" },
-  { id: "base2", name: "Jungle" },
-  { id: "base3", name: "Fossile" },
-  { id: "base4", name: "Base Set 2" },
-  { id: "gym1", name: "Gym Heroes" },
-  { id: "neo1", name: "Neo Genesis" }
+  { id: "base1", name: "Base Set (FR)", lang: "fr" },
+  { id: "base2", name: "Jungle (FR)", lang: "fr" },
+  { id: "base3", name: "Fossile (FR)", lang: "fr" },
+  // Exemple d'une série exclusive ou gérée en anglais si besoin :
+  // { id: "det1", name: "Detective Pikachu (EN)", lang: "en" }
 ];
 
 export default function PokedexPage() {
-  const [selectedSeries, setSelectedSeries] = useState<string>("base1");
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>("base1");
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -29,8 +28,12 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       try {
-        // Ajout du paramètre /fr/ dans l'URL pour forcer la langue française
-        const response = await fetch(`https://api.tcgdex.net/v2/fr/sets/${selectedSeries}`);
+        // Retrouver la série sélectionnée pour connaître sa langue
+        const currentSeries = POKEMON_SERIES.find(s => s.id === selectedSeriesId);
+        const lang = currentSeries ? currentSeries.lang : "fr";
+
+        // Appel dynamique de l'API TCGdex selon la langue (fr ou en)
+        const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
         const data = await response.json();
         
         if (data && data.cards) {
@@ -55,7 +58,7 @@ export default function PokedexPage() {
     }
 
     fetchCards();
-  }, [selectedSeries]);
+  }, [selectedSeriesId]);
 
   const toggleCardOwnership = (id: string, type: 'normal' | 'foil') => {
     setCards(cards.map(card => {
@@ -81,16 +84,16 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
           Mon Pokédex de Cartes 📈
         </h1>
-        <p className="text-slate-400 text-center mb-8">Sélectionne une extension pour charger et suivre ta collection en français</p>
+        <p className="text-slate-400 text-center mb-8">Gère ta collection de cartes multilingue</p>
 
         {/* Sélecteur de Séries */}
         <div className="mb-8 flex flex-wrap justify-center gap-2">
           {POKEMON_SERIES.map(series => (
             <button
               key={series.id}
-              onClick={() => setSelectedSeries(series.id)}
+              onClick={() => setSelectedSeriesId(series.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                selectedSeries === series.id
+                selectedSeriesId === series.id
                   ? "bg-yellow-500 text-slate-950 font-bold shadow-lg shadow-yellow-500/20"
                   : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800"
               }`}
@@ -126,7 +129,7 @@ export default function PokedexPage() {
         {/* Chargement / Grille */}
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse">
-            Chargement des cartes en français... ⚡
+            Chargement des cartes... ⚡
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
