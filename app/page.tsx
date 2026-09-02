@@ -4,16 +4,17 @@ import { useState, useEffect } from "react";
 interface Card {
   id: string;
   name: string;
-  number: string;
-  imageUrl: string;
+  localId: string;
+  image: string;
   normalOwned: boolean;
   foilOwned: boolean;
 }
 
+// Séries officielles avec les identifiants de l'API TCGdex (en français)
 const POKEMON_SERIES = [
   { id: "base1", name: "Base Set (1999)" },
   { id: "base2", name: "Jungle" },
-  { id: "base3", name: "Fossil" },
+  { id: "base3", name: "Fossile" },
   { id: "base4", name: "Base Set 2" },
   { id: "gym1", name: "Gym Heroes" },
   { id: "neo1", name: "Neo Genesis" }
@@ -28,22 +29,27 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       try {
-        // On enlève la limite de pageSize pour récupérer toutes les cartes du set
-        const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${selectedSeries}&orderBy=number`);
+        // Appel de l'API TCGdex en français pour la série sélectionnée
+        const response = await fetch(`https://api.tcgdex.net/v2/fr/sets/${selectedSeries}`);
         const data = await response.json();
         
-        const formattedCards: Card[] = data.data.map((card: any) => ({
-          id: card.id,
-          name: card.name,
-          number: card.number,
-          imageUrl: card.images.small,
-          normalOwned: false,
-          foilOwned: false
-        }));
-
-        setCards(formattedCards);
+        if (data && data.cards) {
+          const formattedCards: Card[] = data.cards.map((card: any) => ({
+            id: card.id,
+            name: card.name,
+            localId: card.localId,
+            // TCGdex fournit l'image directement, on y ajoute /high.png pour une belle qualité
+            image: card.image ? `${card.image}/high.png` : "",
+            normalOwned: false,
+            foilOwned: false
+          }));
+          setCards(formattedCards);
+        } else {
+          setCards([]);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement des cartes", error);
+        setCards([]);
       } finally {
         setLoading(false);
       }
@@ -76,8 +82,9 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
           Mon Pokédex de Cartes 📈
         </h1>
-        <p className="text-slate-400 text-center mb-8">Sélectionne une extension pour charger et suivre ta collection</p>
+        <p className="text-slate-400 text-center mb-8">Sélectionne une extension pour charger et suivre ta collection en français</p>
 
+        {/* Sélecteur de Séries */}
         <div className="mb-8 flex flex-wrap justify-center gap-2">
           {POKEMON_SERIES.map(series => (
             <button
@@ -94,6 +101,7 @@ export default function PokedexPage() {
           ))}
         </div>
 
+        {/* Barres de progression */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
           <div>
             <div className="flex justify-between text-sm mb-2 font-medium">
@@ -101,10 +109,7 @@ export default function PokedexPage() {
               <span className="text-yellow-400">{normalCollected} / {totalCards} ({normalPercent}%)</span>
             </div>
             <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div 
-                className="bg-yellow-500 h-full transition-all duration-500 rounded-full" 
-                style={{ width: `${normalPercent}%` }}
-              ></div>
+              <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${normalPercent}%` }}></div>
             </div>
           </div>
 
@@ -114,17 +119,15 @@ export default function PokedexPage() {
               <span className="text-purple-400">{foilCollected} / {totalCards} ({foilPercent}%)</span>
             </div>
             <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div 
-                className="bg-purple-500 h-full transition-all duration-500 rounded-full" 
-                style={{ width: `${foilPercent}%` }}
-              ></div>
+              <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${foilPercent}%` }}></div>
             </div>
           </div>
         </div>
 
+        {/* Chargement / Grille */}
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse">
-            Chargement de toutes les cartes du set... ⚡
+            Chargement des cartes en français... ⚡
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -132,16 +135,20 @@ export default function PokedexPage() {
               <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
                 <div>
                   <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center">
-                    <img 
-                      src={card.imageUrl} 
-                      alt={card.name} 
-                      className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
-                    />
+                    {card.image ? (
+                      <img 
+                        src={card.image} 
+                        alt={card.name} 
+                        className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-500">Image indisponible</span>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-lg font-bold">{card.name}</h3>
-                    <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">{card.number}</span>
+                    <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">#{card.localId}</span>
                   </div>
                 </div>
 
