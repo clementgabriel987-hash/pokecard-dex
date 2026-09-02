@@ -10,13 +10,14 @@ interface Card {
   foilOwned: boolean;
 }
 
-// Séries avec gestion de la langue (fr ou en)
+// Liste des séries avec leur langue officielle respective sur TCGdex
 const POKEMON_SERIES = [
   { id: "base1", name: "Base Set (FR)", lang: "fr" },
   { id: "base2", name: "Jungle (FR)", lang: "fr" },
   { id: "base3", name: "Fossile (FR)", lang: "fr" },
-  // Exemple d'une série exclusive ou gérée en anglais si besoin :
-  // { id: "det1", name: "Detective Pikachu (EN)", lang: "en" }
+  { id: "base4", name: "Base Set 2 (EN)", lang: "en" },
+  { id: "gym1", name: "Gym Heroes (EN)", lang: "en" },
+  { id: "neo1", name: "Neo Genesis (FR)", lang: "fr" }
 ];
 
 export default function PokedexPage() {
@@ -28,11 +29,11 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       try {
-        // Retrouver la série sélectionnée pour connaître sa langue
+        // Trouve la configuration de la série pour récupérer sa langue (fr ou en)
         const currentSeries = POKEMON_SERIES.find(s => s.id === selectedSeriesId);
         const lang = currentSeries ? currentSeries.lang : "fr";
 
-        // Appel dynamique de l'API TCGdex selon la langue (fr ou en)
+        // Requête dynamique avec la bonne langue
         const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
         const data = await response.json();
         
