@@ -9,6 +9,7 @@ interface Card {
   image: string;
   normalOwned: boolean;
   foilOwned: boolean;
+  seriesName?: string;
 }
 
 const POKEMON_SERIES = [
@@ -22,6 +23,7 @@ const POKEMON_SERIES = [
 
 export default function PokedexPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>("base1");
+  const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
@@ -47,12 +49,6 @@ export default function PokedexPage() {
     async function fetchCardsAndCollection() {
       setLoading(true);
       try {
-        const currentSeries = POKEMON_SERIES.find(s => s.id === selectedSeriesId);
-        const lang = currentSeries ? currentSeries.lang : "fr";
-
-        const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
-        const data = await response.json();
-        
         let userCollectionsMap: Record<string, { normalOwned: boolean; foilOwned: boolean }> = {};
 
         if (user) {
@@ -70,22 +66,70 @@ export default function PokedexPage() {
             });
           }
         }
-        
-        if (data && data.cards) {
-          const formattedCards: Card[] = data.cards.map((card: any) => {
-            const savedState = userCollectionsMap[card.id];
-            return {
-              id: card.id,
-              name: card.name || "Carte inconnue",
-              localId: card.localId || "?",
-              image: card.image ? `${card.image}/high.png` : "",
-              normalOwned: savedState ? savedState.normalOwned : false,
-              foilOwned: savedState ? savedState.foilOwned : false
-            };
-          });
-          setCards(formattedCards);
+
+        if (isGlobalBinder) {
+          // MODE CLASSEUR GLOBAL : On récupère uniquement les cartes possédées (normal ou foil)
+          if (!user) {
+            setCards([]);
+            setLoading(false);
+            return;
+          }
+
+          const ownedCardIds = Object.keys(userCollectionsMap).filter(
+            cardId => userCollectionsMap[cardId].normalOwned || userCollectionsMap[cardId].foilOwned
+          );
+
+          let globalCards: Card[] = [];
+          for (const series of POKEMON_SERIES) {
+            try {
+              const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
+              const data = await response.json();
+              if (data && data.cards) {
+                data.cards.forEach((card: any) => {
+                  if (ownedCardIds.includes(card.id)) {
+                    const savedState = userCollectionsMap[card.id];
+                    globalCards.push({
+                      id: card.id,
+                      name: card.name || "Carte inconnue",
+                      localId: card.localId || "?",
+                      image: card.image ? `${card.image}/high.png` : "",
+                      normalOwned: savedState ? savedState.normalOwned : false,
+                      foilOwned: savedState ? savedState.foilOwned : false,
+                      seriesName: series.name
+                    });
+                  }
+                });
+              }
+            } catch (err) {
+              console.error(`Erreur série ${series.name}`, err);
+            }
+          }
+          setCards(globalCards);
+
         } else {
-          setCards([]);
+          // MODE CLASSIQUE : Affichage d'une série spécifique
+          const currentSeries = POKEMON_SERIES.find(s => s.id === selectedSeriesId);
+          const lang = currentSeries ? currentSeries.lang : "fr";
+
+          const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
+          const data = await response.json();
+          
+          if (data && data.cards) {
+            const formattedCards: Card[] = data.cards.map((card: any) => {
+              const savedState = userCollectionsMap[card.id];
+              return {
+                id: card.id,
+                name: card.name || "Carte inconnue",
+                localId: card.localId || "?",
+                image: card.image ? `${card.image}/high.png` : "",
+                normalOwned: savedState ? savedState.normalOwned : false,
+                foilOwned: savedState ? savedState.foilOwned : false
+              };
+            });
+            setCards(formattedCards);
+          } else {
+            setCards([]);
+          }
         }
       } catch (error) {
         console.error("Erreur lors du chargement des cartes", error);
@@ -96,7 +140,7 @@ export default function PokedexPage() {
     }
 
     fetchCardsAndCollection();
-  }, [selectedSeriesId, user]);
+  }, [selectedSeriesId, isGlobalBinder, user]);
 
   const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     let updatedCards = cards.map(card => {
@@ -217,14 +261,14 @@ export default function PokedexPage() {
         </h1>
         <p className="text-slate-400 text-center mb-8">Gère ta collection de cartes multilingue</p>
 
-        {/* Sélecteur de Séries */}
+        {/* Sélecteur de Séries + Bouton Classeur Global */}
         <div className="mb-8 flex flex-wrap justify-center gap-2">
           {POKEMON_SERIES.map(series => (
             <button
               key={series.id}
-              onClick={() => setSelectedSeriesId(series.id)}
+              onClick={() => { setIsGlobalBinder(false); setSelectedSeriesId(series.id); }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition cursor-pointer ${
-                selectedSeriesId === series.id
+                !isGlobalBinder && selectedSeriesId === series.id
                   ? "bg-yellow-500 text-slate-950 font-bold shadow-lg shadow-yellow-500/20"
                   : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800"
               }`}
@@ -232,30 +276,54 @@ export default function PokedexPage() {
               {series.name}
             </button>
           ))}
+
+          {/* Bouton Mon Classeur Global */}
+          <button
+            onClick={() => setIsGlobalBinder(true)}
+            className={`px-5 py-2 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              isGlobalBinder
+                ? "bg-purple-500 text-white shadow-lg shadow-purple-500/30"
+                : "bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60"
+            }`}
+          >
+            <span>✨ Mon Classeur Global</span>
+          </button>
         </div>
 
-        {/* Barres de progression */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
-          <div>
-            <div className="flex justify-between text-sm mb-2 font-medium">
-              <span className="text-slate-300">Cartes Normales</span>
-              <span className="text-yellow-400">{normalCollected} / {totalCards} ({normalPercent}%)</span>
+        {/* Barres de progression (Affichées uniquement en mode série classique) */}
+        {!isGlobalBinder && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
+            <div>
+              <div className="flex justify-between text-sm mb-2 font-medium">
+                <span className="text-slate-300">Cartes Normales</span>
+                <span className="text-yellow-400">{normalCollected} / {totalCards} ({normalPercent}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${normalPercent}%` }}></div>
+              </div>
             </div>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${normalPercent}%` }}></div>
-            </div>
-          </div>
 
-          <div>
-            <div className="flex justify-between text-sm mb-2 font-medium">
-              <span className="text-slate-300">Cartes Foils (Brillantes)</span>
-              <span className="text-purple-400">{foilCollected} / {totalCards} ({foilPercent}%)</span>
-            </div>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${foilPercent}%` }}></div>
+            <div>
+              <div className="flex justify-between text-sm mb-2 font-medium">
+                <span className="text-slate-300">Cartes Foils (Brillantes)</span>
+                <span className="text-purple-400">{foilCollected} / {totalCards} ({foilPercent}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${foilPercent}%` }}></div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Indicateur mode global */}
+        {isGlobalBinder && (
+          <div className="mb-8 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
+            <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
+            <p className="text-xs text-purple-400/80 mt-1">
+              {user ? `Tu possèdes un total de ${cards.length} cartes enregistrées dans toutes les séries confondues.` : "Connecte-toi pour afficher ton classeur global."}
+            </p>
+          </div>
+        )}
 
         {/* Grille des cartes */}
         {loading ? (
@@ -267,7 +335,12 @@ export default function PokedexPage() {
             {cards.map(card => (
               <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
                 <div>
-                  <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center">
+                  <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center relative">
+                    {card.seriesName && (
+                      <span className="absolute top-2 left-2 text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-medium">
+                        {card.seriesName}
+                      </span>
+                    )}
                     {card.image ? (
                       <img 
                         src={card.image} 
@@ -311,6 +384,12 @@ export default function PokedexPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {!loading && cards.length === 0 && (
+          <p className="text-center text-slate-500 py-12">
+            {isGlobalBinder ? "Aucune carte possédée pour l'instant dans ton classeur global." : "Aucune carte trouvée pour cette série."}
+          </p>
         )}
 
       </div>
