@@ -27,23 +27,30 @@ export default function PokedexPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
-  const [user, setUser] = useState<any>(null);
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [authMessage, setAuthMessage] = useState<string>("");
-  const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  // Gestion du pseudo simple
+  const [username, setUsername] = useState<string>("");
+  const [tempUsername, setTempUsername] = useState<string>("");
 
+  // Charger le pseudo stocké au démarrage
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    const savedUser = localStorage.getItem("pokedex_username");
+    if (savedUser) {
+      setUsername(savedUser);
+    }
   }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempUsername.trim()) return;
+    const cleanName = tempUsername.trim();
+    localStorage.setItem("pokedex_username", cleanName);
+    setUsername(cleanName);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("pokedex_username");
+    setUsername("");
+  };
 
   useEffect(() => {
     async function fetchCardsAndCollection() {
@@ -51,11 +58,11 @@ export default function PokedexPage() {
       try {
         let userCollectionsMap: Record<string, { normalOwned: boolean; foilOwned: boolean }> = {};
 
-        if (user) {
+        if (username) {
           const { data: dbData, error } = await supabase
             .from("user_collections")
             .select("card_id, normal_owned, foil_owned")
-            .eq("user_id", user.id);
+            .eq("user_id", username); // On utilise le pseudo comme ID utilisateur
 
           if (!error && dbData) {
             dbData.forEach(item => {
@@ -68,8 +75,7 @@ export default function PokedexPage() {
         }
 
         if (isGlobalBinder) {
-          // MODE CLASSEUR GLOBAL : On récupère uniquement les cartes possédées (normal ou foil)
-          if (!user) {
+          if (!username) {
             setCards([]);
             setLoading(false);
             return;
@@ -107,7 +113,6 @@ export default function PokedexPage() {
           setCards(globalCards);
 
         } else {
-          // MODE CLASSIQUE : Affichage d'une série spécifique
           const currentSeries = POKEMON_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
 
@@ -140,7 +145,7 @@ export default function PokedexPage() {
     }
 
     fetchCardsAndCollection();
-  }, [selectedSeriesId, isGlobalBinder, user]);
+  }, [selectedSeriesId, isGlobalBinder, username]);
 
   const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     let updatedCards = cards.map(card => {
@@ -153,11 +158,11 @@ export default function PokedexPage() {
 
     setCards(updatedCards);
 
-    if (user) {
+    if (username) {
       const targetCard = updatedCards.find(c => c.id === id);
       if (targetCard) {
         await supabase.from("user_collections").upsert({
-          user_id: user.id,
+          user_id: username, // On stocke le pseudo
           card_id: targetCard.id,
           normal_owned: targetCard.normalOwned,
           foil_owned: targetCard.foilOwned,
@@ -165,31 +170,6 @@ export default function PokedexPage() {
         }, { onConflict: 'user_id,card_id' });
       }
     }
-  };
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthMessage("");
-
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        setAuthMessage("Erreur : " + error.message);
-      } else {
-        setAuthMessage("Compte créé ! Tu es connecté.");
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setAuthMessage("Erreur : Identifiants incorrects");
-      } else {
-        setAuthMessage("Connexion réussie ! 🎉");
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
   };
 
   const totalCards = cards.length;
@@ -203,37 +183,29 @@ export default function PokedexPage() {
     <main className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
       <div className="max-w-5xl mx-auto">
         
-        {/* Barre de connexion / Compte */}
+        {/* Barre de profil / Pseudo */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-slate-300">Mon Compte Cloud ☁️</h2>
+            <h2 className="text-sm font-semibold text-slate-300">Profil Dresseur 🧢</h2>
             <p className="text-xs text-slate-500">
-              {user ? `Connecté : ${user.email}` : "Connecte-toi pour sauvegarder ton Pokédex."}
+              {username ? `Connecté en tant que : ${username}` : "Entre un pseudo pour sauvegarder tes cartes en ligne."}
             </p>
           </div>
 
-          {user ? (
+          {username ? (
             <button
               onClick={handleLogout}
               className="bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-red-500/30 transition cursor-pointer"
             >
-              Se déconnecter
+              Changer de pseudo
             </button>
           ) : (
-            <form onSubmit={handleAuth} className="flex flex-wrap gap-2 items-center justify-end">
+            <form onSubmit={handleLogin} className="flex gap-2 w-full sm:w-auto">
               <input
-                type="email"
-                placeholder="Email..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white outline-none focus:border-yellow-500"
-                required
-              />
-              <input
-                type="password"
-                placeholder="Mot de passe..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type="text"
+                placeholder="Ton pseudo..."
+                value={tempUsername}
+                onChange={(e) => setTempUsername(e.target.value)}
                 className="bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white outline-none focus:border-yellow-500"
                 required
               />
@@ -241,19 +213,11 @@ export default function PokedexPage() {
                 type="submit"
                 className="bg-yellow-500 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition cursor-pointer"
               >
-                {isSignUp ? "S'inscrire" : "Se connecter"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-xs text-slate-400 underline hover:text-yellow-400 ml-1"
-              >
-                {isSignUp ? "Déjà un compte ?" : "Créer un compte"}
+                Valider
               </button>
             </form>
           )}
         </div>
-        {authMessage && <p className="text-xs text-center text-yellow-400 mb-6">{authMessage}</p>}
 
         {/* Titre */}
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
@@ -277,7 +241,6 @@ export default function PokedexPage() {
             </button>
           ))}
 
-          {/* Bouton Mon Classeur Global */}
           <button
             onClick={() => setIsGlobalBinder(true)}
             className={`px-5 py-2 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${
@@ -290,7 +253,7 @@ export default function PokedexPage() {
           </button>
         </div>
 
-        {/* Barres de progression (Affichées uniquement en mode série classique) */}
+        {/* Barres de progression */}
         {!isGlobalBinder && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <div>
@@ -315,12 +278,11 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Indicateur mode global */}
         {isGlobalBinder && (
           <div className="mb-8 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
             <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
             <p className="text-xs text-purple-400/80 mt-1">
-              {user ? `Tu possèdes un total de ${cards.length} cartes enregistrées dans toutes les séries confondues.` : "Connecte-toi pour afficher ton classeur global."}
+              {username ? `Tu possèdes un total de ${cards.length} cartes enregistrées dans toutes les séries.` : "Entre un pseudo pour afficher ton classeur global."}
             </p>
           </div>
         )}
