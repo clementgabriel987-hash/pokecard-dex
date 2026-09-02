@@ -47,7 +47,7 @@ export default function PokedexPage() {
 
     if (!cleanPseudo || !password) return;
 
-    // Utilisation du système Auth natif de Supabase (fini les erreurs de cache de tables)
+    // Utilisation d'un faux email interne basé sur le pseudo pour Supabase Auth (zéro table profiles requise)
     const fakeEmail = `${cleanPseudo}@pokedex-app.local`;
 
     if (isSignUp) {
