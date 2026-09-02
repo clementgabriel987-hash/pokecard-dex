@@ -27,14 +27,12 @@ export default function PokedexPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
-  // États pour Pseudo + Mot de passe
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [currentUser, setCurrentUser] = useState<string>("");
   const [authMessage, setAuthMessage] = useState<string>("");
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
 
-  // Charger le pseudo stocké au démarrage
   useEffect(() => {
     const savedUser = localStorage.getItem("pokedex_pseudo");
     if (savedUser) {
@@ -50,7 +48,6 @@ export default function PokedexPage() {
     if (!cleanPseudo || !password) return;
 
     if (isSignUp) {
-      // Inscription : On vérifie si le pseudo existe déjà
       const { data: existingUser } = await supabase
         .from("profiles")
         .select("username")
@@ -62,20 +59,18 @@ export default function PokedexPage() {
         return;
       }
 
-      // Création du profil
       const { error } = await supabase
         .from("profiles")
         .insert([{ username: cleanPseudo, password }]);
 
       if (error) {
-        setAuthMessage("Erreur lors de l'inscription : " + error.message);
+        setAuthMessage("Erreur : " + error.message);
       } else {
         localStorage.setItem("pokedex_pseudo", cleanPseudo);
         setCurrentUser(cleanPseudo);
         setAuthMessage("Compte créé avec succès ! 🎉");
       }
     } else {
-      // Connexion : Vérification du pseudo et du mot de passe
       const { data: userRecord, error } = await supabase
         .from("profiles")
         .select("*")
@@ -137,6 +132,7 @@ export default function PokedexPage() {
           for (const series of POKEMON_SERIES) {
             try {
               const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
+              if (!response.ok) continue;
               const data = await response.json();
               if (data && data.cards) {
                 data.cards.forEach((card: any) => {
@@ -165,6 +161,13 @@ export default function PokedexPage() {
           const lang = currentSeries ? currentSeries.lang : "fr";
 
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
+          
+          if (!response.ok) {
+            setCards([]);
+            setLoading(false);
+            return;
+          }
+
           const data = await response.json();
           
           if (data && data.cards) {
@@ -231,7 +234,7 @@ export default function PokedexPage() {
     <main className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
       <div className="max-w-5xl mx-auto">
         
-        {/* Barre de connexion Pseudo / MDP */}
+        {/* Barre de connexion */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-300">Espace Dresseur 🧢</h2>
@@ -289,7 +292,7 @@ export default function PokedexPage() {
         </h1>
         <p className="text-slate-400 text-center mb-8">Gère ta collection de cartes multilingue</p>
 
-        {/* Sélecteur de Séries + Bouton Classeur Global */}
+        {/* Sélecteur de Séries */}
         <div className="mb-8 flex flex-wrap justify-center gap-2">
           {POKEMON_SERIES.map(series => (
             <button
