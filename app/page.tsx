@@ -1,7 +1,17 @@
 "use client";
 import { useState } from "react";
 
-// Exemple de listes de séries Pokémon officielles principales
+// Définition du type d'une carte
+interface Card {
+  id: number;
+  name: string;
+  serieId: string;
+  number: string;
+  normalOwned: boolean;
+  foilOwned: boolean;
+}
+
+// Liste des séries Pokémon officielles principales
 const POKEMON_SERIES = [
   { id: "all", name: "Toutes les séries" },
   { id: "base", name: "Base (1999)" },
@@ -12,8 +22,8 @@ const POKEMON_SERIES = [
   { id: "neo", name: "Neo Genesis / Discovery" }
 ];
 
-// Exemple de cartes initiales (à adapter selon tes besoins ou ton API)
-const INITIAL_CARDS = [
+// Exemple de cartes initiales
+const INITIAL_CARDS: Card[] = [
   { id: 1, name: "Dracaufeu", serieId: "base", number: "4/102", normalOwned: false, foilOwned: false },
   { id: 2, name: "Pikachu", serieId: "base", number: "58/102", normalOwned: true, foilOwned: false },
   { id: 3, name: "Tortank", serieId: "base", number: "2/102", normalOwned: false, foilOwned: true },
@@ -23,11 +33,11 @@ const INITIAL_CARDS = [
 ];
 
 export default function PokedexPage() {
-  const [cards, setCards] = useState(INITIAL_CARDS);
-  const [selectedSeries, setSelectedSeries] = useState("all");
+  const [cards, setCards] = useState<Card[]>(INITIAL_CARDS);
+  const [selectedSeries, setSelectedSeries] = useState<string>("all");
 
-  // Fonction pour basculer l'état possédés (Normal ou Foil)
-  const toggleCardOwnership = (id, type) => {
+  // Fonction pour basculer l'état possédés (Normal ou Foil) avec typage strict
+  const toggleCardOwnership = (id: number, type: 'normal' | 'foil') => {
     setCards(cards.map(card => {
       if (card.id === id) {
         if (type === 'normal') return { ...card, normalOwned: !card.normalOwned };
@@ -80,7 +90,7 @@ export default function PokedexPage() {
         {/* Barres de progression (Normales & Foils) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
           {/* Progression Normales */}
-<div>
+          <div>
             <div className="flex justify-between text-sm mb-2 font-medium">
               <span className="text-slate-300">Cartes Normales</span>
               <span className="text-yellow-400">{normalCollected} / {totalCards} ({normalPercent}%)</span>
