@@ -27,7 +27,9 @@ export default function PokedexPage() {
   
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [authMessage, setAuthMessage] = useState<string>("");
+  const [isSignUp, setIsSignUp] = useState<boolean>(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -121,13 +123,24 @@ export default function PokedexPage() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) {
-      setAuthMessage("Erreur : " + error.message);
+    setAuthMessage("");
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setAuthMessage("Erreur : " + error.message);
+      } else {
+        setAuthMessage("Compte créé ! Tu es connecté.");
+      }
     } else {
-      setAuthMessage("Lien de connexion envoyé par email ! Vérifie ta boîte mail 📩");
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setAuthMessage("Erreur : Identifiants incorrects");
+      } else {
+        setAuthMessage("Connexion réussie ! 🎉");
+      }
     }
   };
 
@@ -149,9 +162,9 @@ export default function PokedexPage() {
         {/* Barre de connexion / Compte */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-slate-300">Synchronisation Cloud ☁️</h2>
+            <h2 className="text-sm font-semibold text-slate-300">Mon Compte Cloud ☁️</h2>
             <p className="text-xs text-slate-500">
-              {user ? `Connecté en tant que : ${user.email}` : "Connecte-toi pour sauvegarder ton Pokédex en ligne."}
+              {user ? `Connecté : ${user.email}` : "Connecte-toi pour sauvegarder ton Pokédex."}
             </p>
           </div>
 
@@ -163,12 +176,20 @@ export default function PokedexPage() {
               Se déconnecter
             </button>
           ) : (
-            <form onSubmit={handleLogin} className="flex gap-2 w-full sm:w-auto">
+            <form onSubmit={handleAuth} className="flex flex-wrap gap-2 items-center justify-end">
               <input
                 type="email"
-                placeholder="Ton email..."
+                placeholder="Email..."
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white outline-none focus:border-yellow-500"
+                required
+              />
+              <input
+                type="password"
+                placeholder="Mot de passe..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white outline-none focus:border-yellow-500"
                 required
               />
@@ -176,7 +197,14 @@ export default function PokedexPage() {
                 type="submit"
                 className="bg-yellow-500 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition cursor-pointer"
               >
-                Connexion magique
+                {isSignUp ? "S'inscrire" : "Se connecter"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-xs text-slate-400 underline hover:text-yellow-400 ml-1"
+              >
+                {isSignUp ? "Déjà un compte ?" : "Créer un compte"}
               </button>
             </form>
           )}
@@ -283,10 +311,6 @@ export default function PokedexPage() {
               </div>
             ))}
           </div>
-        )}
-
-        {!loading && cards.length === 0 && (
-          <p className="text-center text-slate-500 py-12">Aucune carte trouvée pour cette série.</p>
         )}
 
       </div>
