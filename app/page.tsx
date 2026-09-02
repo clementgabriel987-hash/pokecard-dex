@@ -10,7 +10,7 @@ interface Card {
   foilOwned: boolean;
 }
 
-// Séries officielles avec les identifiants de l'API TCGdex (en français)
+// Séries officielles en français
 const POKEMON_SERIES = [
   { id: "base1", name: "Base Set (1999)" },
   { id: "base2", name: "Jungle" },
@@ -29,7 +29,7 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       try {
-        // Appel de l'API TCGdex en français pour la série sélectionnée
+        // Ajout du paramètre /fr/ dans l'URL pour forcer la langue française
         const response = await fetch(`https://api.tcgdex.net/v2/fr/sets/${selectedSeries}`);
         const data = await response.json();
         
@@ -38,7 +38,6 @@ export default function PokedexPage() {
             id: card.id,
             name: card.name,
             localId: card.localId,
-            // TCGdex fournit l'image directement, on y ajoute /high.png pour une belle qualité
             image: card.image ? `${card.image}/high.png` : "",
             normalOwned: false,
             foilOwned: false
