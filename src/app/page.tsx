@@ -27,29 +27,77 @@ export default function PokedexPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
-  // Gestion du pseudo simple
+  // États pour Pseudo + Mot de passe
   const [username, setUsername] = useState<string>("");
-  const [tempUsername, setTempUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [currentUser, setCurrentUser] = useState<string>("");
+  const [authMessage, setAuthMessage] = useState<string>("");
+  const [isSignUp, setIsSignUp] = useState<boolean>(false);
 
   // Charger le pseudo stocké au démarrage
   useEffect(() => {
-    const savedUser = localStorage.getItem("pokedex_username");
+    const savedUser = localStorage.getItem("pokedex_pseudo");
     if (savedUser) {
-      setUsername(savedUser);
+      setCurrentUser(savedUser);
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tempUsername.trim()) return;
-    const cleanName = tempUsername.trim();
-    localStorage.setItem("pokedex_username", cleanName);
-    setUsername(cleanName);
+    setAuthMessage("");
+    const cleanPseudo = username.trim().toLowerCase();
+
+    if (!cleanPseudo || !password) return;
+
+    if (isSignUp) {
+      // Inscription : On vérifie si le pseudo existe déjà
+      const { data: existingUser } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("username", cleanPseudo)
+        .single();
+
+      if (existingUser) {
+        setAuthMessage("Ce pseudo est déjà pris ! Choisis-en un autre.");
+        return;
+      }
+
+      // Création du profil
+      const { error } = await supabase
+        .from("profiles")
+        .insert([{ username: cleanPseudo, password }]);
+
+      if (error) {
+        setAuthMessage("Erreur lors de l'inscription : " + error.message);
+      } else {
+        localStorage.setItem("pokedex_pseudo", cleanPseudo);
+        setCurrentUser(cleanPseudo);
+        setAuthMessage("Compte créé avec succès ! 🎉");
+      }
+    } else {
+      // Connexion : Vérification du pseudo et du mot de passe
+      const { data: userRecord, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("username", cleanPseudo)
+        .eq("password", password)
+        .single();
+
+      if (error || !userRecord) {
+        setAuthMessage("Pseudo ou mot de passe incorrect.");
+      } else {
+        localStorage.setItem("pokedex_pseudo", cleanPseudo);
+        setCurrentUser(cleanPseudo);
+        setAuthMessage("Connexion réussie ! 🚀");
+      }
+    }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("pokedex_username");
+    localStorage.removeItem("pokedex_pseudo");
+    setCurrentUser("");
     setUsername("");
+    setPassword("");
   };
 
   useEffect(() => {
@@ -58,11 +106,11 @@ export default function PokedexPage() {
       try {
         let userCollectionsMap: Record<string, { normalOwned: boolean; foilOwned: boolean }> = {};
 
-        if (username) {
+        if (currentUser) {
           const { data: dbData, error } = await supabase
             .from("user_collections")
             .select("card_id, normal_owned, foil_owned")
-            .eq("user_id", username); // On utilise le pseudo comme ID utilisateur
+            .eq("user_id", currentUser);
 
           if (!error && dbData) {
             dbData.forEach(item => {
@@ -75,7 +123,7 @@ export default function PokedexPage() {
         }
 
         if (isGlobalBinder) {
-          if (!username) {
+          if (!currentUser) {
             setCards([]);
             setLoading(false);
             return;
@@ -145,7 +193,7 @@ export default function PokedexPage() {
     }
 
     fetchCardsAndCollection();
-  }, [selectedSeriesId, isGlobalBinder, username]);
+  }, [selectedSeriesId, isGlobalBinder, currentUser]);
 
   const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     let updatedCards = cards.map(card => {
@@ -158,11 +206,11 @@ export default function PokedexPage() {
 
     setCards(updatedCards);
 
-    if (username) {
+    if (currentUser) {
       const targetCard = updatedCards.find(c => c.id === id);
       if (targetCard) {
         await supabase.from("user_collections").upsert({
-          user_id: username, // On stocke le pseudo
+          user_id: currentUser,
           card_id: targetCard.id,
           normal_owned: targetCard.normalOwned,
           foil_owned: targetCard.foilOwned,
@@ -183,29 +231,37 @@ export default function PokedexPage() {
     <main className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
       <div className="max-w-5xl mx-auto">
         
-        {/* Barre de profil / Pseudo */}
+        {/* Barre de connexion Pseudo / MDP */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-slate-300">Profil Dresseur 🧢</h2>
+            <h2 className="text-sm font-semibold text-slate-300">Espace Dresseur 🧢</h2>
             <p className="text-xs text-slate-500">
-              {username ? `Connecté en tant que : ${username}` : "Entre un pseudo pour sauvegarder tes cartes en ligne."}
+              {currentUser ? `Connecté : ${currentUser}` : "Connecte-toi avec ton pseudo et ton mot de passe."}
             </p>
           </div>
 
-          {username ? (
+          {currentUser ? (
             <button
               onClick={handleLogout}
               className="bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-red-500/30 transition cursor-pointer"
             >
-              Changer de pseudo
+              Se déconnecter
             </button>
           ) : (
-            <form onSubmit={handleLogin} className="flex gap-2 w-full sm:w-auto">
+            <form onSubmit={handleAuth} className="flex flex-wrap gap-2 items-center justify-end">
               <input
                 type="text"
-                placeholder="Ton pseudo..."
-                value={tempUsername}
-                onChange={(e) => setTempUsername(e.target.value)}
+                placeholder="Pseudo..."
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white outline-none focus:border-yellow-500"
+                required
+              />
+              <input
+                type="password"
+                placeholder="Mot de passe..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white outline-none focus:border-yellow-500"
                 required
               />
@@ -213,11 +269,19 @@ export default function PokedexPage() {
                 type="submit"
                 className="bg-yellow-500 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition cursor-pointer"
               >
-                Valider
+                {isSignUp ? "S'inscrire" : "Se connecter"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-xs text-slate-400 underline hover:text-yellow-400 ml-1"
+              >
+                {isSignUp ? "Déjà un compte ?" : "Créer un compte"}
               </button>
             </form>
           )}
         </div>
+        {authMessage && <p className="text-xs text-center text-yellow-400 mb-6">{authMessage}</p>}
 
         {/* Titre */}
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
@@ -282,7 +346,7 @@ export default function PokedexPage() {
           <div className="mb-8 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
             <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
             <p className="text-xs text-purple-400/80 mt-1">
-              {username ? `Tu possèdes un total de ${cards.length} cartes enregistrées dans toutes les séries.` : "Entre un pseudo pour afficher ton classeur global."}
+              {currentUser ? `Tu possèdes un total de ${cards.length} cartes enregistrées dans toutes les séries.` : "Connecte-toi pour afficher ton classeur global."}
             </p>
           </div>
         )}
