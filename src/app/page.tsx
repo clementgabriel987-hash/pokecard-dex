@@ -66,6 +66,22 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
+    blockName: "Bloc Noir & Blanc",
+    sets: [
+      { id: "bw1", name: "Noir & Blanc (FR)", lang: "fr" },
+      { id: "bw2", name: "Pouvoirs Émergents (FR)", lang: "fr" },
+      { id: "bw3", name: "Nobles Victoires (FR)", lang: "fr" },
+      { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
+      { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
+      { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
+      { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
+      { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
+      { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
+      { id: "bw10", name: "Explosion Plasma (FR)", lang: "fr" },
+      { id: "bw11", name: "Trésors Légendaires (FR)", lang: "fr" }
+    ]
+  },
+  {
     blockName: "Bloc XY (Méga-Évolutions)",
     sets: [
       { id: "xy1", name: "XY de base (FR)", lang: "fr" },
@@ -77,8 +93,9 @@ const POKEMON_BLOCKS = [
       { id: "xy7", name: "Origines Antiques (FR)", lang: "fr" },
       { id: "xy8", name: "Impulsion Turbo (FR)", lang: "fr" },
       { id: "xy9", name: "Rupture Turbo (FR)", lang: "fr" },
-      { id: "xy10", name: "Offensive Vapeur (FR)", lang: "fr" },
-      { id: "xy11", name: "Évolutions (FR)", lang: "fr" },
+      { id: "xy10", name: "Impact des Destins (FR)", lang: "fr" },
+      { id: "xy11", name: "Offensive Vapeur (FR)", lang: "fr" },
+      { id: "xy12", name: "Évolutions (FR)", lang: "fr" },
       { id: "g1", name: "Générations (FR)", lang: "fr" }
     ]
   },
@@ -145,7 +162,10 @@ export default function PokedexPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>("base1");
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
   
-  // cards contient uniquement les données brutes (ID, image, etc.)
+  // Nouveau : État pour la recherche
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [activeSearch, setActiveSearch] = useState<string>("");
+
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
@@ -156,7 +176,6 @@ export default function PokedexPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
 
-  // 1. Initialiser l'utilisateur
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
@@ -169,7 +188,6 @@ export default function PokedexPage() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // 2. Charger la collection JSON depuis Supabase
   useEffect(() => {
     async function loadCollection() {
       if (!currentUser) {
@@ -193,7 +211,6 @@ export default function PokedexPage() {
     loadCollection();
   }, [currentUser]);
 
-  // Actions Auth & Export
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -237,13 +254,69 @@ export default function PokedexPage() {
     reader.readAsText(file);
   };
 
-  // 3. Charger les cartes (sans se soucier de qui possède quoi ici)
+  // --- ACTIONS POUR LA NAVIGATION ---
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setIsGlobalBinder(false);
+      setActiveSearch(searchInput.trim());
+    }
+  };
+
+  const handleBackToSeries = () => {
+    setIsGlobalBinder(false);
+    setActiveSearch("");
+    setSearchInput("");
+  };
+
+  // --- CHARGEMENT DES CARTES (Recherche, Classeur ou Série) ---
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
       setSelectedIllustrator("ALL");
       try {
-        if (isGlobalBinder) {
+        
+        // 1. MODE RECHERCHE
+        if (activeSearch) {
+          const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${activeSearch}`);
+          if (!response.ok) throw new Error("Erreur recherche");
+          const data = await response.json();
+          
+          if (Array.isArray(data)) {
+            // On limite à 50 cartes pour ne pas faire planter la page
+            const searchCardsPromises = data.slice(0, 50).map(async (c: any) => {
+              try {
+                const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
+                const cardData = await cardRes.json();
+                return {
+                  id: c.id,
+                  name: c.name || "Carte inconnue",
+                  localId: c.localId || "?",
+                  image: c.image ? `${c.image}/high.png` : "",
+                  illustrator: cardData.illustrator || "Inconnu",
+                  seriesName: cardData.set?.name || "Série inconnue"
+                };
+              } catch {
+                return {
+                  id: c.id,
+                  name: c.name || "Carte inconnue",
+                  localId: c.localId || "?",
+                  image: c.image ? `${c.image}/high.png` : "",
+                  illustrator: "Inconnu",
+                  seriesName: "Série inconnue"
+                };
+              }
+            });
+            const formatted = await Promise.all(searchCardsPromises);
+            setCards(formatted);
+            extractIllustrators(formatted);
+          } else {
+            setCards([]);
+          }
+        } 
+        
+        // 2. MODE CLASSEUR GLOBAL
+        else if (isGlobalBinder) {
           if (!currentUser) {
             setCards([]);
             setLoading(false);
@@ -278,7 +351,10 @@ export default function PokedexPage() {
           }
           setCards(globalCards);
           extractIllustrators(globalCards);
-        } else {
+        } 
+        
+        // 3. MODE SÉRIE CLASSIQUE
+        else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
@@ -324,8 +400,7 @@ export default function PokedexPage() {
 
     fetchCards();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSeriesId, isGlobalBinder, currentUser]); 
-  // On ne relance plus fetchCards quand userCollection change, ce qui stoppe les bugs !
+  }, [selectedSeriesId, isGlobalBinder, activeSearch, currentUser]); 
 
   const extractIllustrators = (cardList: Card[]) => {
     const illsets = new Set<string>();
@@ -335,7 +410,6 @@ export default function PokedexPage() {
     setIllustratorsList(Array.from(illsets).sort());
   };
 
-  // 4. Fonction de sauvegarde ultra-rapide (Met à jour le JSON)
   const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
 
@@ -355,10 +429,8 @@ export default function PokedexPage() {
       delete newCollection[id];
     }
 
-    // Mise à jour de l'interface en temps réel (instantané)
     setUserCollection(newCollection);
 
-    // Envoi à Supabase en arrière-plan
     const { error } = await supabase.from("user_data").upsert({
       id: currentUser.id,
       collection: newCollection
@@ -374,7 +446,6 @@ export default function PokedexPage() {
     return card.illustrator === selectedIllustrator;
   });
 
-  // Calculs de statistiques (En lisant directement le JSON, plus de bug de retard !)
   const totalCards = cards.length;
   const normalCollected = cards.filter(c => userCollection[c.id]?.normalOwned).length;
   const foilCollected = cards.filter(c => userCollection[c.id]?.foilOwned).length;
@@ -398,7 +469,7 @@ export default function PokedexPage() {
             {currentUser ? (
               <>
                 <button onClick={exportCollectionJSON} className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-600/30 transition cursor-pointer">
-                  📥 Exporter
+                  📥 Exporter JSON
                 </button>
                 <label className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-600/30 transition cursor-pointer">
                   📤 Importer JSON
@@ -429,24 +500,48 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
           Mon Pokédex de Cartes 📈
         </h1>
-        <p className="text-slate-400 text-center mb-8">Classement par Blocs Officiels & Tri par Illustrateur</p>
+        <p className="text-slate-400 text-center mb-6">Classement par Blocs Officiels & Tri par Illustrateur</p>
 
-        {/* Bouton Classeur Global */}
-        <div className="mb-6 flex justify-center">
-          <button
-            onClick={() => setIsGlobalBinder(true)}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg ${
-              isGlobalBinder
-                ? "bg-purple-500 text-white shadow-purple-500/30"
-                : "bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60"
-            }`}
-          >
-            <span>✨ Voir mon Classeur Global (Toutes séries confondues)</span>
-          </button>
+        {/* Barre de Recherche */}
+        <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
+          <div className="relative w-full flex items-center">
+            <input
+              type="text"
+              placeholder="Rechercher une carte (ex: Dracaufeu, Pikachu...)"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 text-sm px-4 py-3 rounded-l-xl text-white outline-none focus:border-yellow-500 transition shadow-inner"
+            />
+            <button
+              type="submit"
+              className="bg-yellow-500 text-slate-950 px-5 py-3 rounded-r-xl font-bold hover:bg-yellow-400 transition cursor-pointer"
+            >
+              🔍
+            </button>
+          </div>
+        </form>
+
+        {/* Boutons Classeur Global / Bouton Retour */}
+        <div className="mb-8 flex justify-center gap-4">
+          {(!isGlobalBinder && !activeSearch) ? (
+            <button
+              onClick={() => setIsGlobalBinder(true)}
+              className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60"
+            >
+              <span>✨ Voir mon Classeur Global</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleBackToSeries}
+              className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600"
+            >
+              <span>⬅️ Retour aux séries</span>
+            </button>
+          )}
         </div>
 
-        {/* Sélecteur par Blocs et Séries */}
-        {!isGlobalBinder && (
+        {/* Sélecteur par Blocs et Séries (Caché si Recherche ou Classeur Global) */}
+        {(!isGlobalBinder && !activeSearch) && (
           <div className="mb-8 space-y-4 bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl max-h-[400px] overflow-y-auto">
             {POKEMON_BLOCKS.map(block => (
               <div key={block.blockName} className="space-y-2">
@@ -455,7 +550,7 @@ export default function PokedexPage() {
                   {block.sets.map(series => (
                     <button
                       key={series.id}
-                      onClick={() => { setIsGlobalBinder(false); setSelectedSeriesId(series.id); }}
+                      onClick={() => setSelectedSeriesId(series.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                         selectedSeriesId === series.id
                           ? "bg-yellow-500 text-slate-950 font-bold shadow-md shadow-yellow-500/20"
@@ -471,8 +566,25 @@ export default function PokedexPage() {
           </div>
         )}
 
+        {/* Bannières d'information contextuelle */}
+        {activeSearch && (
+          <div className="mb-6 text-center bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">
+            <h2 className="text-sm font-semibold text-blue-300">🔍 Résultats pour "{activeSearch}"</h2>
+            <p className="text-xs text-blue-400/80 mt-1">{cards.length} cartes trouvées.</p>
+          </div>
+        )}
+
+        {isGlobalBinder && (
+          <div className="mb-6 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
+            <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
+            <p className="text-xs text-purple-400/80 mt-1">
+              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées.` : "Connecte-toi avec Google pour afficher ton classeur."}
+            </p>
+          </div>
+        )}
+
         {/* Filtre par Illustrateur */}
-        {!isGlobalBinder && illustratorsList.length > 0 && (
+        {illustratorsList.length > 0 && (
           <div className="mb-8 flex items-center justify-center gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
             <span className="text-xs text-slate-400 font-semibold">🎨 Filtrer par Illustrateur :</span>
             <select
@@ -488,8 +600,8 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Barres de progression */}
-        {!isGlobalBinder && (
+        {/* Barres de progression (Seulement affichées dans une série classique) */}
+        {(!isGlobalBinder && !activeSearch) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <div>
               <div className="flex justify-between text-sm mb-2 font-medium">
@@ -513,24 +625,14 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {isGlobalBinder && (
-          <div className="mb-8 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
-            <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
-            <p className="text-xs text-purple-400/80 mt-1">
-              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées.` : "Connecte-toi avec Google pour afficher ton classeur."}
-            </p>
-          </div>
-        )}
-
         {/* Grille des cartes */}
         {loading ? (
-          <div className="text-center py-20 text-slate-400 animate-pulse">
-            Chargement des cartes par blocs en cours... ⚡
+          <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">
+            Chargement des cartes en cours... ⚡
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {filteredCards.map(card => {
-              // On vérifie la possession en temps réel au moment de dessiner la carte !
               const isNormalOwned = userCollection[card.id]?.normalOwned || false;
               const isFoilOwned = userCollection[card.id]?.foilOwned || false;
 
@@ -538,8 +640,8 @@ export default function PokedexPage() {
                 <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
                   <div>
                     <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center relative">
-                      {card.seriesName && (
-                        <span className="absolute top-2 left-2 text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-medium">
+                      {(isGlobalBinder || activeSearch) && card.seriesName && (
+                        <span className="absolute top-2 left-2 text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-medium text-center z-10 shadow-md">
                           {card.seriesName}
                         </span>
                       )}
@@ -555,20 +657,20 @@ export default function PokedexPage() {
                     </div>
 
                     <div className="flex justify-between items-start mb-1">
-                      <h3 className="text-lg font-bold">{card.name}</h3>
-                      <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">#{card.localId}</span>
+                      <h3 className="text-lg font-bold truncate pr-2" title={card.name}>{card.name}</h3>
+                      <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md shrink-0">#{card.localId}</span>
                     </div>
                     {card.illustrator && (
-                      <p className="text-xs text-slate-400 mb-3 italic">Ill. {card.illustrator}</p>
+                      <p className="text-xs text-slate-400 mb-3 italic truncate">Ill. {card.illustrator}</p>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800">
+                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800 mt-2">
                     <button
                       onClick={() => toggleCardOwnership(card.id, 'normal')}
                       className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
                         isNormalOwned 
-                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" 
+                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.2)]" 
                           : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                       }`}
                     >
@@ -579,7 +681,7 @@ export default function PokedexPage() {
                       onClick={() => toggleCardOwnership(card.id, 'foil')}
                       className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
                         isFoilOwned 
-                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
+                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]" 
                           : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                       }`}
                     >
@@ -593,9 +695,10 @@ export default function PokedexPage() {
         )}
 
         {!loading && filteredCards.length === 0 && (
-          <p className="text-center text-slate-500 py-12">
-            Aucune carte trouvée pour cette sélection.
-          </p>
+          <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
+            <span className="text-4xl mb-4 block">👀</span>
+            <p className="text-slate-400 text-lg">Aucune carte trouvée pour cette recherche ou sélection.</p>
+          </div>
         )}
 
       </div>
