@@ -82,7 +82,7 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
-    blockName: "Bloc XY (Méga-Évolutions)",
+    blockName: "Bloc XY",
     sets: [
       { id: "xy1", name: "XY de base (FR)", lang: "fr" },
       { id: "xy2", name: "Étincelles (FR)", lang: "fr" },
@@ -153,6 +153,17 @@ const POKEMON_BLOCKS = [
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
       { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" }
     ]
+  },
+  {
+    blockName: "Bloc Méga-Évolution (ME)",
+    sets: [
+      { id: "me01", name: "Méga-Évolution (FR)", lang: "fr" },
+      { id: "me02", name: "Flammes Fantasmagoriques (FR)", lang: "fr" },
+      { id: "me02.5", name: "Héros Transcendants (FR)", lang: "fr" },
+      { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
+      { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
+      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" }
+    ]
   }
 ];
 
@@ -162,7 +173,7 @@ export default function PokedexPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>("base1");
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
   
-  // Nouveau : État pour la recherche
+  // États pour la recherche
   const [searchInput, setSearchInput] = useState<string>("");
   const [activeSearch, setActiveSearch] = useState<string>("");
 
@@ -269,7 +280,7 @@ export default function PokedexPage() {
     setSearchInput("");
   };
 
-  // --- CHARGEMENT DES CARTES (Recherche, Classeur ou Série) ---
+  // --- CHARGEMENT DES CARTES ---
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -283,7 +294,7 @@ export default function PokedexPage() {
           const data = await response.json();
           
           if (Array.isArray(data)) {
-            // On limite à 50 cartes pour ne pas faire planter la page
+            // Limité à 50 cartes pour la stabilité
             const searchCardsPromises = data.slice(0, 50).map(async (c: any) => {
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
@@ -540,7 +551,7 @@ export default function PokedexPage() {
           )}
         </div>
 
-        {/* Sélecteur par Blocs et Séries (Caché si Recherche ou Classeur Global) */}
+        {/* Sélecteur par Blocs et Séries */}
         {(!isGlobalBinder && !activeSearch) && (
           <div className="mb-8 space-y-4 bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl max-h-[400px] overflow-y-auto">
             {POKEMON_BLOCKS.map(block => (
