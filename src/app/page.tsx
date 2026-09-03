@@ -168,11 +168,15 @@ export default function PokedexPage() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
+  // UPDATE 1 : Forcer Google à demander le compte à utiliser
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'select_account' 
+        }
       }
     });
   };
@@ -183,6 +187,7 @@ export default function PokedexPage() {
     setCards(cards.map(c => ({ ...c, normalOwned: false, foilOwned: false })));
   };
 
+  // UPDATE 2 : Utiliser maybeSingle et upsert pour les nouveaux comptes
   useEffect(() => {
     async function loadCollection() {
       if (!currentUser) {
@@ -194,12 +199,12 @@ export default function PokedexPage() {
         .from("user_data")
         .select("collection")
         .eq("id", currentUser.id)
-        .single();
+        .maybeSingle(); 
         
       if (data && data.collection) {
         setUserCollection(data.collection);
       } else {
-        await supabase.from("user_data").insert({ id: currentUser.id, collection: {} });
+        await supabase.from("user_data").upsert({ id: currentUser.id, collection: {} });
         setUserCollection({});
       }
     }
