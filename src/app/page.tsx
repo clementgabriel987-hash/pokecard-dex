@@ -364,7 +364,6 @@ export default function PokedexPage() {
           extractIllustrators(globalCards);
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-          // On prend dynamiquement la bonne langue (FR ou EN pour Trésors Légendaires / Rocket Returns)
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
           
@@ -470,7 +469,7 @@ export default function PokedexPage() {
         {/* Barre d'auth */}
         <div className="mb-6 flex flex-col lg:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4 shadow-md">
           <div>
-            <h2 className="text-sm font-semibold text-slate-300">Espace Dresseur 🧢</h2>
+            <h2 className="text-sm font-semibold text-slate-300">Ton Pokédex</h2>
             <p className="text-xs text-slate-500">
               {currentUser ? `Connecté en tant que : ${currentUser.email}` : "Connecte-toi en un clic pour sauvegarder ta collection dans le Cloud."}
             </p>
@@ -509,7 +508,7 @@ export default function PokedexPage() {
 
         {/* Titre */}
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
-          Mon Pokédex de Cartes 📈
+          Ta collection de cartes Pokémon
         </h1>
         <p className="text-slate-400 text-center mb-6">Navigation simplifiée par Blocs et Extensions</p>
 
@@ -539,7 +538,7 @@ export default function PokedexPage() {
               onClick={() => setIsGlobalBinder(true)}
               className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60"
             >
-              <span>✨ Voir mon Classeur Global</span>
+              <span>ma collection</span>
             </button>
           ) : (
             <button
@@ -600,9 +599,9 @@ export default function PokedexPage() {
 
         {isGlobalBinder && (
           <div className="mb-6 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
-            <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
+            <h2 className="text-sm font-semibold text-purple-300">ma collection</h2>
             <p className="text-xs text-purple-400/80 mt-1">
-              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées.` : "Connecte-toi avec Google pour afficher ton classeur."}
+              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées.` : "Connecte-toi avec Google pour afficher ta collection."}
             </p>
           </div>
         )}
