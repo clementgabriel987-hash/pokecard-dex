@@ -8,8 +8,6 @@ interface Card {
   localId: string;
   image: string;
   illustrator?: string;
-  normalOwned: boolean;
-  foilOwned: boolean;
   seriesName?: string;
 }
 
@@ -146,16 +144,19 @@ const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 export default function PokedexPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>("base1");
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
+  
+  // cards contient uniquement les données brutes (ID, image, etc.)
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
   const [selectedIllustrator, setSelectedIllustrator] = useState<string>("ALL");
   const [illustratorsList, setIllustratorsList] = useState<string[]>([]);
 
-  // Authentification et Utilisateur
+  // Authentification et Collection
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
 
+  // 1. Initialiser l'utilisateur
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
@@ -168,24 +169,7 @@ export default function PokedexPage() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: {
-          prompt: 'select_account' 
-        }
-      }
-    });
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUserCollection({});
-    setCards(cards.map(c => ({ ...c, normalOwned: false, foilOwned: false })));
-  };
-
+  // 2. Charger la collection JSON depuis Supabase
   useEffect(() => {
     async function loadCollection() {
       if (!currentUser) {
@@ -193,7 +177,7 @@ export default function PokedexPage() {
         return;
       }
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("user_data")
         .select("collection")
         .eq("id", currentUser.id)
@@ -208,6 +192,22 @@ export default function PokedexPage() {
     }
     loadCollection();
   }, [currentUser]);
+
+  // Actions Auth & Export
+  const signInWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUserCollection({});
+  };
 
   const exportCollectionJSON = () => {
     if (!currentUser) return alert("Connecte-toi d'abord !");
@@ -230,7 +230,6 @@ export default function PokedexPage() {
         setUserCollection(importedData);
         await supabase.from("user_data").upsert({ id: currentUser.id, collection: importedData });
         alert("Importation réussie !");
-        window.location.reload();
       } catch (err) {
         alert("Fichier JSON invalide.");
       }
@@ -238,6 +237,7 @@ export default function PokedexPage() {
     reader.readAsText(file);
   };
 
+  // 3. Charger les cartes (sans se soucier de qui possède quoi ici)
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -263,23 +263,18 @@ export default function PokedexPage() {
               if (data && data.cards) {
                 data.cards.forEach((card: any) => {
                   if (ownedCardIds.includes(card.id)) {
-                    const savedState = userCollection[card.id];
                     globalCards.push({
                       id: card.id,
                       name: card.name || "Carte inconnue",
                       localId: card.localId || "?",
                       image: card.image ? `${card.image}/high.png` : "",
                       illustrator: card.illustrator || "Inconnu",
-                      normalOwned: savedState?.normalOwned || false,
-                      foilOwned: savedState?.foilOwned || false,
                       seriesName: series.name
                     });
                   }
                 });
               }
-            } catch (err) {
-              console.error(`Erreur série ${series.name}`, err);
-            }
+            } catch (err) {}
           }
           setCards(globalCards);
           extractIllustrators(globalCards);
@@ -304,15 +299,12 @@ export default function PokedexPage() {
                 illustrator = cardData.illustrator || "Inconnu";
               } catch {}
               
-              const savedState = userCollection[c.id];
               return {
                 id: c.id,
                 name: c.name || "Carte inconnue",
                 localId: c.localId || "?",
                 image: c.image ? `${c.image}/high.png` : "",
-                illustrator,
-                normalOwned: savedState?.normalOwned || false,
-                foilOwned: savedState?.foilOwned || false
+                illustrator
               };
             });
 
@@ -324,7 +316,6 @@ export default function PokedexPage() {
           }
         }
       } catch (error) {
-        console.error("Erreur lors du chargement des cartes", error);
         setCards([]);
       } finally {
         setLoading(false);
@@ -334,19 +325,7 @@ export default function PokedexPage() {
     fetchCards();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeriesId, isGlobalBinder, currentUser]); 
-
-  useEffect(() => {
-    setCards(prevCards => 
-      prevCards.map(card => {
-        const saved = userCollection[card.id];
-        return {
-          ...card,
-          normalOwned: saved?.normalOwned || false,
-          foilOwned: saved?.foilOwned || false
-        };
-      })
-    );
-  }, [userCollection]);
+  // On ne relance plus fetchCards quand userCollection change, ce qui stoppe les bugs !
 
   const extractIllustrators = (cardList: Card[]) => {
     const illsets = new Set<string>();
@@ -356,6 +335,7 @@ export default function PokedexPage() {
     setIllustratorsList(Array.from(illsets).sort());
   };
 
+  // 4. Fonction de sauvegarde ultra-rapide (Met à jour le JSON)
   const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
 
@@ -375,17 +355,17 @@ export default function PokedexPage() {
       delete newCollection[id];
     }
 
+    // Mise à jour de l'interface en temps réel (instantané)
     setUserCollection(newCollection);
 
-    // Sauvegarde en ligne et détection de l'erreur
+    // Envoi à Supabase en arrière-plan
     const { error } = await supabase.from("user_data").upsert({
       id: currentUser.id,
       collection: newCollection
     });
 
     if (error) {
-      console.error("DÉTAILS ERREUR SUPABASE :", error);
-      alert(`Erreur Supabase : ${error.message}`);
+      alert(`Erreur de sauvegarde dans le Cloud : ${error.message}`);
     }
   };
 
@@ -394,9 +374,10 @@ export default function PokedexPage() {
     return card.illustrator === selectedIllustrator;
   });
 
+  // Calculs de statistiques (En lisant directement le JSON, plus de bug de retard !)
   const totalCards = cards.length;
-  const normalCollected = cards.filter(c => c.normalOwned).length;
-  const foilCollected = cards.filter(c => c.foilOwned).length;
+  const normalCollected = cards.filter(c => userCollection[c.id]?.normalOwned).length;
+  const foilCollected = cards.filter(c => userCollection[c.id]?.foilOwned).length;
   const normalPercent = totalCards > 0 ? Math.round((normalCollected / totalCards) * 100) : 0;
   const foilPercent = totalCards > 0 ? Math.round((foilCollected / totalCards) * 100) : 0;
 
@@ -404,7 +385,7 @@ export default function PokedexPage() {
     <main className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
       <div className="max-w-6xl mx-auto">
         
-        {/* Barre d'auth (GOOGLE) + JSON Export/Import */}
+        {/* Barre d'auth */}
         <div className="mb-6 flex flex-col lg:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4 shadow-md">
           <div>
             <h2 className="text-sm font-semibold text-slate-300">Espace Dresseur 🧢</h2>
@@ -536,7 +517,7 @@ export default function PokedexPage() {
           <div className="mb-8 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
             <h2 className="text-sm font-semibold text-purple-300">✨ Vue de ton Classeur Global</h2>
             <p className="text-xs text-purple-400/80 mt-1">
-              {currentUser ? `Tu possèdes un total de ${cards.length} cartes enregistrées.` : "Connecte-toi avec Google pour afficher ton classeur."}
+              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées.` : "Connecte-toi avec Google pour afficher ton classeur."}
             </p>
           </div>
         )}
@@ -548,60 +529,66 @@ export default function PokedexPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {filteredCards.map(card => (
-              <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
-                <div>
-                  <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center relative">
-                    {card.seriesName && (
-                      <span className="absolute top-2 left-2 text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-medium">
-                        {card.seriesName}
-                      </span>
-                    )}
-                    {card.image ? (
-                      <img 
-                        src={card.image} 
-                        alt={card.name} 
-                        className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
-                      />
-                    ) : (
-                      <span className="text-xs text-slate-500">Image indisponible</span>
+            {filteredCards.map(card => {
+              // On vérifie la possession en temps réel au moment de dessiner la carte !
+              const isNormalOwned = userCollection[card.id]?.normalOwned || false;
+              const isFoilOwned = userCollection[card.id]?.foilOwned || false;
+
+              return (
+                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
+                  <div>
+                    <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center relative">
+                      {card.seriesName && (
+                        <span className="absolute top-2 left-2 text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-medium">
+                          {card.seriesName}
+                        </span>
+                      )}
+                      {card.image ? (
+                        <img 
+                          src={card.image} 
+                          alt={card.name} 
+                          className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
+                        />
+                      ) : (
+                        <span className="text-xs text-slate-500">Image indisponible</span>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="text-lg font-bold">{card.name}</h3>
+                      <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">#{card.localId}</span>
+                    </div>
+                    {card.illustrator && (
+                      <p className="text-xs text-slate-400 mb-3 italic">Ill. {card.illustrator}</p>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-lg font-bold">{card.name}</h3>
-                    <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">#{card.localId}</span>
+                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800">
+                    <button
+                      onClick={() => toggleCardOwnership(card.id, 'normal')}
+                      className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        isNormalOwned 
+                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" 
+                          : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                      }`}
+                    >
+                      {isNormalOwned ? "✓ Normale" : "Normale"}
+                    </button>
+
+                    <button
+                      onClick={() => toggleCardOwnership(card.id, 'foil')}
+                      className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        isFoilOwned 
+                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
+                          : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                      }`}
+                    >
+                      {isFoilOwned ? "✨ Foil" : "Foil"}
+                    </button>
                   </div>
-                  {card.illustrator && (
-                    <p className="text-xs text-slate-400 mb-3 italic">Ill. {card.illustrator}</p>
-                  )}
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800">
-                  <button
-                    onClick={() => toggleCardOwnership(card.id, 'normal')}
-                    className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      card.normalOwned 
-                        ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" 
-                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
-                    }`}
-                  >
-                    {card.normalOwned ? "✓ Normale" : "Normale"}
-                  </button>
-
-                  <button
-                    onClick={() => toggleCardOwnership(card.id, 'foil')}
-                    className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      card.foilOwned 
-                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
-                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
-                    }`}
-                  >
-                    {card.foilOwned ? "✨ Foil" : "Foil"}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
