@@ -40,7 +40,7 @@ const POKEMON_BLOCKS = [
       { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
       { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
       { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" }, // Jamais sorti en FR
+      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
       { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
       { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
       { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
@@ -168,7 +168,6 @@ export default function PokedexPage() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // UPDATE 1 : Forcer Google à demander le compte à utiliser
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -187,7 +186,6 @@ export default function PokedexPage() {
     setCards(cards.map(c => ({ ...c, normalOwned: false, foilOwned: false })));
   };
 
-  // UPDATE 2 : Utiliser maybeSingle et upsert pour les nouveaux comptes
   useEffect(() => {
     async function loadCollection() {
       if (!currentUser) {
@@ -358,7 +356,7 @@ export default function PokedexPage() {
     setIllustratorsList(Array.from(illsets).sort());
   };
 
-const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
+  const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
 
     const newCollection = { ...userCollection };
@@ -379,25 +377,16 @@ const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
 
     setUserCollection(newCollection);
 
-    // ENVOI AU CLOUD AVEC DÉTECTION D'ERREUR :
+    // Sauvegarde en ligne et détection de l'erreur
     const { error } = await supabase.from("user_data").upsert({
       id: currentUser.id,
       collection: newCollection
     });
 
     if (error) {
-      console.error("DÉTAILS DE L'ERREUR SUPABASE :", error);
-      alert(`Oups, Supabase a bloqué la sauvegarde ! Raison : ${error.message}`);
+      console.error("DÉTAILS ERREUR SUPABASE :", error);
+      alert(`Erreur Supabase : ${error.message}`);
     }
-  };
-    }
-
-    setUserCollection(newCollection);
-
-    await supabase.from("user_data").upsert({
-      id: currentUser.id,
-      collection: newCollection
-    });
   };
 
   const filteredCards = cards.filter(card => {
