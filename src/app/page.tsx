@@ -358,7 +358,7 @@ export default function PokedexPage() {
     setIllustratorsList(Array.from(illsets).sort());
   };
 
-  const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
+const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
 
     const newCollection = { ...userCollection };
@@ -375,6 +375,21 @@ export default function PokedexPage() {
 
     if (!newCollection[id].normalOwned && !newCollection[id].foilOwned) {
       delete newCollection[id];
+    }
+
+    setUserCollection(newCollection);
+
+    // ENVOI AU CLOUD AVEC DÉTECTION D'ERREUR :
+    const { error } = await supabase.from("user_data").upsert({
+      id: currentUser.id,
+      collection: newCollection
+    });
+
+    if (error) {
+      console.error("DÉTAILS DE L'ERREUR SUPABASE :", error);
+      alert(`Oups, Supabase a bloqué la sauvegarde ! Raison : ${error.message}`);
+    }
+  };
     }
 
     setUserCollection(newCollection);
