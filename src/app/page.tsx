@@ -38,7 +38,7 @@ const POKEMON_BLOCKS = [
       { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
       { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
       { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" }, // Jamais sorti en FR
+      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
       { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
       { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
       { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
@@ -78,7 +78,7 @@ const POKEMON_BLOCKS = [
       { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
       { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
       { id: "bw10", name: "Explosion Plasma (FR)", lang: "fr" },
-      { id: "bw11", name: "Trésors Légendaires (EN)", lang: "en" } // Uniquement en EN physiquement
+      { id: "bw11", name: "Trésors Légendaires (EN)", lang: "en" }
     ]
   },
   {
@@ -469,9 +469,9 @@ export default function PokedexPage() {
         {/* Barre d'auth */}
         <div className="mb-6 flex flex-col lg:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4 shadow-md">
           <div>
-            <h2 className="text-sm font-semibold text-slate-300">Ton Pokédex</h2>
+            <h2 className="text-sm font-semibold text-slate-300">Ton Pokédex ✨</h2>
             <p className="text-xs text-slate-500">
-              {currentUser ? `Connecté en tant que : ${currentUser.email}` : "Connecte-toi en un clic pour sauvegarder ta collection dans le Cloud."}
+              {currentUser ? `Connecté en tant que : ${currentUser.email}` : "Connecte-toi pour graver ta collection dans le Cloud."}
             </p>
           </div>
 
@@ -508,16 +508,16 @@ export default function PokedexPage() {
 
         {/* Titre */}
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
-          Ta collection de cartes Pokémon
+          Ta collection de cartes Pokémon ⚡
         </h1>
-        <p className="text-slate-400 text-center mb-6">Navigation simplifiée par Blocs et Extensions</p>
+        <p className="text-slate-400 text-center mb-6">Le sanctuaire ultime pour traquer ton carton brillant</p>
 
         {/* Barre de Recherche */}
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
           <div className="relative w-full flex items-center">
             <input
               type="text"
-              placeholder="Rechercher une carte (ex: Dracaufeu, Pikachu...)"
+              placeholder="Chercher une carte (ex: Dracaufeu, Pikachu...)"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 text-sm px-4 py-3 rounded-l-xl text-white outline-none focus:border-yellow-500 transition shadow-inner"
@@ -538,7 +538,7 @@ export default function PokedexPage() {
               onClick={() => setIsGlobalBinder(true)}
               className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60"
             >
-              <span>ma collection</span>
+              <span>✨ ma collection</span>
             </button>
           ) : (
             <button
@@ -554,7 +554,7 @@ export default function PokedexPage() {
         {(!isGlobalBinder && !activeSearch) && (
           <div className="mb-8 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis un Bloc :</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis une époque (Bloc) :</label>
               <div className="flex flex-wrap gap-2">
                 {POKEMON_BLOCKS.map((block, index) => (
                   <button
@@ -573,7 +573,7 @@ export default function PokedexPage() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une Extension :</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une extension :</label>
               <select
                 value={selectedSeriesId}
                 onChange={(e) => setSelectedSeriesId(e.target.value)}
@@ -592,16 +592,16 @@ export default function PokedexPage() {
         {/* Bannières d'information contextuelle */}
         {activeSearch && (
           <div className="mb-6 text-center bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">
-            <h2 className="text-sm font-semibold text-blue-300">🔍 Résultats pour "{activeSearch}"</h2>
-            <p className="text-xs text-blue-400/80 mt-1">{cards.length} cartes trouvées.</p>
+            <h2 className="text-sm font-semibold text-blue-300">🔍 Chasse aux cartes pour "{activeSearch}"</h2>
+            <p className="text-xs text-blue-400/80 mt-1">{cards.length} pépites trouvées.</p>
           </div>
         )}
 
         {isGlobalBinder && (
           <div className="mb-6 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
-            <h2 className="text-sm font-semibold text-purple-300">ma collection</h2>
+            <h2 className="text-sm font-semibold text-purple-300">✨ ma collection</h2>
             <p className="text-xs text-purple-400/80 mt-1">
-              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées.` : "Connecte-toi avec Google pour afficher ta collection."}
+              {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées. Beau travail !` : "Connecte-toi avec Google pour afficher ta collection."}
             </p>
           </div>
         )}
@@ -609,7 +609,7 @@ export default function PokedexPage() {
         {/* Filtre par Illustrateur */}
         {illustratorsList.length > 0 && (
           <div className="mb-8 flex items-center justify-center gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
-            <span className="text-xs text-slate-400 font-semibold">🎨 Filtrer par Illustrateur :</span>
+            <span className="text-xs text-slate-400 font-semibold">🎨 Filtrer par artiste :</span>
             <select
               value={selectedIllustrator}
               onChange={(e) => setSelectedIllustrator(e.target.value)}
@@ -651,7 +651,7 @@ export default function PokedexPage() {
         {/* Grille des cartes */}
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">
-            Chargement des cartes en cours... ⚡
+            Ouverture du classeur en cours... ⚡
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -720,7 +720,7 @@ export default function PokedexPage() {
         {!loading && filteredCards.length === 0 && (
           <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
             <span className="text-4xl mb-4 block">👀</span>
-            <p className="text-slate-400 text-lg">Aucune carte trouvée pour cette recherche ou sélection.</p>
+            <p className="text-slate-400 text-lg">Introuvable dans les hautes herbes...</p>
           </div>
         )}
 
