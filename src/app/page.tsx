@@ -13,7 +13,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation ultime et complète des séries TCG
+// Organisation en Blocs et Séries
 const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Wizards (Classic)",
@@ -30,7 +30,7 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
-    blockName: "Bloc EX (Ruby & Sapphire Era)",
+    blockName: "Bloc EX (Ruby & Sapphire)",
     sets: [
       { id: "ex1", name: "EX Rubis & Saphir (FR)", lang: "fr" },
       { id: "ex2", name: "EX Tempête de Sable (FR)", lang: "fr" },
@@ -51,7 +51,7 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
-    blockName: "Bloc Platine & Diamant & Perle",
+    blockName: "Bloc Platine, Diamant & Perle",
     sets: [
       { id: "dp1", name: "Diamant & Perle (FR)", lang: "fr" },
       { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
@@ -170,10 +170,12 @@ const POKEMON_BLOCKS = [
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
 export default function PokedexPage() {
-  const [selectedSeriesId, setSelectedSeriesId] = useState<string>("base1");
+  // Par défaut, on sélectionne le premier bloc et sa première série
+  const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
+  
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
   
-  // États pour la recherche
   const [searchInput, setSearchInput] = useState<string>("");
   const [activeSearch, setActiveSearch] = useState<string>("");
 
@@ -265,7 +267,15 @@ export default function PokedexPage() {
     reader.readAsText(file);
   };
 
-  // --- ACTIONS POUR LA NAVIGATION ---
+  // Changement de bloc principal
+  const handleBlockChange = (index: number) => {
+    setSelectedBlockIndex(index);
+    // Sélectionne automatiquement la première série de ce nouveau bloc
+    setSelectedSeriesId(POKEMON_BLOCKS[index].sets[0].id);
+    setIsGlobalBinder(false);
+    setActiveSearch("");
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
@@ -280,21 +290,18 @@ export default function PokedexPage() {
     setSearchInput("");
   };
 
-  // --- CHARGEMENT DES CARTES ---
+  // Chargement des cartes
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
       setSelectedIllustrator("ALL");
       try {
-        
-        // 1. MODE RECHERCHE
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${activeSearch}`);
           if (!response.ok) throw new Error("Erreur recherche");
           const data = await response.json();
           
           if (Array.isArray(data)) {
-            // Limité à 50 cartes pour la stabilité
             const searchCardsPromises = data.slice(0, 50).map(async (c: any) => {
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
@@ -324,10 +331,7 @@ export default function PokedexPage() {
           } else {
             setCards([]);
           }
-        } 
-        
-        // 2. MODE CLASSEUR GLOBAL
-        else if (isGlobalBinder) {
+        } else if (isGlobalBinder) {
           if (!currentUser) {
             setCards([]);
             setLoading(false);
@@ -362,10 +366,7 @@ export default function PokedexPage() {
           }
           setCards(globalCards);
           extractIllustrators(globalCards);
-        } 
-        
-        // 3. MODE SÉRIE CLASSIQUE
-        else {
+        } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
@@ -463,6 +464,8 @@ export default function PokedexPage() {
   const normalPercent = totalCards > 0 ? Math.round((normalCollected / totalCards) * 100) : 0;
   const foilPercent = totalCards > 0 ? Math.round((foilCollected / totalCards) * 100) : 0;
 
+  const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
       <div className="max-w-6xl mx-auto">
@@ -511,7 +514,7 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
           Mon Pokédex de Cartes 📈
         </h1>
-        <p className="text-slate-400 text-center mb-6">Classement par Blocs Officiels & Tri par Illustrateur</p>
+        <p className="text-slate-400 text-center mb-6">Navigation simplifiée par Blocs et Extensions</p>
 
         {/* Barre de Recherche */}
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
@@ -551,29 +554,46 @@ export default function PokedexPage() {
           )}
         </div>
 
-        {/* Sélecteur par Blocs et Séries */}
+        {/* NOUVELLE INTERFACE DE NAVIGATION SIMPLIFIÉE */}
         {(!isGlobalBinder && !activeSearch) && (
-          <div className="mb-8 space-y-4 bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl max-h-[400px] overflow-y-auto">
-            {POKEMON_BLOCKS.map(block => (
-              <div key={block.blockName} className="space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-yellow-400/90">{block.blockName}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {block.sets.map(series => (
-                    <button
-                      key={series.id}
-                      onClick={() => setSelectedSeriesId(series.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                        selectedSeriesId === series.id
-                          ? "bg-yellow-500 text-slate-950 font-bold shadow-md shadow-yellow-500/20"
-                          : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800"
-                      }`}
-                    >
-                      {series.name}
-                    </button>
-                  ))}
-                </div>
+          <div className="mb-8 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+            
+            {/* Étape 1 : Les Blocs sous forme d'onglets horizontaux cliquables */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis un Bloc :</label>
+              <div className="flex flex-wrap gap-2">
+                {POKEMON_BLOCKS.map((block, index) => (
+                  <button
+                    key={block.blockName}
+                    onClick={() => handleBlockChange(index)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                      selectedBlockIndex === index
+                        ? "bg-yellow-500 text-slate-950 font-bold shadow-md shadow-yellow-500/20"
+                        : "bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800"
+                    }`}
+                  >
+                    {block.blockName}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Étape 2 : Le menu déroulant propre pour choisir l'extension précise dans le bloc */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une Extension :</label>
+              <select
+                value={selectedSeriesId}
+                onChange={(e) => setSelectedSeriesId(e.target.value)}
+                className="w-full bg-slate-950 text-sm border border-slate-700 text-white px-4 py-3 rounded-xl outline-none focus:border-yellow-500 cursor-pointer shadow-inner"
+              >
+                {currentBlock.sets.map(series => (
+                  <option key={series.id} value={series.id}>
+                    {series.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
           </div>
         )}
 
@@ -611,7 +631,7 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Barres de progression (Seulement affichées dans une série classique) */}
+        {/* Barres de progression */}
         {(!isGlobalBinder && !activeSearch) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <div>
