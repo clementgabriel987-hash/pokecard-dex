@@ -13,7 +13,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries
+// Organisation en Blocs et Séries (avec gestion précise des langues FR/EN)
 const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Wizards (Classic)",
@@ -38,7 +38,7 @@ const POKEMON_BLOCKS = [
       { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
       { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
       { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
+      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" }, // Jamais sorti en FR
       { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
       { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
       { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
@@ -78,7 +78,7 @@ const POKEMON_BLOCKS = [
       { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
       { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
       { id: "bw10", name: "Explosion Plasma (FR)", lang: "fr" },
-      { id: "bw11", name: "Trésors Légendaires (FR)", lang: "fr" }
+      { id: "bw11", name: "Trésors Légendaires (EN)", lang: "en" } // Uniquement en EN physiquement
     ]
   },
   {
@@ -170,7 +170,6 @@ const POKEMON_BLOCKS = [
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
 export default function PokedexPage() {
-  // Par défaut, on sélectionne le premier bloc et sa première série
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
   
@@ -267,10 +266,8 @@ export default function PokedexPage() {
     reader.readAsText(file);
   };
 
-  // Changement de bloc principal
   const handleBlockChange = (index: number) => {
     setSelectedBlockIndex(index);
-    // Sélectionne automatiquement la première série de ce nouveau bloc
     setSelectedSeriesId(POKEMON_BLOCKS[index].sets[0].id);
     setIsGlobalBinder(false);
     setActiveSearch("");
@@ -290,7 +287,6 @@ export default function PokedexPage() {
     setSearchInput("");
   };
 
-  // Chargement des cartes
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -368,6 +364,7 @@ export default function PokedexPage() {
           extractIllustrators(globalCards);
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
+          // On prend dynamiquement la bonne langue (FR ou EN pour Trésors Légendaires / Rocket Returns)
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
           
@@ -554,11 +551,9 @@ export default function PokedexPage() {
           )}
         </div>
 
-        {/* NOUVELLE INTERFACE DE NAVIGATION SIMPLIFIÉE */}
+        {/* Navigation Simplifiée */}
         {(!isGlobalBinder && !activeSearch) && (
           <div className="mb-8 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-            
-            {/* Étape 1 : Les Blocs sous forme d'onglets horizontaux cliquables */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis un Bloc :</label>
               <div className="flex flex-wrap gap-2">
@@ -578,7 +573,6 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Étape 2 : Le menu déroulant propre pour choisir l'extension précise dans le bloc */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une Extension :</label>
               <select
@@ -593,7 +587,6 @@ export default function PokedexPage() {
                 ))}
               </select>
             </div>
-
           </div>
         )}
 
