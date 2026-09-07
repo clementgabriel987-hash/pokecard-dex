@@ -16,8 +16,9 @@ interface Card {
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
 // Organisation en Blocs et Séries (avec le Bloc Promos en tête de liste !)
+
 const POKEMON_BLOCKS = [
-{
+  {
     blockName: "⭐ Bloc Promos & Hors-Séries",
     sets: [
       { id: "base-p", name: "Wizards Black Star Promos (EN)", lang: "en" },
@@ -28,9 +29,10 @@ const POKEMON_BLOCKS = [
       { id: "xy-p", name: "XY Black Star Promos (FR)", lang: "fr" },
       { id: "sm-p", name: "SM Black Star Promos (FR)", lang: "fr" },
       { id: "swsh-p", name: "EB Black Star Promos (FR)", lang: "fr" },
-      { id: "svp", name: "EV Black Star Promos (FR)", lang: "fr" }
+      { id: "svp", name: "EV Black Star Promos (SV)", lang: "fr" }
     ]
   },
+  {
     blockName: "Bloc Wizards (Classic)",
     sets: [
       { id: "base1", name: "Base Set (FR)", lang: "fr" },
@@ -181,7 +183,6 @@ const POKEMON_BLOCKS = [
     ]
   }
 ];
-
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
 export default function PokedexPage() {
