@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -503,6 +502,14 @@ export default function PokedexPage() {
               >
                 <span>🎲</span> La Carte Mystère du Jour
               </button>
+
+              {/* Bouton Recherche de Prix (Point 2) */}
+              <Link
+                href="/prix"
+                className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300"
+              >
+                <span>📈</span> Recherche de Prix
+              </Link>
 
               <div className="pt-4 border-t border-slate-800 space-y-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">📥 / 📤 Sauvegarde</span>
