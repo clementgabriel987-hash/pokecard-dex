@@ -364,17 +364,16 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // Nouvelle fonction pour basculer les langues
   const toggleCardLanguage = async (id: string, langToToggle: string, defaultLang: string) => {
     if (!currentUser) return;
     const newCollection = { ...userCollection };
-    if (!newCollection[id]) return; // Faut posséder la carte d'abord
+    if (!newCollection[id]) return;
 
     let currentLangs = newCollection[id].langs || [defaultLang];
     
     if (currentLangs.includes(langToToggle)) {
       currentLangs = currentLangs.filter(l => l !== langToToggle);
-      if (currentLangs.length === 0) currentLangs = [defaultLang]; // Evite un tableau vide
+      if (currentLangs.length === 0) currentLangs = [defaultLang];
     } else {
       currentLangs.push(langToToggle);
     }
@@ -406,7 +405,7 @@ export default function PokedexPage() {
       if (isNormal || isFoil) {
         matchLang = cardLangs.includes(selectedLanguage);
       } else {
-        matchLang = false; // Ne pas afficher les cartes non possédées si on filtre par langue
+        matchLang = false;
       }
     }
 
@@ -493,7 +492,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* NOUVELLE BARRE DE FILTRES INCLUANT LA LANGUE */}
         {!isGlobalBinder && (
           <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85 flex-wrap">
             <div className="flex items-center gap-2">
@@ -526,6 +524,29 @@ export default function PokedexPage() {
           </div>
         )}
 
+        {(!isGlobalBinder && !activeSearch) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
+            <div>
+              <div className="flex justify-between text-sm mb-2 font-medium">
+                <span className="text-slate-300">Cartes Normales</span>
+                <span className="text-yellow-400">{normalCollected} / {totalCards} ({Math.round((normalCollected/totalCards)*100 || 0)}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((normalCollected/totalCards)*100 || 0)}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-2 font-medium">
+                <span className="text-slate-300">Cartes Foils (Brillantes)</span>
+                <span className="text-purple-400">{foilCollected} / {totalCards} ({Math.round((foilCollected/totalCards)*100 || 0)}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((foilCollected/totalCards)*100 || 0)}%` }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Chargement de la collection... ⚡</div>
         ) : filteredCards.length > 0 ? (
@@ -535,11 +556,9 @@ export default function PokedexPage() {
               const isFoilOwned = userCollection[card.id]?.foilOwned || false;
               const hasError = imageErrors[card.id];
               
-              // Déterminer la langue de base de la série de cette carte
-              const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId)) || currentSeries;
+              const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
               const cardDefaultLang = cardSeries?.lang || "fr";
               
-              // On affiche les drapeaux UNIQUEMENT si la série de base n'est pas limitée à l'anglais
               const showLanguageFlags = cardDefaultLang !== "en";
 
               return (
@@ -567,7 +586,6 @@ export default function PokedexPage() {
                     </button>
                   </div>
 
-                  {/* MINI SELECTEUR DE LANGUES (Apparaît si possédée + Pas réservé à l'anglais) */}
                   {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
                     <div className="flex justify-center gap-4 mt-3 pt-2 border-t border-slate-800/50">
                       {['fr', 'en', 'jp'].map(l => {
