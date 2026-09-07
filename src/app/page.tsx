@@ -13,9 +13,9 @@ interface Card {
   seriesName?: string;
 }
 
-type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
+// Ajout de "langs" dans la structure de sauvegarde
+type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean; langs?: string[] }>;
 
-// Organisation 100% TCGDex (Ultra-stable, sans les Promos)
 const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Wizards (Classic)",
@@ -201,6 +201,7 @@ export default function PokedexPage() {
   const [selectedRarity, setSelectedRarity] = useState<string>("ALL");
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL"); // Nouveau filtre de langue
 
   const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
   const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
@@ -213,17 +214,10 @@ export default function PokedexPage() {
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUser(session?.user || null);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user || null);
-    });
-
+    supabase.auth.getSession().then(({ data: { session } }) => setCurrentUser(session?.user || null));
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => setCurrentUser(session?.user || null));
     const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener("scroll", handleScroll);
-
     return () => {
       authListener.subscription.unsubscribe();
       window.removeEventListener("scroll", handleScroll);
@@ -232,10 +226,7 @@ export default function PokedexPage() {
 
   useEffect(() => {
     async function loadCollection() {
-      if (!currentUser) {
-        setUserCollection({});
-        return;
-      }
+      if (!currentUser) return setUserCollection({});
       const { data } = await supabase.from("user_data").select("collection").eq("id", currentUser.id).maybeSingle(); 
       if (data && data.collection) setUserCollection(data.collection);
       else {
@@ -246,34 +237,6 @@ export default function PokedexPage() {
     loadCollection();
   }, [currentUser]);
 
-  const exportCollectionJSON = () => {
-    if (!currentUser) return alert("Connecte-toi d'abord !");
-    const blob = new Blob([JSON.stringify(userCollection, null, 2)], { type: "json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `pokedex-collection-${currentUser.email}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const importCollectionJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentUser) return alert("Connecte-toi et sélectionne un JSON.");
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const importedData = JSON.parse(event.target?.result as string);
-        setUserCollection(importedData);
-        await supabase.from("user_data").upsert({ id: currentUser.id, collection: importedData });
-        alert("Importation réussie !");
-      } catch (err) {
-        alert("Fichier JSON invalide.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
   const handleBlockChange = (index: number) => {
     setSelectedBlockIndex(index);
     setSelectedSeriesId(POKEMON_BLOCKS[index].sets[0].id);
@@ -283,24 +246,12 @@ export default function PokedexPage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchInput.trim()) {
-      setIsGlobalBinder(false);
-      setActiveSearch(searchInput.trim());
-    }
+    if (searchInput.trim()) { setIsGlobalBinder(false); setActiveSearch(searchInput.trim()); }
   };
-
-  const handleBackToSeries = () => {
-    setIsGlobalBinder(false);
-    setActiveSearch("");
-    setSearchInput("");
-  };
-
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const openMysteryCard = () => {
     if (cards.length === 0) return alert("Ouvre d'abord une série contenant des cartes !");
-    const randomCard = cards[Math.floor(Math.random() * cards.length)];
-    setMysteryCard(randomCard);
+    setMysteryCard(cards[Math.floor(Math.random() * cards.length)]);
     setIsMysteryOpen(true);
     setIsSidebarOpen(false);
   };
@@ -311,6 +262,7 @@ export default function PokedexPage() {
       setSelectedIllustrator("ALL");
       setSelectedRarity("ALL");
       setSelectedStatus("ALL");
+      setSelectedLanguage("ALL");
       setImageErrors({});
       try {
         if (activeSearch) {
@@ -324,9 +276,7 @@ export default function PokedexPage() {
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
                 const cardData = await cardRes.json();
-                illustrator = cardData.illustrator || "Inconnu";
-                rarity = cardData.rarity || "Inconnue";
-                seriesName = cardData.set?.name || "Série inconnue";
+                illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue"; seriesName = cardData.set?.name || "Série inconnue";
                 if (cardData.image) imageUrl = `${cardData.image}/high.png`;
               } catch {}
               return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName };
@@ -372,8 +322,7 @@ export default function PokedexPage() {
                 const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
                 if (cardRes.ok) {
                   const cardData = await cardRes.json();
-                  illustrator = cardData.illustrator || "Inconnu";
-                  rarity = cardData.rarity || "Inconnue";
+                  illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue";
                   if (cardData.image) imageUrl = `${cardData.image}/high.png`;
                 }
               } catch {}
@@ -385,9 +334,7 @@ export default function PokedexPage() {
         }
       } catch {
         setCards([]);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     }
     fetchCards();
   }, [selectedSeriesId, isGlobalBinder, activeSearch, currentUser]);
@@ -403,13 +350,36 @@ export default function PokedexPage() {
     setRaritiesList(Array.from(raritiesSet).sort());
   };
 
-  const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
+  const toggleCardOwnership = async (id: string, type: 'normal' | 'foil', cardDefaultLang: string) => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
     const newCollection = { ...userCollection };
-    if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false };
+    if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, langs: [cardDefaultLang] };
+    
     if (type === 'normal') newCollection[id].normalOwned = !newCollection[id].normalOwned;
     else newCollection[id].foilOwned = !newCollection[id].foilOwned;
+    
     if (!newCollection[id].normalOwned && !newCollection[id].foilOwned) delete newCollection[id];
+    
+    setUserCollection(newCollection);
+    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+  };
+
+  // Nouvelle fonction pour basculer les langues
+  const toggleCardLanguage = async (id: string, langToToggle: string, defaultLang: string) => {
+    if (!currentUser) return;
+    const newCollection = { ...userCollection };
+    if (!newCollection[id]) return; // Faut posséder la carte d'abord
+
+    let currentLangs = newCollection[id].langs || [defaultLang];
+    
+    if (currentLangs.includes(langToToggle)) {
+      currentLangs = currentLangs.filter(l => l !== langToToggle);
+      if (currentLangs.length === 0) currentLangs = [defaultLang]; // Evite un tableau vide
+    } else {
+      currentLangs.push(langToToggle);
+    }
+
+    newCollection[id].langs = currentLangs;
     setUserCollection(newCollection);
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
@@ -417,9 +387,14 @@ export default function PokedexPage() {
   const filteredCards = cards.filter(card => {
     const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
     const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
-    const isNormal = userCollection[card.id]?.normalOwned || false;
-    const isFoil = userCollection[card.id]?.foilOwned || false;
+    
+    const cardData = userCollection[card.id];
+    const isNormal = cardData?.normalOwned || false;
+    const isFoil = cardData?.foilOwned || false;
+    const cardLangs = cardData?.langs || [];
+    
     let matchStatus = true;
+    let matchLang = true;
     
     if (!isGlobalBinder) {
       if (selectedStatus === "MISSING") matchStatus = !isNormal && !isFoil;
@@ -427,7 +402,15 @@ export default function PokedexPage() {
       else if (selectedStatus === "FOIL") matchStatus = isFoil;
     }
 
-    return matchIllustrator && matchRarity && matchStatus;
+    if (selectedLanguage !== "ALL") {
+      if (isNormal || isFoil) {
+        matchLang = cardLangs.includes(selectedLanguage);
+      } else {
+        matchLang = false; // Ne pas afficher les cartes non possédées si on filtre par langue
+      }
+    }
+
+    return matchIllustrator && matchRarity && matchStatus && matchLang;
   });
 
   const totalCards = cards.length;
@@ -459,104 +442,15 @@ export default function PokedexPage() {
               <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
                 <span>✨</span> Ma Collection
               </button>
-              <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                <span>🎨</span> Recherche par Artiste
-              </Link>
-              <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
-                <span>🎲</span> La Carte Mystère du Jour
-              </button>
-              <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
-                <span>📈</span> Recherche de Prix
-              </Link>
-              <div className="pt-4 border-t border-slate-800 space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">📥 / 📤 Sauvegarde</span>
-                {currentUser && (
-                  <>
-                    <button onClick={exportCollectionJSON} className="w-full text-left bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2">
-                      <span>📥</span> Exporter le JSON
-                    </button>
-                    <label className="w-full text-left bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2 block">
-                      <span>📤</span> Importer le JSON
-                      <input type="file" accept=".json" onChange={importCollectionJSON} className="hidden" />
-                    </label>
-                  </>
-                )}
-              </div>
-              <div className="pt-2">
-                <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                  <span>⚙️</span> Paramètres & Compte
-                </Link>
-              </div>
             </div>
-          </div>
-          <div className="pt-6 border-t border-slate-800">
-            {currentUser ? (
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">Connecté : {currentUser.email}</div>
-            ) : (
-              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">Se connecter avec Google</Link>
-            )}
           </div>
         </div>
       </div>
-
-      {isProgressionOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsProgressionOpen(false)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10">
-            <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
-              <h2 className="text-xl font-bold text-yellow-400">👑 Progression & Master Sets</h2>
-              <button onClick={() => setIsProgressionOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
-            </div>
-            <div className="space-y-4">
-              {POKEMON_BLOCKS.map((block) => (
-                <div key={block.blockName} className="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-yellow-500 mb-3">{block.blockName}</h3>
-                  <div className="space-y-2">
-                    {block.sets.map((set) => (
-                      <div key={set.id} className="flex justify-between items-center text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                        <span className="font-medium text-slate-300">{set.name}</span>
-                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex(b => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer">
-                          Ouvrir ➔
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isMysteryOpen && mysteryCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsMysteryOpen(false)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center">
-            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-              <h2 className="text-lg font-bold text-blue-400">🎲 Carte Mystère du Jour</h2>
-              <button onClick={() => setIsMysteryOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
-            </div>
-            <div className="mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-center min-h-[220px] items-center">
-              <img src={mysteryCard.image} alt={mysteryCard.name} className="h-56 object-contain drop-shadow-lg" />
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">{mysteryCard.name}</h3>
-            <p className="text-xs text-slate-400 mb-4">#{mysteryCard.localId} {mysteryCard.rarity ? `• ${mysteryCard.rarity}` : ""}</p>
-            <button onClick={openMysteryCard} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
-              🔄 Piocher une autre carte
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
           <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">Ta collection de cartes Pokémon ⚡</h1>
           <p className="text-slate-400 text-sm">Le sanctuaire ultime pour traquer ton carton brillant</p>
-          {(!isGlobalBinder && !activeSearch && isMasterSet && totalCards > 0) && (
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-yellow-500/50 px-4 py-1.5 rounded-full mt-3 shadow-[0_0_15px_rgba(234,179,8,0.3)] animate-pulse">
-              <span className="text-yellow-400 font-bold text-sm">👑 MASTER SET VALIDÉ !</span>
-            </div>
-          )}
         </div>
 
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
@@ -572,7 +466,7 @@ export default function PokedexPage() {
               <span>✨ Ma Collection</span>
             </button>
           ) : (
-            <button onClick={handleBackToSeries} className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600">
+            <button onClick={() => {setIsGlobalBinder(false); setActiveSearch(""); setSearchInput("");}} className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600">
               <span>⬅️ Retour aux séries</span>
             </button>
           )}
@@ -599,58 +493,36 @@ export default function PokedexPage() {
           </div>
         )}
 
+        {/* NOUVELLE BARRE DE FILTRES INCLUANT LA LANGUE */}
         {!isGlobalBinder && (
-          <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85">
-            <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85 flex-wrap">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 font-semibold shrink-0">🎯 Statut :</span>
-              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
                 <option value="ALL">Toutes les cartes</option>
                 <option value="MISSING">❌ Manquantes</option>
                 <option value="NORMAL">✓ Normales possédées</option>
                 <option value="FOIL">✨ Foils possédées</option>
               </select>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 font-semibold shrink-0">🌍 Langue :</span>
+              <select value={selectedLanguage} onChange={(e) => setSelectedLanguage(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+                <option value="ALL">Toutes</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 Anglais</option>
+                <option value="jp">🇯🇵 Japonais</option>
+              </select>
+            </div>
             {illustratorsList.length > 0 && (
-              <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
-                <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+                <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
                   <option value="ALL">Tous ({cards.length})</option>
                   {illustratorsList.map(ill => <option key={ill} value={ill}>{ill}</option>)}
                 </select>
               </div>
             )}
-            {raritiesList.length > 0 && (
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
-                <select value={selectedRarity} onChange={(e) => setSelectedRarity(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
-                  <option value="ALL">Toutes</option>
-                  {raritiesList.map(rarity => <option key={rarity} value={rarity}>{rarity}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {(!isGlobalBinder && !activeSearch) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
-            <div>
-              <div className="flex justify-between text-sm mb-2 font-medium">
-                <span className="text-slate-300">Cartes Normales</span>
-                <span className="text-yellow-400">{normalCollected} / {totalCards} ({Math.round((normalCollected/totalCards)*100 || 0)}%)</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((normalCollected/totalCards)*100 || 0)}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2 font-medium">
-                <span className="text-slate-300">Cartes Foils (Brillantes)</span>
-                <span className="text-purple-400">{foilCollected} / {totalCards} ({Math.round((foilCollected/totalCards)*100 || 0)}%)</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((foilCollected/totalCards)*100 || 0)}%` }}></div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -662,6 +534,13 @@ export default function PokedexPage() {
               const isNormalOwned = userCollection[card.id]?.normalOwned || false;
               const isFoilOwned = userCollection[card.id]?.foilOwned || false;
               const hasError = imageErrors[card.id];
+              
+              // Déterminer la langue de base de la série de cette carte
+              const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId)) || currentSeries;
+              const cardDefaultLang = cardSeries?.lang || "fr";
+              
+              // On affiche les drapeaux UNIQUEMENT si la série de base n'est pas limitée à l'anglais
+              const showLanguageFlags = cardDefaultLang !== "en";
 
               return (
                 <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg">
@@ -678,14 +557,36 @@ export default function PokedexPage() {
                       <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
                     </div>
                   </div>
+                  
                   <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
-                    <button onClick={() => toggleCardOwnership(card.id, 'normal')} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    <button onClick={() => toggleCardOwnership(card.id, 'normal', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-800 text-slate-400"}`}>
                       {isNormalOwned ? "✓ Normale" : "Normale"}
                     </button>
-                    <button onClick={() => toggleCardOwnership(card.id, 'foil')} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    <button onClick={() => toggleCardOwnership(card.id, 'foil', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-800 text-slate-400"}`}>
                       {isFoilOwned ? "✨ Foil" : "Foil"}
                     </button>
                   </div>
+
+                  {/* MINI SELECTEUR DE LANGUES (Apparaît si possédée + Pas réservé à l'anglais) */}
+                  {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
+                    <div className="flex justify-center gap-4 mt-3 pt-2 border-t border-slate-800/50">
+                      {['fr', 'en', 'jp'].map(l => {
+                         const isActive = (userCollection[card.id]?.langs || [cardDefaultLang]).includes(l);
+                         const flagEmoji = l === 'fr' ? '🇫🇷' : l === 'en' ? '🇬🇧' : '🇯🇵';
+                         return (
+                           <button 
+                             key={l}
+                             onClick={() => toggleCardLanguage(card.id, l, cardDefaultLang)}
+                             className={`text-lg transition-all duration-200 cursor-pointer ${isActive ? 'grayscale-0 opacity-100 scale-110 drop-shadow-md' : 'grayscale opacity-30 hover:opacity-70'}`}
+                             title={`Marquer comme possédée en ${l.toUpperCase()}`}
+                           >
+                             {flagEmoji}
+                           </button>
+                         )
+                      })}
+                    </div>
+                  )}
+
                 </div>
               );
             })}
@@ -695,12 +596,6 @@ export default function PokedexPage() {
             <span className="text-4xl mb-4 block">⚠️</span>
             <p className="text-slate-300 text-base font-semibold">Aucune carte trouvée pour cette série.</p>
           </div>
-        )}
-
-        {showScrollTop && (
-          <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-40 bg-yellow-500 hover:bg-yellow-400 text-slate-950 p-3.5 rounded-full shadow-2xl transition cursor-pointer">
-            <svg className="w-5 h-5 font-bold" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"></path></svg>
-          </button>
         )}
       </div>
     </main>
