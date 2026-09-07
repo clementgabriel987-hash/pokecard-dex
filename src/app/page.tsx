@@ -188,6 +188,9 @@ export default function PokedexPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
 
+  // État local pour suivre les images qui ont échoué à charger
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
@@ -291,6 +294,7 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       setSelectedIllustrator("ALL");
+      setImageErrors({}); // Reset des erreurs d'images à chaque changement
       try {
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${activeSearch}`);
@@ -378,7 +382,6 @@ export default function PokedexPage() {
           const data = await response.json();
           if (data && data.cards) {
             const detailedCardsPromises = data.cards.map(async (c: any) => {
-              // Sécurité robuste pour l'URL de l'image (notamment pour les vieux blocs DP / Platine)
               let imageUrl = c.image 
                 ? `${c.image}/high.png` 
                 : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
@@ -670,6 +673,7 @@ export default function PokedexPage() {
             {filteredCards.map(card => {
               const isNormalOwned = userCollection[card.id]?.normalOwned || false;
               const isFoilOwned = userCollection[card.id]?.foilOwned || false;
+              const hasError = imageErrors[card.id];
 
               return (
                 <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
@@ -680,18 +684,18 @@ export default function PokedexPage() {
                           {card.seriesName}
                         </span>
                       )}
-                      {card.image ? (
+                      {card.image && !hasError ? (
                         <img 
                           src={card.image} 
                           alt={card.name} 
                           className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
-                          onError={(e) => {
-                            // Sécurité ultime si l'image ne charge pas : on cache l'image cassée
-                            (e.target as HTMLElement).style.display = 'none';
+                          onError={() => {
+                            // Si l'image ne charge pas, on met à jour l'état pour afficher "Image indisponible"
+                            setImageErrors(prev => ({ ...prev, [card.id]: true }));
                           }}
                         />
                       ) : (
-                        <span className="text-xs text-slate-500">Image indisponible</span>
+                        <span className="text-xs text-slate-500 italic">Image indisponible</span>
                       )}
                     </div>
 
