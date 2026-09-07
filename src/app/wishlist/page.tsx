@@ -48,18 +48,12 @@ export default function WishlistPage() {
       if (data && data.collection) {
         setUserCollection(data.collection);
         
-        // Extraire les IDs des cartes en wishlist
         const wishIDs = Object.keys(data.collection).filter(id => data.collection[id]?.isWishlist);
         
-        // Charger les détails de ces cartes via l'API TCGDex
         let fetchedCards: WishlistCard[] = [];
         for (const cardId of wishIDs) {
           try {
-            // L'ID TCGDex contient généralement l'extension au début (ex: base1-4)
-            const parts = cardId.split('-');
-            const setCode = parts[0];
-            const lang = "fr"; // Par défaut, on cherche en FR
-
+            const lang = "fr";
             const res = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${cardId}`);
             if (res.ok) {
               const cardData = await res.json();
@@ -105,7 +99,7 @@ export default function WishlistPage() {
         </button>
       </div>
 
-      {/* Sidebar de navigation */}
+      {/* Sidebar complète restaurée */}
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
@@ -121,7 +115,25 @@ export default function WishlistPage() {
               <Link href="/wishlist" className="w-full text-left bg-purple-950/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
                 <span>❤️</span> Chasse aux cartes (Wishlist)
               </Link>
+              <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                <span>🎨</span> Recherche par Artiste
+              </Link>
+              <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
+                <span>📈</span> Recherche de Prix
+              </Link>
+              <div className="pt-2">
+                <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                  <span>⚙️</span> Paramètres & Compte
+                </Link>
+              </div>
             </div>
+          </div>
+          <div className="pt-6 border-t border-slate-800">
+            {currentUser ? (
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">Connecté : {currentUser.email}</div>
+            ) : (
+              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">Se connecter avec Google</Link>
+            )}
           </div>
         </div>
       </div>
@@ -151,7 +163,6 @@ export default function WishlistPage() {
             {wishlistCards.map(card => (
               <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative group">
                 
-                {/* Bouton pour retirer de la wishlist */}
                 <button 
                   onClick={() => removeFromWishlist(card.id)} 
                   className="absolute top-3 right-3 z-10 bg-red-500/20 text-red-400 hover:bg-red-500/40 border border-red-500/40 p-2 rounded-full transition cursor-pointer"
@@ -175,7 +186,6 @@ export default function WishlistPage() {
                   <p className="text-[11px] text-slate-400 truncate mb-3">{card.seriesName}</p>
                 </div>
 
-                {/* Liens rapides de chasse marchands */}
                 <div className="space-y-1.5 pt-2 border-t border-slate-800">
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">Chasser sur :</span>
                   <div className="grid grid-cols-3 gap-1 text-[11px] font-semibold">
