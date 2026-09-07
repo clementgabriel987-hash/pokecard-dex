@@ -577,6 +577,9 @@ export default function PokedexPage() {
                   <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
                     <span>📈</span> Recherche de Prix
                   </Link>
+                  <Link href="/achats" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-emerald-300">
+                    <span>🛒</span> Historique des Achats
+                  </Link>
                 </div>
               </div>
 
