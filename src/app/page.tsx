@@ -190,12 +190,10 @@ export default function PokedexPage() {
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
 
-  // Modales
+  // Modales & Sidebar avec animations fluides
   const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
   const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
   const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
-
-  // Menu Latéral Fluide
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -424,9 +422,14 @@ export default function PokedexPage() {
     const isNormal = userCollection[card.id]?.normalOwned || false;
     const isFoil = userCollection[card.id]?.foilOwned || false;
     let matchStatus = true;
-    if (selectedStatus === "MISSING") matchStatus = !isNormal && !isFoil;
-    else if (selectedStatus === "NORMAL") matchStatus = isNormal;
-    else if (selectedStatus === "FOIL") matchStatus = isFoil;
+    
+    // Si on est dans "Ma Collection" globale, on ne filtre pas par statut (on affiche tout ce qui est dans le binder global)
+    if (!isGlobalBinder) {
+      if (selectedStatus === "MISSING") matchStatus = !isNormal && !isFoil;
+      else if (selectedStatus === "NORMAL") matchStatus = isNormal;
+      else if (selectedStatus === "FOIL") matchStatus = isFoil;
+    }
+
     return matchIllustrator && matchRarity && matchStatus;
   });
 
@@ -449,7 +452,7 @@ export default function PokedexPage() {
         </button>
       </div>
 
-      {/* SIDEBAR FLUIDE AVEC ANIMATION DE TRANSLATION */}
+      {/* SIDEBAR FLUIDE */}
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div 
           className="fixed inset-0 bg-black/70 backdrop-blur-sm"
@@ -463,7 +466,6 @@ export default function PokedexPage() {
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
 
-            {/* LES 6 OPTIONS EXACTES */}
             <div className="space-y-3">
               <button
                 onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }}
@@ -533,11 +535,11 @@ export default function PokedexPage() {
         </div>
       </div>
 
-      {/* MODALE 1 : Progression */}
+      {/* MODALE 1 : Progression & Master Sets (AVEC ANIMATION FLUIDE DE ZOOM ET FONDU) */}
       {isProgressionOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsProgressionOpen(false)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-fadeIn" onClick={() => setIsProgressionOpen(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10 animate-scaleUp">
             <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
               <h2 className="text-xl font-bold text-yellow-400">👑 Progression & Master Sets</h2>
               <button onClick={() => setIsProgressionOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
@@ -575,8 +577,8 @@ export default function PokedexPage() {
       {/* MODALE 2 : Carte Mystère */}
       {isMysteryOpen && mysteryCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMysteryOpen(false)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-fadeIn" onClick={() => setIsMysteryOpen(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center animate-scaleUp">
             <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
               <h2 className="text-lg font-bold text-blue-400">🎲 Carte Mystère du Jour</h2>
               <button onClick={() => setIsMysteryOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
@@ -664,36 +666,38 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Filtres */}
-        <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <span className="text-xs text-slate-400 font-semibold shrink-0">🎯 Statut :</span>
-            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
-              <option value="ALL">Toutes les cartes</option>
-              <option value="MISSING">❌ Manquantes</option>
-              <option value="NORMAL">✓ Normales possédées</option>
-              <option value="FOIL">✨ Foils possédées</option>
-            </select>
+        {/* FILTRES : MASQUÉS DANS LE MENU "MA COLLECTION" GLOBALE */}
+        {!isGlobalBinder && (
+          <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <span className="text-xs text-slate-400 font-semibold shrink-0">🎯 Statut :</span>
+              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+                <option value="ALL">Toutes les cartes</option>
+                <option value="MISSING">❌ Manquantes</option>
+                <option value="NORMAL">✓ Normales possédées</option>
+                <option value="FOIL">✨ Foils possédées</option>
+              </select>
+            </div>
+            {illustratorsList.length > 0 && (
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
+                <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+                  <option value="ALL">Tous ({cards.length})</option>
+                  {illustratorsList.map(ill => <option key={ill} value={ill}>{ill}</option>)}
+                </select>
+              </div>
+            )}
+            {raritiesList.length > 0 && (
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
+                <select value={selectedRarity} onChange={(e) => setSelectedRarity(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+                  <option value="ALL">Toutes</option>
+                  {raritiesList.map(rarity => <option key={rarity} value={rarity}>{rarity}</option>)}
+                </select>
+              </div>
+            )}
           </div>
-          {illustratorsList.length > 0 && (
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
-              <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
-                <option value="ALL">Tous ({cards.length})</option>
-                {illustratorsList.map(ill => <option key={ill} value={ill}>{ill}</option>)}
-              </select>
-            </div>
-          )}
-          {raritiesList.length > 0 && (
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
-              <select value={selectedRarity} onChange={(e) => setSelectedRarity(e.target.value)} className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
-                <option value="ALL">Toutes</option>
-                {raritiesList.map(rarity => <option key={rarity} value={rarity}>{rarity}</option>)}
-              </select>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Barres de progression */}
         {(!isGlobalBinder && !activeSearch) && (
