@@ -211,7 +211,11 @@ export default function PokedexPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL");
 
+  const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
+  const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
+  const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -253,6 +257,13 @@ export default function PokedexPage() {
     if (searchInput.trim()) { setIsGlobalBinder(false); setActiveSearch(searchInput.trim()); }
   };
 
+  const openMysteryCard = () => {
+    if (cards.length === 0) return alert("Ouvre d'abord une série contenant des cartes !");
+    setMysteryCard(cards[Math.floor(Math.random() * cards.length)]);
+    setIsMysteryOpen(true);
+    setIsSidebarOpen(false);
+  };
+
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -269,14 +280,14 @@ export default function PokedexPage() {
           if (Array.isArray(data)) {
             const formatted = await Promise.all(data.slice(0, 50).map(async (c: any) => {
               let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/base1/${c.localId}/high.png`;
-              let illustrator = "Inconnu", rarity = "Inconnue";
+              let illustrator = "Inconnu", rarity = "Inconnue", seriesName = "Série inconnue";
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
                 const cardData = await cardRes.json();
-                illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue";
+                illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue"; seriesName = cardData.set?.name || "Série inconnue";
                 if (cardData.image) imageUrl = `${cardData.image}/high.png`;
               } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
+              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName };
             }));
             setCards(formatted);
             extractFilters(formatted);
@@ -355,7 +366,7 @@ export default function PokedexPage() {
     if (type === 'normal') newCollection[id].normalOwned = !newCollection[id].normalOwned;
     else newCollection[id].foilOwned = !newCollection[id].foilOwned;
     
-    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned) delete newCollection[id];
+    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
     
     setUserCollection(newCollection);
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
@@ -375,6 +386,18 @@ export default function PokedexPage() {
     }
 
     newCollection[id].langs = currentLangs;
+    setUserCollection(newCollection);
+    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+  };
+
+  const toggleWishlist = async (id: string) => {
+    if (!currentUser) return alert("Connecte-toi pour gérer ta wishlist !");
+    const newCollection = { ...userCollection };
+    if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, isWishlist: true };
+    else newCollection[id].isWishlist = !newCollection[id].isWishlist;
+
+    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
+
     setUserCollection(newCollection);
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
@@ -427,11 +450,31 @@ export default function PokedexPage() {
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="space-y-3">
-              <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
-                <span>✨</span> Ma Collection
+              <Link href="/" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                <span>📚</span> Mon Pokedex / Classeur
+              </Link>
+              <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3.5 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
+                <span>❤️</span> Chasse aux cartes (Wishlist)
+              </Link>
+              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
+                <span>👑</span> Progression & Master Sets
               </button>
-              {/* Prochaine étape : Ajouter ici le lien vers la page "Chasse aux cartes / Wishlist" */}
+              <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
+                <span>🎲</span> La Carte Mystère du Jour
+              </button>
+              <div className="pt-2">
+                <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                  <span>⚙️</span> Paramètres & Compte
+                </Link>
+              </div>
             </div>
+          </div>
+          <div className="pt-6 border-t border-slate-800">
+            {currentUser ? (
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">Connecté : {currentUser.email}</div>
+            ) : (
+              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">Se connecter avec Google</Link>
+            )}
           </div>
         </div>
       </div>
@@ -513,6 +556,7 @@ export default function PokedexPage() {
               const cardData = userCollection[card.id];
               const isNormalOwned = cardData?.normalOwned || false;
               const isFoilOwned = cardData?.foilOwned || false;
+              const isWishlisted = cardData?.isWishlist || false;
               const hasError = imageErrors[card.id];
               
               const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
@@ -520,7 +564,17 @@ export default function PokedexPage() {
               const showLanguageFlags = cardDefaultLang !== "en";
 
               return (
-                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg">
+                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg relative">
+                  
+                  {/* Bouton Cœur Wishlist discret */}
+                  <button 
+                    onClick={() => toggleWishlist(card.id)} 
+                    className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
+                    title="Ajouter à la Wishlist (Chasse aux cartes)"
+                  >
+                    {isWishlisted ? "❤️" : "🤍"}
+                  </button>
+
                   <div>
                     <div className="mb-3 flex justify-center bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[220px] items-center relative overflow-hidden">
                       {card.image && !hasError ? (
