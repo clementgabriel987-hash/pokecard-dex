@@ -545,7 +545,7 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
           Ta collection de cartes Pokémon ⚡
         </h1>
-        <p className="text-slate-400 text-center mb-6">Le sanctuaire ultime pour traquer ton carton brillant</p>
+        <p className="text-slate-400 text-center mb-6">Le site internet du mangeur de cartes Pokémon</p>
 
         {/* Barre de Recherche */}
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
