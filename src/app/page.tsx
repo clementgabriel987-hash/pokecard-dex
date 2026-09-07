@@ -15,7 +15,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (avec le Bloc Promos fonctionnel)
+// Organisation en Blocs et Séries (avec le Bloc Promos)
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
@@ -375,23 +375,41 @@ export default function PokedexPage() {
           const data = await response.json();
           if (data && data.cards) {
             const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
-              let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
+              // Sécurité robuste pour l'image (vital pour les Promos)
+              let imageUrl = c.image 
+                ? `${c.image}/high.png` 
+                : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
+              
               let illustrator = "Inconnu";
               let rarity = "Inconnue";
+              
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${c.id}`);
                 if (cardRes.ok) {
                   const cardData = await cardRes.json();
                   illustrator = cardData.illustrator || "Inconnu";
                   rarity = cardData.rarity || "Inconnue";
-                  if (cardData.image) imageUrl = `${cardData.image}/high.png`;
+                  if (cardData.image) {
+                    imageUrl = `${cardData.image}/high.png`;
+                  }
                 }
               } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
+              
+              return {
+                id: c.id,
+                name: c.name || "Inconnue",
+                localId: c.localId || "?",
+                image: imageUrl,
+                illustrator,
+                rarity
+              };
             }));
+
             setCards(formattedCards);
             extractFilters(formattedCards);
-          } else setCards([]);
+          } else {
+            setCards([]);
+          }
         }
       } catch {
         setCards([]);
@@ -503,7 +521,6 @@ export default function PokedexPage() {
                 <span>🎲</span> La Carte Mystère du Jour
               </button>
 
-              {/* Bouton Recherche de Prix (Point 2) */}
               <Link
                 href="/prix"
                 className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300"
