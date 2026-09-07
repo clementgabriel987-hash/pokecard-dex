@@ -187,9 +187,15 @@ export default function PokedexPage() {
 
   const [selectedRarity, setSelectedRarity] = useState<string>("ALL");
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
-
-  // Nouveau filtre de statut (ALL, MISSING, NORMAL, FOIL)
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+
+  // États des modales (Progression et Carte Mystère)
+  const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
+  const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
+  const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
+
+  // État du Menu Latéral (Sidebar)
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   // Authentification et Collection
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -259,6 +265,7 @@ export default function PokedexPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserCollection({});
+    setIsSidebarOpen(false);
   };
 
   const exportCollectionJSON = () => {
@@ -312,6 +319,15 @@ export default function PokedexPage() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Fonction pour piocher une carte mystère aléatoire dans la série actuelle
+  const openMysteryCard = () => {
+    if (cards.length === 0) return alert("Sélectionne d'abord une série contenant des cartes !");
+    const randomCard = cards[Math.floor(Math.random() * cards.length)];
+    setMysteryCard(randomCard);
+    setIsMysteryOpen(true);
+    setIsSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -539,57 +555,246 @@ export default function PokedexPage() {
   const normalPercent = totalCards > 0 ? Math.round((normalCollected / totalCards) * 100) : 0;
   const foilPercent = totalCards > 0 ? Math.round((foilCollected / totalCards) * 100) : 0;
 
+  const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
+
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Barre d'auth */}
-        <div className="mb-6 flex flex-col lg:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4 shadow-md">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-300">Ton Pokédex ✨</h2>
-            <p className="text-xs text-slate-500">
-              {currentUser ? `Connecté en tant que : ${currentUser.email}` : "Connecte-toi pour graver ta collection dans le Cloud."}
-            </p>
-          </div>
+      
+      {/* Bouton Menu Latéral (Flottant en haut à gauche) */}
+      <div className="absolute top-4 left-4 z-40">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-yellow-400 p-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold transition cursor-pointer"
+        >
+          <span className="text-lg">☰</span> Menu
+        </button>
+      </div>
 
-          <div className="flex flex-wrap gap-2 items-center">
-            {currentUser ? (
-              <>
-                <button onClick={exportCollectionJSON} className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-600/30 transition cursor-pointer">
-                  📥 Exporter JSON
+      {/* Sidebar (Menu Latéral Coulissant) avec les 6 options exactes */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+
+          <div className="relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 overflow-y-auto">
+            <div>
+              <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+                <h2 className="text-lg font-extrabold text-yellow-400">Menu Dresseur 🧢</h2>
+                <button 
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer"
+                >
+                  ✕
                 </button>
-                <label className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-600/30 transition cursor-pointer">
-                  📤 Importer JSON
-                  <input type="file" accept=".json" onChange={importCollectionJSON} className="hidden" />
-                </label>
-                <button onClick={handleLogout} className="bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-red-500/30 transition cursor-pointer ml-2">
-                  Déconnexion
+              </div>
+
+              {/* Les 6 options du menu */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setIsProgressionOpen(true);
+                    setIsSidebarOpen(false);
+                  }}
+                  className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300"
+                >
+                  <span>👑</span> Progression & Master Sets
                 </button>
-              </>
-            ) : (
-              <button
-                onClick={signInWithGoogle}
-                className="flex items-center gap-2 bg-white text-slate-900 text-xs font-bold px-4 py-2 rounded-lg hover:bg-gray-200 transition cursor-pointer shadow-md"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Se connecter avec Google
-              </button>
-            )}
+
+                <button
+                  onClick={() => {
+                    setIsGlobalBinder(true);
+                    setActiveSearch("");
+                    setIsSidebarOpen(false);
+                  }}
+                  className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer"
+                >
+                  <span>✨</span> Ma Collection
+                </button>
+
+                <button
+                  onClick={() => {
+                    // Scroll direct vers la barre de filtres artiste
+                    document.getElementById("filter-section")?.scrollIntoView({ behavior: "smooth" });
+                    setIsSidebarOpen(false);
+                  }}
+                  className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer"
+                >
+                  <span>🎨</span> Recherche par Artiste
+                </button>
+
+                <button
+                  onClick={openMysteryCard}
+                  className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300"
+                >
+                  <span>🎲</span> La Carte Mystère du Jour
+                </button>
+
+                <div className="pt-4 border-t border-slate-800">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">💾 Sauvegarde & Compte</span>
+                  <div className="space-y-2">
+                    {currentUser ? (
+                      <>
+                        <button 
+                          onClick={exportCollectionJSON} 
+                          className="w-full text-left bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2"
+                        >
+                          <span>📥</span> Exporter le JSON
+                        </button>
+                        <label className="w-full text-left bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2 block">
+                          <span>📤</span> Importer le JSON
+                          <input type="file" accept=".json" onChange={importCollectionJSON} className="hidden" />
+                        </label>
+                      </>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic p-2">Connecte-toi pour sauvegarder ou exporter tes données.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      setIsSidebarOpen(false);
+                    }}
+                    className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer"
+                  >
+                    <span>⚙️</span> Paramètres & Compte
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Section Compte en bas du menu */}
+            <div className="pt-6 border-t border-slate-800">
+              {currentUser ? (
+                <div className="space-y-3">
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Compte actif</p>
+                    <p className="text-xs text-slate-300 truncate font-medium">{currentUser.email}</p>
+                  </div>
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 p-3 rounded-xl text-xs font-semibold transition cursor-pointer text-center"
+                  >
+                    Déconnexion
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={signInWithGoogle}
+                  className="w-full flex items-center justify-center gap-2 bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition cursor-pointer shadow-md"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  Se connecter avec Google
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
+      )}
 
-        {/* Titre */}
-        <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
-          Ta collection de cartes Pokémon ⚡
-        </h1>
-        <p className="text-slate-400 text-center mb-6">Le sanctuaire ultime pour traquer ton carton brillant</p>
+      {/* MODALE 1 : Progression & Master Sets */}
+      {isProgressionOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsProgressionOpen(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10">
+            <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
+              <h2 className="text-xl font-bold text-yellow-400">👑 Progression & Master Sets</h2>
+              <button onClick={() => setIsProgressionOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">Vue d'ensemble de tes succès et de tes extensions prêtes à être validées.</p>
+            
+            <div className="space-y-4">
+              {POKEMON_BLOCKS.map((block) => (
+                <div key={block.blockName} className="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-yellow-500 mb-3">{block.blockName}</h3>
+                  <div className="space-y-2">
+                    {block.sets.map((set) => {
+                      return (
+                        <div key={set.id} className="flex justify-between items-center text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                          <span className="font-medium text-slate-300">{set.name}</span>
+                          <button 
+                            onClick={() => {
+                              // Sélectionne directement cette série
+                              const bIdx = POKEMON_BLOCKS.findIndex(b => b.blockName === block.blockName);
+                              setSelectedBlockIndex(bIdx);
+                              setSelectedSeriesId(set.id);
+                              setIsGlobalBinder(false);
+                              setActiveSearch("");
+                              setIsProgressionOpen(false);
+                            }}
+                            className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer"
+                          >
+                            Ouvrir ➔
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE 2 : La Carte Mystère du Jour */}
+      {isMysteryOpen && mysteryCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMysteryOpen(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+              <h2 className="text-lg font-bold text-blue-400">🎲 Carte Mystère du Jour</h2>
+              <button onClick={() => setIsMysteryOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
+            </div>
+            
+            <div className="mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-center min-h-[220px] items-center">
+              {mysteryCard.image ? (
+                <img src={mysteryCard.image} alt={mysteryCard.name} className="h-56 object-contain drop-shadow-lg" />
+              ) : (
+                <span className="text-xs text-slate-500">Image indisponible</span>
+              )}
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-1">{mysteryCard.name}</h3>
+            <p className="text-xs text-slate-400 mb-4">Numéro local : #{mysteryCard.localId} {mysteryCard.rarity ? `• ${mysteryCard.rarity}` : ""}</p>
+
+            <button
+              onClick={openMysteryCard}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+            >
+              🔄 Piocher une autre carte
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto pt-6 md:pt-0">
+        
+        {/* Titre & Master Set Badge */}
+        <div className="text-center mb-6">
+          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
+            Ta collection de cartes Pokémon ⚡
+          </h1>
+          <p className="text-slate-400 text-sm">Le sanctuaire ultime pour traquer ton carton brillant</p>
+          
+          {(!isGlobalBinder && !activeSearch && isMasterSet && totalCards > 0) && (
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-yellow-500/50 px-4 py-1.5 rounded-full mt-3 shadow-[0_0_15px_rgba(234,179,8,0.3)] animate-pulse">
+              <span className="text-yellow-400 font-bold text-sm">👑 MASTER SET VALIDÉ !</span>
+            </div>
+          )}
+        </div>
 
         {/* Barre de Recherche */}
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
@@ -617,7 +822,7 @@ export default function PokedexPage() {
               onClick={() => setIsGlobalBinder(true)}
               className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60"
             >
-              <span>✨ ma collection</span>
+              <span>✨ Ma Collection</span>
             </button>
           ) : (
             <button
@@ -678,17 +883,16 @@ export default function PokedexPage() {
 
         {isGlobalBinder && (
           <div className="mb-6 text-center bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
-            <h2 className="text-sm font-semibold text-purple-300">✨ ma collection</h2>
+            <h2 className="text-sm font-semibold text-purple-300">✨ Ma Collection Globale</h2>
             <p className="text-xs text-purple-400/80 mt-1">
               {currentUser ? `Tu possèdes un total de ${Object.keys(userCollection).length} cartes uniques enregistrées. Beau travail !` : "Connecte-toi avec Google pour afficher ta collection."}
             </p>
           </div>
         )}
 
-        {/* Filtres (Statut, Artiste & Rareté) */}
-        <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+        {/* Filtres (ID d'ancre "filter-section" pour le bouton Recherche par Artiste du menu) */}
+        <div id="filter-section" className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 scroll-mt-6">
           
-          {/* Filtre Statut (Manquantes / Possédées) */}
           <div className="flex items-center gap-2 w-full md:w-auto">
             <span className="text-xs text-slate-400 font-semibold shrink-0">🎯 Statut :</span>
             <select
@@ -703,7 +907,6 @@ export default function PokedexPage() {
             </select>
           </div>
 
-          {/* Filtre Artiste */}
           {illustratorsList.length > 0 && (
             <div className="flex items-center gap-2 w-full md:w-auto">
               <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
@@ -720,7 +923,6 @@ export default function PokedexPage() {
             </div>
           )}
 
-          {/* Filtre Rareté */}
           {raritiesList.length > 0 && (
             <div className="flex items-center gap-2 w-full md:w-auto">
               <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
@@ -851,7 +1053,7 @@ export default function PokedexPage() {
         {showScrollTop && (
           <button
             onClick={scrollToTop}
-            className="fixed bottom-6 right-6 z-50 bg-yellow-500 hover:bg-yellow-400 text-slate-950 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110"
+            className="fixed bottom-6 right-6 z-40 bg-yellow-500 hover:bg-yellow-400 text-slate-950 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110"
             title="Retour en haut"
           >
             <svg className="w-5 h-5 font-bold" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
