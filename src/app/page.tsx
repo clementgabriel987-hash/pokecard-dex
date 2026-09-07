@@ -15,165 +15,147 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (avec le Bloc Promos)
+// Organisation en Blocs et Séries avec les identifiants officiels pokemontcg.io
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
     sets: [
-      { id: "svp", name: "EV Black Star Promos (FR)", lang: "fr" },
-      { id: "swsh-p", name: "EB Black Star Promos (FR)", lang: "fr" },
-      { id: "sm-p", name: "SM Black Star Promos (FR)", lang: "fr" },
-      { id: "xy-p", name: "XY Black Star Promos (FR)", lang: "fr" }
+      { id: "svp", name: "Scarlet & Violet Promos", lang: "en" },
+      { id: "swshp", name: "SWSH Black Star Promos", lang: "en" },
+      { id: "smp", name: "SM Black Star Promos", lang: "en" },
+      { id: "xyp", name: "XY Black Star Promos", lang: "en" }
     ]
   },
   {
     blockName: "Bloc Wizards (Classic)",
     sets: [
-      { id: "base1", name: "Base Set (FR)", lang: "fr" },
-      { id: "base2", name: "Jungle (FR)", lang: "fr" },
-      { id: "base3", name: "Fossile (FR)", lang: "fr" },
-      { id: "base4", name: "Base Set 2 (EN)", lang: "en" },
-      { id: "gym1", name: "Gym Heroes (EN)", lang: "en" },
-      { id: "neo1", name: "Neo Genesis (FR)", lang: "fr" },
-      { id: "neo2", name: "Neo Discovery (FR)", lang: "fr" },
-      { id: "neo3", name: "Neo Revelation (EN)", lang: "en" },
-      { id: "neo4", name: "Neo Destiny (EN)", lang: "en" }
+      { id: "base1", name: "Base Set", lang: "en" },
+      { id: "base2", name: "Jungle", lang: "en" },
+      { id: "base3", name: "Fossil", lang: "en" },
+      { id: "base4", name: "Base Set 2", lang: "en" },
+      { id: "gym1", name: "Gym Heroes", lang: "en" },
+      { id: "neo1", name: "Neo Genesis", lang: "en" },
+      { id: "neo2", name: "Neo Discovery", lang: "en" },
+      { id: "neo3", name: "Neo Revelation", lang: "en" },
+      { id: "neo4", name: "Neo Destiny", lang: "en" }
     ]
   },
   {
     blockName: "Bloc EX (Ruby & Sapphire)",
     sets: [
-      { id: "ex1", name: "EX Rubis & Saphir (FR)", lang: "fr" },
-      { id: "ex2", name: "EX Tempête de Sable (FR)", lang: "fr" },
-      { id: "ex3", name: "EX Dragon (FR)", lang: "fr" },
-      { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
-      { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
-      { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
-      { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
-      { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
-      { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
-      { id: "ex11", name: "EX Espèces Delta (FR)", lang: "fr" },
-      { id: "ex12", name: "EX Créateurs de Légendes (FR)", lang: "fr" },
-      { id: "ex13", name: "EX Fantômes Holon (FR)", lang: "fr" },
-      { id: "ex14", name: "EX Gardiens de Cristal (FR)", lang: "fr" },
-      { id: "ex15", name: "EX Île des Dragons (FR)", lang: "fr" },
-      { id: "ex16", name: "EX Gardiens du Pouvoir (FR)", lang: "fr" }
+      { id: "ex1", name: "Ruby & Sapphire", lang: "en" },
+      { id: "ex2", name: "Sandstorm", lang: "en" },
+      { id: "ex3", name: "Dragon", lang: "en" },
+      { id: "ex4", name: "Team Magma vs Team Aqua", lang: "en" },
+      { id: "ex5", name: "Hidden Legends", lang: "en" },
+      { id: "ex6", name: "FireRed & LeafGreen", lang: "en" },
+      { id: "ex7", name: "Team Rocket Returns", lang: "en" },
+      { id: "ex8", name: "Deoxys", lang: "en" },
+      { id: "ex9", name: "Emerald", lang: "en" },
+      { id: "ex10", name: "Unseen Forces", lang: "en" },
+      { id: "ex11", name: "Delta Species", lang: "en" },
+      { id: "ex12", name: "Legend Maker", lang: "en" },
+      { id: "ex13", name: "Holon Phantoms", lang: "en" },
+      { id: "ex14", name: "Crystal Guardians", lang: "en" },
+      { id: "ex15", name: "Dragon Frontiers", lang: "en" },
+      { id: "ex16", name: "Power Keepers", lang: "en" }
     ]
   },
   {
-    blockName: "Bloc Platine, Diamant & Perle",
+    blockName: "Bloc Diamant & Perle & Platine",
     sets: [
-      { id: "dp1", name: "Diamant & Perle (FR)", lang: "fr" },
-      { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
-      { id: "dp3", name: "Merveilles Secrètes (FR)", lang: "fr" },
-      { id: "dp4", name: "Aube Majestueuse (FR)", lang: "fr" },
-      { id: "dp5", name: "Éveil des Légendes (FR)", lang: "fr" },
-      { id: "dp6", name: "Tempête (FR)", lang: "fr" },
-      { id: "pl1", name: "Platine (FR)", lang: "fr" },
-      { id: "pl2", name: "Rivaux Émergents (FR)", lang: "fr" },
-      { id: "pl3", name: "Vainqueurs Suprêmes (FR)", lang: "fr" },
-      { id: "pl4", name: "Arceus (FR)", lang: "fr" }
+      { id: "dp1", name: "Diamond & Pearl", lang: "en" },
+      { id: "dp2", name: "Mysterious Treasures", lang: "en" },
+      { id: "dp3", name: "Secret Wonders", lang: "en" },
+      { id: "dp4", name: "Great Encounters", lang: "en" },
+      { id: "dp5", name: "Majestic Dawn", lang: "en" },
+      { id: "dp6", name: "Legends Awakened", lang: "en" },
+      { id: "dp7", name: "Stormfront", lang: "en" },
+      { id: "pl1", name: "Platinum", lang: "en" },
+      { id: "pl2", name: "Rising Rivals", lang: "en" },
+      { id: "pl3", name: "Supreme Victors", lang: "en" },
+      { id: "pl4", name: "Arceus", lang: "en" }
     ]
   },
   {
     blockName: "Bloc Noir & Blanc",
     sets: [
-      { id: "bw1", name: "Noir & Blanc (FR)", lang: "fr" },
-      { id: "bw2", name: "Pouvoirs Émergents (FR)", lang: "fr" },
-      { id: "bw3", name: "Nobles Victoires (FR)", lang: "fr" },
-      { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
-      { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
-      { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
-      { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
-      { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
-      { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
-      { id: "bw10", name: "Explosion Plasma (FR)", lang: "fr" },
-      { id: "bw11", name: "Trésors Légendaires (EN)", lang: "en" }
+      { id: "bw1", name: "Black & White", lang: "en" },
+      { id: "bw2", name: "Emerging Powers", lang: "en" },
+      { id: "bw3", name: "Noble Victories", lang: "en" },
+      { id: "bw4", name: "Next Destinies", lang: "en" },
+      { id: "bw5", name: "Dark Explorers", lang: "en" },
+      { id: "bw6", name: "Dragons Exalted", lang: "en" },
+      { id: "bw7", name: "Boundaries Crossed", lang: "en" },
+      { id: "bw8", name: "Plasma Storm", lang: "en" },
+      { id: "bw9", name: "Plasma Freeze", lang: "en" },
+      { id: "bw10", name: "Plasma Blast", lang: "en" },
+      { id: "bw11", name: "Legendary Treasures", lang: "en" }
     ]
   },
   {
     blockName: "Bloc XY",
     sets: [
-      { id: "xy1", name: "XY de base (FR)", lang: "fr" },
-      { id: "xy2", name: "Étincelles (FR)", lang: "fr" },
-      { id: "xy3", name: "Poings Furieux (FR)", lang: "fr" },
-      { id: "xy4", name: "Vigueur Spectrale (FR)", lang: "fr" },
-      { id: "xy5", name: "Primo-Choc (FR)", lang: "fr" },
-      { id: "xy6", name: "Ciel Rugissant (FR)", lang: "fr" },
-      { id: "xy7", name: "Origines Antiques (FR)", lang: "fr" },
-      { id: "xy8", name: "Impulsion Turbo (FR)", lang: "fr" },
-      { id: "xy9", name: "Rupture Turbo (FR)", lang: "fr" },
-      { id: "xy10", name: "Impact des Destins (FR)", lang: "fr" },
-      { id: "xy11", name: "Offensive Vapeur (FR)", lang: "fr" },
-      { id: "xy12", name: "Évolutions (FR)", lang: "fr" },
-      { id: "g1", name: "Générations (FR)", lang: "fr" }
+      { id: "xy1", name: "XY Base", lang: "en" },
+      { id: "xy2", name: "Flashfire", lang: "en" },
+      { id: "xy3", name: "Furious Fists", lang: "en" },
+      { id: "xy4", name: "Phantom Forces", lang: "en" },
+      { id: "xy5", name: "Primal Clash", lang: "en" },
+      { id: "xy6", name: "Roaring Skies", lang: "en" },
+      { id: "xy7", name: "Ancient Origins", lang: "en" },
+      { id: "xy8", name: "BREAKthrough", lang: "en" },
+      { id: "xy9", name: "BREAKpoint", lang: "en" },
+      { id: "xy10", name: "Fates Collide", lang: "en" },
+      { id: "xy11", name: "Steam Siege", lang: "en" },
+      { id: "xy12", name: "Evolutions", lang: "en" }
     ]
   },
   {
     blockName: "Bloc Soleil & Lune",
     sets: [
-      { id: "sm1", name: "Soleil et Lune (FR)", lang: "fr" },
-      { id: "sm2", name: "Gardiens Ascendants (FR)", lang: "fr" },
-      { id: "sm3", name: "Ombres Ardentes (FR)", lang: "fr" },
-      { id: "sm3.5", name: "Légendes Brillantes (FR)", lang: "fr" },
-      { id: "sm4", name: "Invasion Carmin (FR)", lang: "fr" },
-      { id: "sm5", name: "Ultra-Prisme (FR)", lang: "fr" },
-      { id: "sm6", name: "Lumière Interdite (FR)", lang: "fr" },
-      { id: "sm7", name: "Tempête Céleste (FR)", lang: "fr" },
-      { id: "sm8", name: "Tonnerre Perdu (FR)", lang: "fr" },
-      { id: "sm9", name: "Duo de Choc (FR)", lang: "fr" },
-      { id: "sm10", name: "Alliance Infaillible (FR)", lang: "fr" },
-      { id: "sm11", name: "Harmonie des Esprits (FR)", lang: "fr" },
-      { id: "sm11.5", name: "Destinées Occultes (FR)", lang: "fr" },
-      { id: "sm12", name: "Éclipse Cosmique (FR)", lang: "fr" }
+      { id: "sm1", name: "Sun & Base", lang: "en" },
+      { id: "sm2", name: "Guardians Rising", lang: "en" },
+      { id: "sm3", name: "Burning Shadows", lang: "en" },
+      { id: "sm4", name: "Crimson Invasion", lang: "en" },
+      { id: "sm5", name: "Ultra Prism", lang: "en" },
+      { id: "sm6", name: "Forbidden Light", lang: "en" },
+      { id: "sm7", name: "Celestial Storm", lang: "en" },
+      { id: "sm8", name: "Lost Thunder", lang: "en" },
+      { id: "sm9", name: "Team Up", lang: "en" },
+      { id: "sm10", name: "Unbroken Bonds", lang: "en" },
+      { id: "sm11", name: "Unified Minds", lang: "en" },
+      { id: "sm12", name: "Cosmic Eclipse", lang: "en" }
     ]
   },
   {
     blockName: "Bloc Épée & Bouclier",
     sets: [
-      { id: "swsh1", name: "Épée et Bouclier (FR)", lang: "fr" },
-      { id: "swsh2", name: "Clash des Rebelles (FR)", lang: "fr" },
-      { id: "swsh3", name: "Ténèbres Embrasées (FR)", lang: "fr" },
-      { id: "swsh3.5", name: "La Voie du Maître (FR)", lang: "fr" },
-      { id: "swsh4", name: "Voltage Éclatant (FR)", lang: "fr" },
-      { id: "swsh4.5", name: "Destinées Radieuses (FR)", lang: "fr" },
-      { id: "swsh5", name: "Styles de Combat (FR)", lang: "fr" },
-      { id: "swsh6", name: "Règne de Glace (FR)", lang: "fr" },
-      { id: "swsh7", name: "Évolution Céleste (FR)", lang: "fr" },
-      { id: "swsh8", name: "Célébrations (FR)", lang: "fr" },
-      { id: "swsh9", name: "Stars Étincelantes (FR)", lang: "fr" },
-      { id: "swsh10", name: "Astres Radieux (FR)", lang: "fr" },
-      { id: "swsh11", name: "Origine Perdue (FR)", lang: "fr" },
-      { id: "swsh12", name: "Tempête Argentée (FR)", lang: "fr" },
-      { id: "swsh12.5", name: "Zénith Suprême (FR)", lang: "fr" }
+      { id: "swsh1", name: "Sword & Shield", lang: "en" },
+      { id: "swsh2", name: "Rebel Clash", lang: "en" },
+      { id: "swsh3", name: "Darkness Ablaze", lang: "en" },
+      { id: "swsh4", name: "Vivid Voltage", lang: "en" },
+      { id: "swsh5", name: "Battle Styles", lang: "en" },
+      { id: "swsh6", name: "Chilling Reign", lang: "en" },
+      { id: "swsh7", name: "Evolving Skies", lang: "en" },
+      { id: "swsh8", name: "Celebrations", lang: "en" },
+      { id: "swsh9", name: "Brilliant Stars", lang: "en" },
+      { id: "swsh10", name: "Astral Radiance", lang: "en" },
+      { id: "swsh11", name: "Lost Origin", lang: "en" },
+      { id: "swsh12", name: "Silver Tempest", lang: "en" }
     ]
   },
   {
-    blockName: "Bloc Écarlate & Violet (EV)",
+    blockName: "Bloc Écarlate & Violet (SV)",
     sets: [
-      { id: "sv01", name: "Écarlate et Violet (FR)", lang: "fr" },
-      { id: "sv02", name: "Évolutions à Paldea (FR)", lang: "fr" },
-      { id: "sv03", name: "Flammes Obsidiennes (FR)", lang: "fr" },
-      { id: "sv03.5", name: "151 (FR)", lang: "fr" },
-      { id: "sv04", name: "Faille Paradoxe (FR)", lang: "fr" },
-      { id: "sv04.5", name: "Destinées de Paldea (FR)", lang: "fr" },
-      { id: "sv05", name: "Forces Temporelles (FR)", lang: "fr" },
-      { id: "sv06", name: "Mascarade Crépusculaire (FR)", lang: "fr" },
-      { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
-      { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
-      { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Méga-Évolution (ME)",
-    sets: [
-      { id: "me01", name: "Méga-Évolution (FR)", lang: "fr" },
-      { id: "me02", name: "Flammes Fantasmagoriques (FR)", lang: "fr" },
-      { id: "me02.5", name: "Héros Transcendants (FR)", lang: "fr" },
-      { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
-      { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
-      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" }
+      { id: "sv1", name: "Scarlet & Violet", lang: "en" },
+      { id: "sv2", name: "Paldea Evolved", lang: "en" },
+      { id: "sv3", name: "Obsidian Flames", lang: "en" },
+      { id: "sv3pt5", name: "151", lang: "en" },
+      { id: "sv4", name: "Paradox Rift", lang: "en" },
+      { id: "sv5", name: "Temporal Forces", lang: "en" },
+      { id: "sv6", name: "Twilight Masquerade", lang: "en" },
+      { id: "sv7", name: "Stellar Crown", lang: "en" },
+      { id: "sv8", name: "Surging Sparks", lang: "en" }
     ]
   }
 ];
@@ -199,7 +181,6 @@ export default function PokedexPage() {
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
 
-  // Modales & Sidebar
   const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
   const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
   const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
@@ -317,24 +298,18 @@ export default function PokedexPage() {
       setImageErrors({});
       try {
         if (activeSearch) {
-          const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${activeSearch}`);
+          const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(activeSearch)}*&pageSize=50`);
           if (!response.ok) throw new Error();
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            const formatted = await Promise.all(data.slice(0, 50).map(async (c: any) => {
-              let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/base1/${c.localId}/high.png`;
-              let illustrator = "Inconnu";
-              let rarity = "Inconnue";
-              let seriesName = "Série inconnue";
-              try {
-                const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
-                const cardData = await cardRes.json();
-                illustrator = cardData.illustrator || "Inconnu";
-                rarity = cardData.rarity || "Inconnue";
-                seriesName = cardData.set?.name || "Série inconnue";
-                if (cardData.image) imageUrl = `${cardData.image}/high.png`;
-              } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName };
+          const json = await response.json();
+          if (json && json.data) {
+            const formatted = json.data.map((c: any) => ({
+              id: c.id,
+              name: c.name || "Inconnue",
+              localId: c.number || "?",
+              image: c.images?.large || c.images?.small || "",
+              illustrator: c.artist || "Inconnu",
+              rarity: c.rarity || "Inconnue",
+              seriesName: c.set?.name || "Série inconnue"
             }));
             setCards(formatted);
             extractFilters(formatted);
@@ -342,74 +317,48 @@ export default function PokedexPage() {
         } else if (isGlobalBinder) {
           if (!currentUser) { setCards([]); setLoading(false); return; }
           const ownedCardIds = Object.keys(userCollection).filter(id => userCollection[id]?.normalOwned || userCollection[id]?.foilOwned);
-          let globalCards: Card[] = [];
-          for (const series of ALL_FLAT_SERIES) {
-            try {
-              const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
-              if (!response.ok) continue;
-              const data = await response.json();
-              if (data && data.cards) {
-                for (const card of data.cards) {
-                  if (ownedCardIds.includes(card.id)) {
-                    globalCards.push({
-                      id: card.id,
-                      name: card.name || "Inconnue",
-                      localId: card.localId || "?",
-                      image: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`,
-                      illustrator: card.illustrator || "Inconnu",
-                      rarity: card.rarity || "Inconnue",
-                      seriesName: series.name
-                    });
-                  }
-                }
-              }
-            } catch {}
-          }
-          setCards(globalCards);
-          extractFilters(globalCards);
-        } else {
-          const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-          const lang = currentSeries ? currentSeries.lang : "fr";
-          const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
+          if (ownedCardIds.length === 0) { setCards([]); setLoading(false); return; }
+          
+          // Requête groupée par IDs pour pokemontcg.io
+          const query = ownedCardIds.map(id => `id:${id}`).join(" OR ");
+          const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=250`);
           if (!response.ok) { setCards([]); setLoading(false); return; }
-          const data = await response.json();
-          if (data && data.cards) {
-            const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
-              // Sécurité robuste pour l'image (vital pour les Promos)
-              let imageUrl = c.image 
-                ? `${c.image}/high.png` 
-                : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
-              
-              let illustrator = "Inconnu";
-              let rarity = "Inconnue";
-              
-              try {
-                const cardRes = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${c.id}`);
-                if (cardRes.ok) {
-                  const cardData = await cardRes.json();
-                  illustrator = cardData.illustrator || "Inconnu";
-                  rarity = cardData.rarity || "Inconnue";
-                  if (cardData.image) {
-                    imageUrl = `${cardData.image}/high.png`;
-                  }
-                }
-              } catch {}
-              
-              return {
-                id: c.id,
-                name: c.name || "Inconnue",
-                localId: c.localId || "?",
-                image: imageUrl,
-                illustrator,
-                rarity
-              };
+          const json = await response.json();
+          if (json && json.data) {
+            const formatted = json.data.map((c: any) => ({
+              id: c.id,
+              name: c.name || "Inconnue",
+              localId: c.number || "?",
+              image: c.images?.large || c.images?.small || "",
+              illustrator: c.artist || "Inconnu",
+              rarity: c.rarity || "Inconnue",
+              seriesName: c.set?.name || "Série inconnue"
+            }));
+            setCards(formatted);
+            extractFilters(formatted);
+          } else setCards([]);
+        } else {
+          const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${selectedSeriesId}&pageSize=250`);
+          if (!response.ok) { setCards([]); setLoading(false); return; }
+          const json = await response.json();
+          if (json && json.data) {
+            // Tri naturel par numéro de carte localId
+            const sortedData = json.data.sort((a: any, b: any) => {
+              return parseInt(a.number) - parseInt(b.number) || a.number.localeCompare(b.number);
+            });
+
+            const formattedCards = sortedData.map((c: any) => ({
+              id: c.id,
+              name: c.name || "Inconnue",
+              localId: c.number || "?",
+              image: c.images?.large || c.images?.small || "",
+              illustrator: c.artist || "Inconnu",
+              rarity: c.rarity || "Inconnue"
             }));
 
             setCards(formattedCards);
             extractFilters(formattedCards);
-          } else {
-            setCards([]);
-          }
+          } else setCards([]);
         }
       } catch {
         setCards([]);
@@ -467,8 +416,6 @@ export default function PokedexPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
-      
-      {/* Bouton Menu Latéral */}
       <div className="absolute top-4 left-4 z-40">
         <button
           onClick={() => setIsSidebarOpen(true)}
@@ -478,7 +425,6 @@ export default function PokedexPage() {
         </button>
       </div>
 
-      {/* SIDEBAR FLUIDE */}
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div 
           className="fixed inset-0 bg-black/70 backdrop-blur-sm"
@@ -568,7 +514,6 @@ export default function PokedexPage() {
         </div>
       </div>
 
-      {/* MODALE 1 : Progression */}
       {isProgressionOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsProgressionOpen(false)}></div>
@@ -607,7 +552,6 @@ export default function PokedexPage() {
         </div>
       )}
 
-      {/* MODALE 2 : Carte Mystère */}
       {isMysteryOpen && mysteryCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsMysteryOpen(false)}></div>
@@ -645,7 +589,7 @@ export default function PokedexPage() {
           <div className="relative w-full flex items-center">
             <input
               type="text"
-              placeholder="Chercher une carte (ex: Dracaufeu, Pikachu...)"
+              placeholder="Chercher une carte (ex: Charizard, Pikachu...)"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 text-sm px-4 py-3 rounded-l-xl text-white outline-none focus:border-yellow-500 transition shadow-inner"
@@ -699,7 +643,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* FILTRES : MASQUÉS DANS LE MENU "MA COLLECTION" GLOBALE */}
         {!isGlobalBinder && (
           <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85">
             <div className="flex items-center gap-2 w-full md:w-auto">
@@ -732,7 +675,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Barres de progression */}
         {(!isGlobalBinder && !activeSearch) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <div>
@@ -757,8 +699,8 @@ export default function PokedexPage() {
         )}
 
         {loading ? (
-          <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Ouverture du classeur... ⚡</div>
-        ) : (
+          <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Chargement depuis Pokemon TCG IO... ⚡</div>
+        ) : filteredCards.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {filteredCards.map(card => {
               const isNormalOwned = userCollection[card.id]?.normalOwned || false;
@@ -791,6 +733,11 @@ export default function PokedexPage() {
                 </div>
               );
             })}
+          </div>
+        ) : (
+          <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
+            <span className="text-4xl mb-4 block">⚠️</span>
+            <p className="text-slate-300 text-base font-semibold">Aucune carte trouvée.</p>
           </div>
         )}
 
