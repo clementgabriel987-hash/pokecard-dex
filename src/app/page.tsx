@@ -13,8 +13,17 @@ interface Card {
   seriesName?: string;
 }
 
-// Ajout de "langs" dans la structure de sauvegarde
-type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean; langs?: string[] }>;
+// Mise à jour de la structure pour inclure les notes, les prix et la wishlist
+interface CardDetails {
+  normalOwned: boolean;
+  foilOwned: boolean;
+  langs?: string[];
+  price?: string;
+  note?: string;
+  isWishlist?: boolean;
+}
+
+type UserCollectionJSON = Record<string, CardDetails>;
 
 const POKEMON_BLOCKS = [
   {
@@ -201,17 +210,18 @@ export default function PokedexPage() {
   const [selectedRarity, setSelectedRarity] = useState<string>("ALL");
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL"); // Nouveau filtre de langue
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL");
 
-  const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
-  const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
-  const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
-
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+
+  // État pour la modale de notes/prix d'une carte spécifique
+  const [activeNoteCardId, setActiveNoteCardId] = useState<string | null>(null);
+  const [tempPrice, setTempPrice] = useState<string>("");
+  const [tempNote, setTempNote] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setCurrentUser(session?.user || null));
@@ -249,13 +259,6 @@ export default function PokedexPage() {
     if (searchInput.trim()) { setIsGlobalBinder(false); setActiveSearch(searchInput.trim()); }
   };
 
-  const openMysteryCard = () => {
-    if (cards.length === 0) return alert("Ouvre d'abord une série contenant des cartes !");
-    setMysteryCard(cards[Math.floor(Math.random() * cards.length)]);
-    setIsMysteryOpen(true);
-    setIsSidebarOpen(false);
-  };
-
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -272,14 +275,14 @@ export default function PokedexPage() {
           if (Array.isArray(data)) {
             const formatted = await Promise.all(data.slice(0, 50).map(async (c: any) => {
               let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/base1/${c.localId}/high.png`;
-              let illustrator = "Inconnu", rarity = "Inconnue", seriesName = "Série inconnue";
+              let illustrator = "Inconnu", rarity = "Inconnue";
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
                 const cardData = await cardRes.json();
-                illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue"; seriesName = cardData.set?.name || "Série inconnue";
+                illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue";
                 if (cardData.image) imageUrl = `${cardData.image}/high.png`;
               } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName };
+              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
             }));
             setCards(formatted);
             extractFilters(formatted);
@@ -358,7 +361,7 @@ export default function PokedexPage() {
     if (type === 'normal') newCollection[id].normalOwned = !newCollection[id].normalOwned;
     else newCollection[id].foilOwned = !newCollection[id].foilOwned;
     
-    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned) delete newCollection[id];
+    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
     
     setUserCollection(newCollection);
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
@@ -370,7 +373,6 @@ export default function PokedexPage() {
     if (!newCollection[id]) return;
 
     let currentLangs = newCollection[id].langs || [defaultLang];
-    
     if (currentLangs.includes(langToToggle)) {
       currentLangs = currentLangs.filter(l => l !== langToToggle);
       if (currentLangs.length === 0) currentLangs = [defaultLang];
@@ -381,6 +383,33 @@ export default function PokedexPage() {
     newCollection[id].langs = currentLangs;
     setUserCollection(newCollection);
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+  };
+
+  // Toggle de la Wishlist (Chasse aux cartes)
+  const toggleWishlist = async (id: string) => {
+    if (!currentUser) return alert("Connecte-toi pour gérer ta wishlist !");
+    const newCollection = { ...userCollection };
+    if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, isWishlist: true };
+    else newCollection[id].isWishlist = !newCollection[id].isWishlist;
+
+    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
+
+    setUserCollection(newCollection);
+    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+  };
+
+  // Sauvegarde des notes et prix d'achat
+  const saveCardNotes = async (id: string) => {
+    if (!currentUser) return;
+    const newCollection = { ...userCollection };
+    if (!newCollection[id]) newCollection[id] = { normalOwned: true, foilOwned: false };
+
+    newCollection[id].price = tempPrice;
+    newCollection[id].note = tempNote;
+
+    setUserCollection(newCollection);
+    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+    setActiveNoteCardId(null);
   };
 
   const filteredCards = cards.filter(card => {
@@ -399,14 +428,12 @@ export default function PokedexPage() {
       if (selectedStatus === "MISSING") matchStatus = !isNormal && !isFoil;
       else if (selectedStatus === "NORMAL") matchStatus = isNormal;
       else if (selectedStatus === "FOIL") matchStatus = isFoil;
+      else if (selectedStatus === "WISHLIST") matchStatus = cardData?.isWishlist || false;
     }
 
     if (selectedLanguage !== "ALL") {
-      if (isNormal || isFoil) {
-        matchLang = cardLangs.includes(selectedLanguage);
-      } else {
-        matchLang = false;
-      }
+      if (isNormal || isFoil) matchLang = cardLangs.includes(selectedLanguage);
+      else matchLang = false;
     }
 
     return matchIllustrator && matchRarity && matchStatus && matchLang;
@@ -415,7 +442,6 @@ export default function PokedexPage() {
   const totalCards = cards.length;
   const normalCollected = cards.filter(c => userCollection[c.id]?.normalOwned).length;
   const foilCollected = cards.filter(c => userCollection[c.id]?.foilOwned).length;
-  const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
   return (
@@ -435,9 +461,6 @@ export default function PokedexPage() {
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="space-y-3">
-              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
-                <span>👑</span> Progression & Master Sets
-              </button>
               <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
                 <span>✨</span> Ma Collection
               </button>
@@ -445,6 +468,28 @@ export default function PokedexPage() {
           </div>
         </div>
       </div>
+
+      {/* Modale Carnet de Notes & Prix d'achat */}
+      {activeNoteCardId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setActiveNoteCardId(null)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 space-y-4">
+            <h3 className="text-lg font-bold text-yellow-400">📝 Carnet de la carte</h3>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Prix payé (€) :</label>
+              <input type="text" placeholder="Ex: 15.00" value={tempPrice} onChange={(e) => setTempPrice(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-sm text-white outline-none focus:border-yellow-500" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Notes & Provenance :</label>
+              <textarea placeholder="Ex: Acheté en brocante, état mint..." value={tempNote} onChange={(e) => setTempNote(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-sm text-white outline-none focus:border-yellow-500 h-24 resize-none" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => saveCardNotes(activeNoteCardId)} className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs cursor-pointer transition">Enregistrer</button>
+              <button onClick={() => setActiveNoteCardId(null)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg text-xs cursor-pointer transition">Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
@@ -501,6 +546,7 @@ export default function PokedexPage() {
                 <option value="MISSING">❌ Manquantes</option>
                 <option value="NORMAL">✓ Normales possédées</option>
                 <option value="FOIL">✨ Foils possédées</option>
+                <option value="WISHLIST">❤️ Ma Wishlist (Chasse)</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -512,38 +558,6 @@ export default function PokedexPage() {
                 <option value="jp">🇯🇵 Japonais</option>
               </select>
             </div>
-            {illustratorsList.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
-                <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
-                  <option value="ALL">Tous ({cards.length})</option>
-                  {illustratorsList.map(ill => <option key={ill} value={ill}>{ill}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {(!isGlobalBinder && !activeSearch) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
-            <div>
-              <div className="flex justify-between text-sm mb-2 font-medium">
-                <span className="text-slate-300">Cartes Normales</span>
-                <span className="text-yellow-400">{normalCollected} / {totalCards} ({Math.round((normalCollected/totalCards)*100 || 0)}%)</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((normalCollected/totalCards)*100 || 0)}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2 font-medium">
-                <span className="text-slate-300">Cartes Foils (Brillantes)</span>
-                <span className="text-purple-400">{foilCollected} / {totalCards} ({Math.round((foilCollected/totalCards)*100 || 0)}%)</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((foilCollected/totalCards)*100 || 0)}%` }}></div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -552,17 +566,28 @@ export default function PokedexPage() {
         ) : filteredCards.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {filteredCards.map(card => {
-              const isNormalOwned = userCollection[card.id]?.normalOwned || false;
-              const isFoilOwned = userCollection[card.id]?.foilOwned || false;
+              const cardData = userCollection[card.id];
+              const isNormalOwned = cardData?.normalOwned || false;
+              const isFoilOwned = cardData?.foilOwned || false;
+              const isWishlisted = cardData?.isWishlist || false;
               const hasError = imageErrors[card.id];
               
               const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
               const cardDefaultLang = cardSeries?.lang || "fr";
-              
               const showLanguageFlags = cardDefaultLang !== "en";
 
               return (
-                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg">
+                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg relative">
+                  
+                  {/* Bouton Cœur Wishlist (Chasse aux cartes) */}
+                  <button 
+                    onClick={() => toggleWishlist(card.id)} 
+                    className={`absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
+                    title="Ajouter à la Wishlist (Chasse aux cartes)"
+                  >
+                    {isWishlisted ? "❤️" : "🤍"}
+                  </button>
+
                   <div>
                     <div className="mb-3 flex justify-center bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[220px] items-center relative overflow-hidden">
                       {card.image && !hasError ? (
@@ -586,16 +611,40 @@ export default function PokedexPage() {
                     </button>
                   </div>
 
+                  {/* Boutons d'action Chasse aux cartes (Liens rapides) & Carnet de notes */}
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/50 text-[11px]">
+                    {/* Lien direct de recherche Cardmarket/Vinted */}
+                    <a 
+                      href={`https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline flex items-center gap-1"
+                      title="Chercher sur Cardmarket"
+                    >
+                      🛒 Chasser
+                    </a>
+
+                    {/* Bouton Notes (si possédée ou wishlistée) */}
+                    {(isNormalOwned || isFoilOwned || isWishlisted) && (
+                      <button 
+                        onClick={() => { setActiveNoteCardId(card.id); setTempPrice(cardData?.price || ""); setTempNote(cardData?.note || ""); }}
+                        className="text-yellow-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        📝 {cardData?.price ? `${cardData.price}€` : "Notes"}
+                      </button>
+                    )}
+                  </div>
+
                   {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
-                    <div className="flex justify-center gap-4 mt-3 pt-2 border-t border-slate-800/50">
+                    <div className="flex justify-center gap-4 mt-2 pt-2 border-t border-slate-800/50">
                       {['fr', 'en', 'jp'].map(l => {
-                         const isActive = (userCollection[card.id]?.langs || [cardDefaultLang]).includes(l);
+                         const isActive = (cardData?.langs || [cardDefaultLang]).includes(l);
                          const flagEmoji = l === 'fr' ? '🇫🇷' : l === 'en' ? '🇬🇧' : '🇯🇵';
                          return (
                            <button 
                              key={l}
                              onClick={() => toggleCardLanguage(card.id, l, cardDefaultLang)}
-                             className={`text-lg transition-all duration-200 cursor-pointer ${isActive ? 'grayscale-0 opacity-100 scale-110 drop-shadow-md' : 'grayscale opacity-30 hover:opacity-70'}`}
+                             className={`text-base transition-all duration-200 cursor-pointer ${isActive ? 'grayscale-0 opacity-100 scale-110 drop-shadow-md' : 'grayscale opacity-30 hover:opacity-70'}`}
                              title={`Marquer comme possédée en ${l.toUpperCase()}`}
                            >
                              {flagEmoji}
@@ -612,7 +661,7 @@ export default function PokedexPage() {
         ) : (
           <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
             <span className="text-4xl mb-4 block">⚠️</span>
-            <p className="text-slate-300 text-base font-semibold">Aucune carte trouvée pour cette série.</p>
+            <p className="text-slate-300 text-base font-semibold">Aucune carte trouvée.</p>
           </div>
         )}
       </div>
