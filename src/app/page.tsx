@@ -668,8 +668,8 @@ export default function PokedexPage() {
 
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">Ta collection de cartes Pokémon ⚡</h1>
-          <p className="text-slate-400 text-sm">Le sanctuaire ultime pour traquer ton carton brillant</p>
+          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">Ton Classeur En Ligne Pokémon</h1>
+          <p className="text-slate-400 text-sm">Le site internet ultime pour gérer ta collection de cartes </p>
           {(!isGlobalBinder && !activeSearch && isMasterSet && totalCards > 0) && (
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-yellow-500/50 px-4 py-1.5 rounded-full mt-3 shadow-[0_0_15px_rgba(234,179,8,0.3)] animate-pulse">
               <span className="text-yellow-400 font-bold text-sm">👑 MASTER SET VALIDÉ !</span>
@@ -699,7 +699,7 @@ export default function PokedexPage() {
         {(!isGlobalBinder && !activeSearch) && (
           <div className="mb-8 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis une époque (Bloc) :</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis une Bloc :</label>
               <div className="flex flex-wrap gap-2">
                 {POKEMON_BLOCKS.map((block, index) => (
                   <button key={block.blockName} onClick={() => handleBlockChange(index)} className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedBlockIndex === index ? "bg-yellow-500 text-slate-950 font-bold shadow-md" : "bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800"}`}>
