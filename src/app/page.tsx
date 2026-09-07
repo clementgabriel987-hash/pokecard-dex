@@ -22,7 +22,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète triée par catégories chronologiques (aucun bloc supprimé, noms inchangés)
+// Organisation complète avec les Promos et blocs d'origine intacts
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
