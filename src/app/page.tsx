@@ -15,7 +15,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation complète AVEC les Promos (via notre route API interne)
+// Organisation complète avec les Promos réintégrées !
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
@@ -232,10 +232,7 @@ export default function PokedexPage() {
       setCurrentUser(session?.user || null);
     });
 
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-
+    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener("scroll", handleScroll);
 
     return () => {
@@ -309,9 +306,7 @@ export default function PokedexPage() {
     setSearchInput("");
   };
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const openMysteryCard = () => {
     if (cards.length === 0) return alert("Ouvre d'abord une série contenant des cartes !");
@@ -336,9 +331,7 @@ export default function PokedexPage() {
           if (Array.isArray(data)) {
             const formatted = await Promise.all(data.slice(0, 50).map(async (c: any) => {
               let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/base1/${c.localId}/high.png`;
-              let illustrator = "Inconnu";
-              let rarity = "Inconnue";
-              let seriesName = "Série inconnue";
+              let illustrator = "Inconnu", rarity = "Inconnue", seriesName = "Série inconnue";
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
                 const cardData = await cardRes.json();
@@ -359,7 +352,7 @@ export default function PokedexPage() {
           for (const series of ALL_FLAT_SERIES) {
             try {
               if (series.lang === "io") {
-                // APPEL MAGIQUE VERS NOTRE PROPRE ROUTE API NEXT.JS (CORRIGÉ !)
+                // APPEL A NOTRE ROUTE API SECURISEE AVEC LA CLE API
                 const res = await fetch(`/api/tcgio?setId=${series.id}`);
                 if (!res.ok) continue;
                 const json = await res.json();
@@ -367,13 +360,9 @@ export default function PokedexPage() {
                   for (const card of json.data) {
                     if (ownedCardIds.includes(card.id)) {
                       globalCards.push({
-                        id: card.id,
-                        name: card.name || "Inconnue",
-                        localId: card.number || "?",
+                        id: card.id, name: card.name || "Inconnue", localId: card.number || "?",
                         image: card.images?.large || card.images?.small || "",
-                        illustrator: card.artist || "Inconnu",
-                        rarity: card.rarity || "Inconnue",
-                        seriesName: series.name
+                        illustrator: card.artist || "Inconnu", rarity: card.rarity || "Inconnue", seriesName: series.name
                       });
                     }
                   }
@@ -386,13 +375,9 @@ export default function PokedexPage() {
                   for (const card of data.cards) {
                     if (ownedCardIds.includes(card.id)) {
                       globalCards.push({
-                        id: card.id,
-                        name: card.name || "Inconnue",
-                        localId: card.localId || "?",
+                        id: card.id, name: card.name || "Inconnue", localId: card.localId || "?",
                         image: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`,
-                        illustrator: card.illustrator || "Inconnu",
-                        rarity: card.rarity || "Inconnue",
-                        seriesName: series.name
+                        illustrator: card.illustrator || "Inconnu", rarity: card.rarity || "Inconnue", seriesName: series.name
                       });
                     }
                   }
@@ -406,7 +391,7 @@ export default function PokedexPage() {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           
           if (currentSeries?.lang === "io") {
-            // APPEL MAGIQUE VERS NOTRE PROPRE ROUTE API NEXT.JS
+            // APPEL A NOTRE ROUTE API SECURISEE AVEC LA CLE API
             const res = await fetch(`/api/tcgio?setId=${selectedSeriesId}`);
             if (!res.ok) { setCards([]); setLoading(false); return; }
             const json = await res.json();
@@ -415,12 +400,9 @@ export default function PokedexPage() {
                 return parseInt(a.number) - parseInt(b.number) || a.number.localeCompare(b.number);
               });
               const formattedCards = sortedData.map((c: any) => ({
-                id: c.id,
-                name: c.name || "Inconnue",
-                localId: c.number || "?",
+                id: c.id, name: c.name || "Inconnue", localId: c.number || "?",
                 image: c.images?.large || c.images?.small || "",
-                illustrator: c.artist || "Inconnu",
-                rarity: c.rarity || "Inconnue"
+                illustrator: c.artist || "Inconnu", rarity: c.rarity || "Inconnue"
               }));
               setCards(formattedCards);
               extractFilters(formattedCards);
@@ -433,8 +415,7 @@ export default function PokedexPage() {
             if (data && data.cards) {
               const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
                 let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
-                let illustrator = "Inconnu";
-                let rarity = "Inconnue";
+                let illustrator = "Inconnu", rarity = "Inconnue";
                 try {
                   const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
                   if (cardRes.ok) {
@@ -458,7 +439,6 @@ export default function PokedexPage() {
       }
     }
     fetchCards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeriesId, isGlobalBinder, activeSearch, currentUser]);
 
   const extractFilters = (cardList: Card[]) => {
@@ -508,60 +488,35 @@ export default function PokedexPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
       <div className="absolute top-4 left-4 z-40">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-yellow-400 p-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold transition cursor-pointer"
-        >
+        <button onClick={() => setIsSidebarOpen(true)} className="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-yellow-400 p-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold transition cursor-pointer">
           <span className="text-lg">☰</span> Menu
         </button>
       </div>
 
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
-
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div>
             <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
               <h2 className="text-lg font-extrabold text-yellow-400">Menu Dresseur 🧢</h2>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
-
             <div className="space-y-3">
-              <button
-                onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }}
-                className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300"
-              >
+              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
                 <span>👑</span> Progression & Master Sets
               </button>
-
-              <button
-                onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }}
-                className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer"
-              >
+              <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
                 <span>✨</span> Ma Collection
               </button>
-
-              <Link
-                href="/artistes"
-                className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer"
-              >
+              <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
                 <span>🎨</span> Recherche par Artiste
               </Link>
-
-              <button
-                onClick={openMysteryCard}
-                className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300"
-              >
+              <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
                 <span>🎲</span> La Carte Mystère du Jour
               </button>
-
-              <Link
-                href="/prix"
-                className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300"
-              >
+              <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
                 <span>📈</span> Recherche de Prix
               </Link>
-
               <div className="pt-4 border-t border-slate-800 space-y-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">📥 / 📤 Sauvegarde</span>
                 {currentUser && (
@@ -576,27 +531,18 @@ export default function PokedexPage() {
                   </>
                 )}
               </div>
-
               <div className="pt-2">
-                <Link
-                  href="/compte"
-                  className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer"
-                >
+                <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
                   <span>⚙️</span> Paramètres & Compte
                 </Link>
               </div>
             </div>
           </div>
-
           <div className="pt-6 border-t border-slate-800">
             {currentUser ? (
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">
-                Connecté : {currentUser.email}
-              </div>
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">Connecté : {currentUser.email}</div>
             ) : (
-              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">
-                Se connecter avec Google
-              </Link>
+              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">Se connecter avec Google</Link>
             )}
           </div>
         </div>
@@ -618,16 +564,7 @@ export default function PokedexPage() {
                     {block.sets.map((set) => (
                       <div key={set.id} className="flex justify-between items-center text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
                         <span className="font-medium text-slate-300">{set.name}</span>
-                        <button 
-                          onClick={() => {
-                            setSelectedBlockIndex(POKEMON_BLOCKS.findIndex(b => b.blockName === block.blockName));
-                            setSelectedSeriesId(set.id);
-                            setIsGlobalBinder(false);
-                            setActiveSearch("");
-                            setIsProgressionOpen(false);
-                          }}
-                          className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer"
-                        >
+                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex(b => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer">
                           Ouvrir ➔
                         </button>
                       </div>
@@ -662,9 +599,7 @@ export default function PokedexPage() {
 
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
-            Ta collection de cartes Pokémon ⚡
-          </h1>
+          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">Ta collection de cartes Pokémon ⚡</h1>
           <p className="text-slate-400 text-sm">Le sanctuaire ultime pour traquer ton carton brillant</p>
           {(!isGlobalBinder && !activeSearch && isMasterSet && totalCards > 0) && (
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-yellow-500/50 px-4 py-1.5 rounded-full mt-3 shadow-[0_0_15px_rgba(234,179,8,0.3)] animate-pulse">
@@ -675,16 +610,8 @@ export default function PokedexPage() {
 
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
           <div className="relative w-full flex items-center">
-            <input
-              type="text"
-              placeholder="Chercher une carte (ex: Dracaufeu, Pikachu...)"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-sm px-4 py-3 rounded-l-xl text-white outline-none focus:border-yellow-500 transition shadow-inner"
-            />
-            <button type="submit" className="bg-yellow-500 text-slate-950 px-5 py-3 rounded-r-xl font-bold hover:bg-yellow-400 transition cursor-pointer">
-              🔍
-            </button>
+            <input type="text" placeholder="Chercher une carte..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full bg-slate-900 border border-slate-700 text-sm px-4 py-3 rounded-l-xl text-white outline-none focus:border-yellow-500 transition shadow-inner" />
+            <button type="submit" className="bg-yellow-500 text-slate-950 px-5 py-3 rounded-r-xl font-bold hover:bg-yellow-400 transition cursor-pointer">🔍</button>
           </div>
         </form>
 
@@ -706,11 +633,7 @@ export default function PokedexPage() {
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis une époque (Bloc) :</label>
               <div className="flex flex-wrap gap-2">
                 {POKEMON_BLOCKS.map((block, index) => (
-                  <button
-                    key={block.blockName}
-                    onClick={() => handleBlockChange(index)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedBlockIndex === index ? "bg-yellow-500 text-slate-950 font-bold shadow-md" : "bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800"}`}
-                  >
+                  <button key={block.blockName} onClick={() => handleBlockChange(index)} className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedBlockIndex === index ? "bg-yellow-500 text-slate-950 font-bold shadow-md" : "bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800"}`}>
                     {block.blockName}
                   </button>
                 ))}
@@ -718,14 +641,8 @@ export default function PokedexPage() {
             </div>
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une extension :</label>
-              <select
-                value={selectedSeriesId}
-                onChange={(e) => setSelectedSeriesId(e.target.value)}
-                className="w-full bg-slate-950 text-sm border border-slate-700 text-white px-4 py-3 rounded-xl outline-none focus:border-yellow-500 cursor-pointer shadow-inner"
-              >
-                {currentBlock.sets.map(series => (
-                  <option key={series.id} value={series.id}>{series.name}</option>
-                ))}
+              <select value={selectedSeriesId} onChange={(e) => setSelectedSeriesId(e.target.value)} className="w-full bg-slate-950 text-sm border border-slate-700 text-white px-4 py-3 rounded-xl outline-none focus:border-yellow-500 cursor-pointer shadow-inner">
+                {currentBlock.sets.map(series => <option key={series.id} value={series.id}>{series.name}</option>)}
               </select>
             </div>
           </div>
