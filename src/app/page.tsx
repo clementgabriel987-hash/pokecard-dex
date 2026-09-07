@@ -13,7 +13,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (avec gestion précise des langues FR/EN)
+// Organisation en Blocs et Séries
 const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Wizards (Classic)",
@@ -299,27 +299,28 @@ export default function PokedexPage() {
           
           if (Array.isArray(data)) {
             const searchCardsPromises = data.slice(0, 50).map(async (c: any) => {
+              let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/${c.set?.id || 'base1'}/${c.localId}/high.png`;
+              let illustrator = "Inconnu";
+              let seriesName = "Série inconnue";
+
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
                 const cardData = await cardRes.json();
-                return {
-                  id: c.id,
-                  name: c.name || "Carte inconnue",
-                  localId: c.localId || "?",
-                  image: c.image ? `${c.image}/high.png` : "",
-                  illustrator: cardData.illustrator || "Inconnu",
-                  seriesName: cardData.set?.name || "Série inconnue"
-                };
-              } catch {
-                return {
-                  id: c.id,
-                  name: c.name || "Carte inconnue",
-                  localId: c.localId || "?",
-                  image: c.image ? `${c.image}/high.png` : "",
-                  illustrator: "Inconnu",
-                  seriesName: "Série inconnue"
-                };
-              }
+                illustrator = cardData.illustrator || "Inconnu";
+                seriesName = cardData.set?.name || "Série inconnue";
+                if (cardData.image) {
+                  imageUrl = `${cardData.image}/high.png`;
+                }
+              } catch {}
+
+              return {
+                id: c.id,
+                name: c.name || "Carte inconnue",
+                localId: c.localId || "?",
+                image: imageUrl,
+                illustrator,
+                seriesName
+              };
             });
             const formatted = await Promise.all(searchCardsPromises);
             setCards(formatted);
@@ -347,11 +348,12 @@ export default function PokedexPage() {
               if (data && data.cards) {
                 data.cards.forEach((card: any) => {
                   if (ownedCardIds.includes(card.id)) {
+                    let img = card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`;
                     globalCards.push({
                       id: card.id,
                       name: card.name || "Carte inconnue",
                       localId: card.localId || "?",
-                      image: card.image ? `${card.image}/high.png` : "",
+                      image: img,
                       illustrator: card.illustrator || "Inconnu",
                       seriesName: series.name
                     });
@@ -376,18 +378,28 @@ export default function PokedexPage() {
           const data = await response.json();
           if (data && data.cards) {
             const detailedCardsPromises = data.cards.map(async (c: any) => {
+              // Sécurité robuste pour l'URL de l'image (notamment pour les vieux blocs DP / Platine)
+              let imageUrl = c.image 
+                ? `${c.image}/high.png` 
+                : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
+              
               let illustrator = "Inconnu";
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${c.id}`);
-                const cardData = await cardRes.json();
-                illustrator = cardData.illustrator || "Inconnu";
+                if (cardRes.ok) {
+                  const cardData = await cardRes.json();
+                  illustrator = cardData.illustrator || "Inconnu";
+                  if (cardData.image) {
+                    imageUrl = `${cardData.image}/high.png`;
+                  }
+                }
               } catch {}
               
               return {
                 id: c.id,
                 name: c.name || "Carte inconnue",
                 localId: c.localId || "?",
-                image: c.image ? `${c.image}/high.png` : "",
+                image: imageUrl,
                 illustrator
               };
             });
@@ -673,6 +685,10 @@ export default function PokedexPage() {
                           src={card.image} 
                           alt={card.name} 
                           className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
+                          onError={(e) => {
+                            // Sécurité ultime si l'image ne charge pas : on cache l'image cassée
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
                         />
                       ) : (
                         <span className="text-xs text-slate-500">Image indisponible</span>
