@@ -546,7 +546,7 @@ export default function PokedexPage() {
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div>
             <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-              <h2 className="text-lg font-extrabold text-yellow-400">INDEX </h2>
+              <h2 className="text-lg font-extrabold text-yellow-400">MENU DE NAVIGATION </h2>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="space-y-4">
@@ -566,7 +566,7 @@ export default function PokedexPage() {
               </div>
 
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">INDEX</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">OUTILS POUR LES DRESSEURS</span>
                 <div className="space-y-2">
                   <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
                     <span>🎨</span> Recherche par Artiste
