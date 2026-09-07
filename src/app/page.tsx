@@ -359,7 +359,7 @@ export default function PokedexPage() {
           for (const series of ALL_FLAT_SERIES) {
             try {
               if (series.lang === "io") {
-                // APPEL MAGIQUE VERS NOTRE PROPRE ROUTE API NEXT.JS
+                // APPEL MAGIQUE VERS NOTRE PROPRE ROUTE API NEXT.JS (CORRIGÉ !)
                 const res = await fetch(`/api/tcgio?setId=${series.id}`);
                 if (!res.ok) continue;
                 const json = await res.json();
