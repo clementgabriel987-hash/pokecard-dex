@@ -15,8 +15,23 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries
+// Organisation en Blocs et Séries (avec le Bloc Promos en tête de liste !)
 const POKEMON_BLOCKS = [
+  {
+    blockName: "⭐ Bloc Promos & Hors-Séries",
+    sets: [
+      { id: "base-p", name: "Promos Wizards (EN/FR)", lang: "en" },
+      { id: "ex-p", name: "Promos Bloc EX", lang: "en" },
+      { id: "dp-p", name: "DP Black Star Promos", lang: "en" },
+      { id: "pl-p", name: "Platine Promos", lang: "en" },
+      { id: "hgss-p", name: "HGSS Black Star Promos", lang: "en" },
+      { id: "bw-p", name: "BW Black Star Promos", lang: "en" },
+      { id: "xy-p", name: "XY Black Star Promos", lang: "fr" },
+      { id: "sm-p", name: "SM Black Star Promos", lang: "fr" },
+      { id: "swsh-p", name: "EB Black Star Promos (SwSh)", lang: "fr" },
+      { id: "svp", name: "EV Black Star Promos (SV)", lang: "fr" }
+    ]
+  },
   {
     blockName: "Bloc Wizards (Classic)",
     sets: [
@@ -190,7 +205,7 @@ export default function PokedexPage() {
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
 
-  // Modales & Sidebar avec animations fluides
+  // Modales & Sidebar
   const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
   const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
   const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
@@ -423,7 +438,6 @@ export default function PokedexPage() {
     const isFoil = userCollection[card.id]?.foilOwned || false;
     let matchStatus = true;
     
-    // Si on est dans "Ma Collection" globale, on ne filtre pas par statut (on affiche tout ce qui est dans le binder global)
     if (!isGlobalBinder) {
       if (selectedStatus === "MISSING") matchStatus = !isNormal && !isFoil;
       else if (selectedStatus === "NORMAL") matchStatus = isNormal;
@@ -535,11 +549,11 @@ export default function PokedexPage() {
         </div>
       </div>
 
-      {/* MODALE 1 : Progression & Master Sets (AVEC ANIMATION FLUIDE DE ZOOM ET FONDU) */}
+      {/* MODALE 1 : Progression */}
       {isProgressionOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-fadeIn" onClick={() => setIsProgressionOpen(false)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10 animate-scaleUp">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsProgressionOpen(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10">
             <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
               <h2 className="text-xl font-bold text-yellow-400">👑 Progression & Master Sets</h2>
               <button onClick={() => setIsProgressionOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
@@ -577,8 +591,8 @@ export default function PokedexPage() {
       {/* MODALE 2 : Carte Mystère */}
       {isMysteryOpen && mysteryCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-fadeIn" onClick={() => setIsMysteryOpen(false)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center animate-scaleUp">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMysteryOpen(false)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center">
             <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
               <h2 className="text-lg font-bold text-blue-400">🎲 Carte Mystère du Jour</h2>
               <button onClick={() => setIsMysteryOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
@@ -666,7 +680,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* FILTRES : MASQUÉS DANS LE MENU "MA COLLECTION" GLOBALE */}
         {!isGlobalBinder && (
           <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85">
             <div className="flex items-center gap-2 w-full md:w-auto">
@@ -699,7 +712,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Barres de progression */}
         {(!isGlobalBinder && !activeSearch) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <div>
@@ -723,7 +735,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Grille */}
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Ouverture du classeur... ⚡</div>
         ) : (
