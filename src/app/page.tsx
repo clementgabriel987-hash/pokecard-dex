@@ -15,7 +15,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (avec HGSS et Promos corrigés)
+// Organisation complète de toutes les séries (Ordre chronologique PokéCardex)
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
@@ -64,27 +64,32 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
-    blockName: "Bloc HeartGold & SoulSilver (HGSS)",
-    sets: [
-      { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
-      { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
-      { id: "hgss3", name: "HS - Vainqueurs Supreme (FR)", lang: "fr" },
-      { id: "hgss4", name: "HS - Le Appel des Légendes (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Platine, Diamant & Perle",
+    blockName: "Bloc Diamant & Perle",
     sets: [
       { id: "dp1", name: "Diamant & Perle (FR)", lang: "fr" },
       { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
       { id: "dp3", name: "Merveilles Secrètes (FR)", lang: "fr" },
       { id: "dp4", name: "Aube Majestueuse (FR)", lang: "fr" },
       { id: "dp5", name: "Éveil des Légendes (FR)", lang: "fr" },
-      { id: "dp6", name: "Tempête (FR)", lang: "fr" },
+      { id: "dp6", name: "Tempête (FR)", lang: "fr" }
+    ]
+  },
+  {
+    blockName: "Bloc Platine",
+    sets: [
       { id: "pl1", name: "Platine (FR)", lang: "fr" },
       { id: "pl2", name: "Rivaux Émergents (FR)", lang: "fr" },
       { id: "pl3", name: "Vainqueurs Suprêmes (FR)", lang: "fr" },
       { id: "pl4", name: "Arceus (FR)", lang: "fr" }
+    ]
+  },
+  {
+    blockName: "Bloc HeartGold & SoulSilver (HGSS)",
+    sets: [
+      { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
+      { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
+      { id: "hgss3", name: "HS - Vainqueurs Suprêmes (FR)", lang: "fr" },
+      { id: "hgss4", name: "HS - L'Appel des Légendes (FR)", lang: "fr" }
     ]
   },
   {
