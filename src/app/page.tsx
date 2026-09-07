@@ -188,7 +188,6 @@ export default function PokedexPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
 
-  // État local pour suivre les images qui ont échoué à charger
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -294,7 +293,7 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       setSelectedIllustrator("ALL");
-      setImageErrors({}); // Reset des erreurs d'images à chaque changement
+      setImageErrors({});
       try {
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${activeSearch}`);
@@ -478,7 +477,7 @@ export default function PokedexPage() {
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-6 md:p-10">
+    <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10">
       <div className="max-w-6xl mx-auto">
         
         {/* Barre d'auth */}
@@ -663,24 +662,24 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Grille des cartes */}
+        {/* Grille des cartes : 2 par 2 sur mobile (portrait), 3 sur tablette, 4 sur grand écran */}
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">
             Ouverture du classeur en cours... ⚡
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {filteredCards.map(card => {
               const isNormalOwned = userCollection[card.id]?.normalOwned || false;
               const isFoilOwned = userCollection[card.id]?.foilOwned || false;
               const hasError = imageErrors[card.id];
 
               return (
-                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
+                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition">
                   <div>
-                    <div className="mb-4 flex justify-center bg-slate-950/50 p-3 rounded-lg border border-slate-800/60 min-h-[220px] items-center relative">
+                    <div className="mb-3 flex justify-center bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[220px] items-center relative overflow-hidden">
                       {(isGlobalBinder || activeSearch) && card.seriesName && (
-                        <span className="absolute top-2 left-2 text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-medium text-center z-10 shadow-md">
+                        <span className="absolute top-1 left-1 text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded font-medium text-center z-10 shadow-md">
                           {card.seriesName}
                         </span>
                       )}
@@ -688,32 +687,31 @@ export default function PokedexPage() {
                         <img 
                           src={card.image} 
                           alt={card.name} 
-                          className="h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
+                          className="h-36 md:h-48 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" 
                           onError={() => {
-                            // Si l'image ne charge pas, on met à jour l'état pour afficher "Image indisponible"
                             setImageErrors(prev => ({ ...prev, [card.id]: true }));
                           }}
                         />
                       ) : (
-                        <span className="text-xs text-slate-500 italic">Image indisponible</span>
+                        <span className="text-[11px] text-slate-500 italic text-center">Image indisponible</span>
                       )}
                     </div>
 
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="text-lg font-bold truncate pr-2" title={card.name}>{card.name}</h3>
-                      <span className="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md shrink-0">#{card.localId}</span>
+                    <div className="flex justify-between items-start mb-1 gap-1">
+                      <h3 className="text-xs md:text-sm font-bold truncate" title={card.name}>{card.name}</h3>
+                      <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
                     </div>
                     {card.illustrator && (
-                      <p className="text-xs text-slate-400 mb-3 italic truncate">Ill. {card.illustrator}</p>
+                      <p className="text-[10px] md:text-xs text-slate-400 mb-3 italic truncate">Ill. {card.illustrator}</p>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800 mt-2">
+                  <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
                     <button
                       onClick={() => toggleCardOwnership(card.id, 'normal')}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${
                         isNormalOwned 
-                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.2)]" 
+                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-[0_0_8px_rgba(234,179,8,0.2)]" 
                           : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                       }`}
                     >
@@ -722,9 +720,9 @@ export default function PokedexPage() {
 
                     <button
                       onClick={() => toggleCardOwnership(card.id, 'foil')}
-                      className={`py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${
                         isFoilOwned 
-                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]" 
+                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.2)]" 
                           : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                       }`}
                     >
