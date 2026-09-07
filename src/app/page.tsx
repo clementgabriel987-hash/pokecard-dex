@@ -8,6 +8,7 @@ interface Card {
   localId: string;
   image: string;
   illustrator?: string;
+  rarity?: string;
   seriesName?: string;
 }
 
@@ -184,13 +185,15 @@ export default function PokedexPage() {
   const [selectedIllustrator, setSelectedIllustrator] = useState<string>("ALL");
   const [illustratorsList, setIllustratorsList] = useState<string[]>([]);
 
+  // Nouveaux états pour la rareté
+  const [selectedRarity, setSelectedRarity] = useState<string>("ALL");
+  const [raritiesList, setRaritiesList] = useState<string[]>([]);
+
   // Authentification et Collection
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
 
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-
-  // État pour afficher ou non le bouton "Retour en haut"
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
   useEffect(() => {
@@ -202,7 +205,6 @@ export default function PokedexPage() {
       setCurrentUser(session?.user || null);
     });
 
-    // Écouteur de scroll pour afficher le bouton de retour en haut
     const handleScroll = () => {
       if (window.scrollY > 300) {
         setShowScrollTop(true);
@@ -314,6 +316,7 @@ export default function PokedexPage() {
     async function fetchCards() {
       setLoading(true);
       setSelectedIllustrator("ALL");
+      setSelectedRarity("ALL");
       setImageErrors({});
       try {
         if (activeSearch) {
@@ -325,12 +328,14 @@ export default function PokedexPage() {
             const searchCardsPromises = data.slice(0, 50).map(async (c: any) => {
               let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/${c.set?.id || 'base1'}/${c.localId}/high.png`;
               let illustrator = "Inconnu";
+              let rarity = "Inconnue";
               let seriesName = "Série inconnue";
 
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/fr/cards/${c.id}`);
                 const cardData = await cardRes.json();
                 illustrator = cardData.illustrator || "Inconnu";
+                rarity = cardData.rarity || "Inconnue";
                 seriesName = cardData.set?.name || "Série inconnue";
                 if (cardData.image) {
                   imageUrl = `${cardData.image}/high.png`;
@@ -343,12 +348,13 @@ export default function PokedexPage() {
                 localId: c.localId || "?",
                 image: imageUrl,
                 illustrator,
+                rarity,
                 seriesName
               };
             });
             const formatted = await Promise.all(searchCardsPromises);
             setCards(formatted);
-            extractIllustrators(formatted);
+            extractFilters(formatted);
           } else {
             setCards([]);
           }
@@ -370,24 +376,38 @@ export default function PokedexPage() {
               if (!response.ok) continue;
               const data = await response.json();
               if (data && data.cards) {
-                data.cards.forEach((card: any) => {
+                for (const card of data.cards) {
                   if (ownedCardIds.includes(card.id)) {
                     let img = card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`;
+                    let rarity = card.rarity || "Inconnue";
+                    let illustrator = card.illustrator || "Inconnu";
+
+                    // Requête détaillée pour récupérer la rareté exacte si absente de la liste du set
+                    try {
+                      const detailRes = await fetch(`https://api.tcgdex.net/v2/${series.lang}/cards/${card.id}`);
+                      if (detailRes.ok) {
+                        const detailData = await detailRes.json();
+                        rarity = detailData.rarity || rarity;
+                        illustrator = detailData.illustrator || illustrator;
+                      }
+                    } catch {}
+
                     globalCards.push({
                       id: card.id,
                       name: card.name || "Carte inconnue",
                       localId: card.localId || "?",
                       image: img,
-                      illustrator: card.illustrator || "Inconnu",
+                      illustrator,
+                      rarity,
                       seriesName: series.name
                     });
                   }
-                });
+                }
               }
             } catch (err) {}
           }
           setCards(globalCards);
-          extractIllustrators(globalCards);
+          extractFilters(globalCards);
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
@@ -407,11 +427,13 @@ export default function PokedexPage() {
                 : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
               
               let illustrator = "Inconnu";
+              let rarity = "Inconnue";
               try {
                 const cardRes = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${c.id}`);
                 if (cardRes.ok) {
                   const cardData = await cardRes.json();
                   illustrator = cardData.illustrator || "Inconnu";
+                  rarity = cardData.rarity || "Inconnue";
                   if (cardData.image) {
                     imageUrl = `${cardData.image}/high.png`;
                   }
@@ -423,13 +445,14 @@ export default function PokedexPage() {
                 name: c.name || "Carte inconnue",
                 localId: c.localId || "?",
                 image: imageUrl,
-                illustrator
+                illustrator,
+                rarity
               };
             });
 
             const formattedCards = await Promise.all(detailedCardsPromises);
             setCards(formattedCards);
-            extractIllustrators(formattedCards);
+            extractFilters(formattedCards);
           } else {
             setCards([]);
           }
@@ -445,12 +468,17 @@ export default function PokedexPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeriesId, isGlobalBinder, activeSearch, currentUser]); 
 
-  const extractIllustrators = (cardList: Card[]) => {
+  const extractFilters = (cardList: Card[]) => {
     const illsets = new Set<string>();
+    const raritiesSet = new Set<string>();
+    
     cardList.forEach(c => {
       if (c.illustrator && c.illustrator !== "Inconnu") illsets.add(c.illustrator);
+      if (c.rarity && c.rarity !== "Inconnue") raritiesSet.add(c.rarity);
     });
+    
     setIllustratorsList(Array.from(illsets).sort());
+    setRaritiesList(Array.from(raritiesSet).sort());
   };
 
   const toggleCardOwnership = async (id: string, type: 'normal' | 'foil') => {
@@ -485,8 +513,9 @@ export default function PokedexPage() {
   };
 
   const filteredCards = cards.filter(card => {
-    if (selectedIllustrator === "ALL") return true;
-    return card.illustrator === selectedIllustrator;
+    const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
+    const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
+    return matchIllustrator && matchRarity;
   });
 
   const totalCards = cards.length;
@@ -545,7 +574,7 @@ export default function PokedexPage() {
         <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">
           Ta collection de cartes Pokémon ⚡
         </h1>
-        <p className="text-slate-400 text-center mb-6">Le site internet du mangeur de cartes Pokémon</p>
+        <p className="text-slate-400 text-center mb-6">Le sanctuaire ultime pour traquer ton carton brillant</p>
 
         {/* Barre de Recherche */}
         <form onSubmit={handleSearchSubmit} className="mb-6 flex justify-center max-w-md mx-auto">
@@ -641,20 +670,40 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Filtre par Illustrateur */}
-        {illustratorsList.length > 0 && (
-          <div className="mb-8 flex items-center justify-center gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
-            <span className="text-xs text-slate-400 font-semibold">🎨 Filtrer par artiste :</span>
-            <select
-              value={selectedIllustrator}
-              onChange={(e) => setSelectedIllustrator(e.target.value)}
-              className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-1.5 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
-            >
-              <option value="ALL">Tous les illustrateurs ({cards.length} cartes)</option>
-              {illustratorsList.map(ill => (
-                <option key={ill} value={ill}>{ill}</option>
-              ))}
-            </select>
+        {/* Filtres (Illustrateur & Rareté) */}
+        {(illustratorsList.length > 0 || raritiesList.length > 0) && (
+          <div className="mb-8 flex flex-col sm:flex-row items-center justify-center gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+            
+            {/* Filtre Illustrateur */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
+              <select
+                value={selectedIllustrator}
+                onChange={(e) => setSelectedIllustrator(e.target.value)}
+                className="w-full sm:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
+              >
+                <option value="ALL">Tous ({cards.length})</option>
+                {illustratorsList.map(ill => (
+                  <option key={ill} value={ill}>{ill}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtre Rareté */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
+              <select
+                value={selectedRarity}
+                onChange={(e) => setSelectedRarity(e.target.value)}
+                className="w-full sm:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
+              >
+                <option value="ALL">Toutes</option>
+                {raritiesList.map(rarity => (
+                  <option key={rarity} value={rarity}>{rarity}</option>
+                ))}
+              </select>
+            </div>
+
           </div>
         )}
 
@@ -722,9 +771,12 @@ export default function PokedexPage() {
                       <h3 className="text-xs md:text-sm font-bold truncate" title={card.name}>{card.name}</h3>
                       <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
                     </div>
-                    {card.illustrator && (
-                      <p className="text-[10px] md:text-xs text-slate-400 mb-3 italic truncate">Ill. {card.illustrator}</p>
-                    )}
+                    <div className="flex justify-between items-center text-[10px] md:text-xs text-slate-400 mb-3 gap-1">
+                      <span className="italic truncate">Ill. {card.illustrator}</span>
+                      {card.rarity && card.rarity !== "Inconnue" && (
+                        <span className="bg-slate-800/80 text-yellow-300 px-1.5 py-0.5 rounded shrink-0 font-medium">{card.rarity}</span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
@@ -759,7 +811,7 @@ export default function PokedexPage() {
         {!loading && filteredCards.length === 0 && (
           <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
             <span className="text-4xl mb-4 block">👀</span>
-            <p className="text-slate-400 text-lg">Introuvable dans les hautes herbes...</p>
+            <p className="text-slate-400 text-lg">Aucune carte ne correspond à ce filtre...</p>
           </div>
         )}
 
