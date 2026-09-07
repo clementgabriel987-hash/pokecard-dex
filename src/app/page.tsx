@@ -15,15 +15,17 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (Promos via TCG IO, le reste via TCGDex en Français + Bloc ME récupéré)
+// Organisation en Blocs et Séries (avec HGSS et Promos corrigés)
 const POKEMON_BLOCKS = [
   {
-    blockName: "⭐ Bloc Promos & Hors-Séries (TCG IO)",
+    blockName: "⭐ Bloc Promos & Hors-Séries",
     sets: [
       { id: "svp", name: "Scarlet & Violet Promos", lang: "io" },
       { id: "swshp", name: "SWSH Black Star Promos", lang: "io" },
       { id: "smp", name: "SM Black Star Promos", lang: "io" },
-      { id: "xyp", name: "XY Black Star Promos", lang: "io" }
+      { id: "xyp", name: "XY Black Star Promos", lang: "io" },
+      { id: "bwp", name: "BW Black Star Promos", lang: "io" },
+      { id: "hgssump", name: "HGSS Black Star Promos", lang: "io" }
     ]
   },
   {
@@ -59,6 +61,15 @@ const POKEMON_BLOCKS = [
       { id: "ex14", name: "EX Gardiens de Cristal (FR)", lang: "fr" },
       { id: "ex15", name: "EX Île des Dragons (FR)", lang: "fr" },
       { id: "ex16", name: "EX Gardiens du Pouvoir (FR)", lang: "fr" }
+    ]
+  },
+  {
+    blockName: "Bloc HeartGold & SoulSilver (HGSS)",
+    sets: [
+      { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
+      { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
+      { id: "hgss3", name: "HS - Vainqueurs Supreme (FR)", lang: "fr" },
+      { id: "hgss4", name: "HS - Le Appel des Légendes (FR)", lang: "fr" }
     ]
   },
   {
@@ -388,7 +399,6 @@ export default function PokedexPage() {
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           
-          // SI C'EST UN SET PROMO (GÉRÉ PAR TCG IO)
           if (currentSeries?.lang === "io") {
             const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${selectedSeriesId}&pageSize=250`);
             if (!res.ok) { setCards([]); setLoading(false); return; }
@@ -409,7 +419,6 @@ export default function PokedexPage() {
               extractFilters(formattedCards);
             } else setCards([]);
           } else {
-            // SETS CLASSIQUES VIA TCGDEX (FR)
             const lang = currentSeries ? currentSeries.lang : "fr";
             const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
             if (!response.ok) { setCards([]); setLoading(false); return; }
