@@ -211,9 +211,6 @@ export default function PokedexPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL");
 
-  const [isProgressionOpen, setIsProgressionOpen] = useState<boolean>(false);
-  const [mysteryCard, setMysteryCard] = useState<Card | null>(null);
-  const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -255,13 +252,6 @@ export default function PokedexPage() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) { setIsGlobalBinder(false); setActiveSearch(searchInput.trim()); }
-  };
-
-  const openMysteryCard = () => {
-    if (cards.length === 0) return alert("Ouvre d'abord une série contenant des cartes !");
-    setMysteryCard(cards[Math.floor(Math.random() * cards.length)]);
-    setIsMysteryOpen(true);
-    setIsSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -456,12 +446,12 @@ export default function PokedexPage() {
               <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3.5 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
                 <span>❤️</span> Chasse aux cartes (Wishlist)
               </Link>
-              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
-                <span>👑</span> Progression & Master Sets
-              </button>
-              <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
-                <span>🎲</span> La Carte Mystère du Jour
-              </button>
+              <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                <span>🎨</span> Recherche par Artiste
+              </Link>
+              <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
+                <span>📈</span> Recherche de Prix
+              </Link>
               <div className="pt-2">
                 <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
                   <span>⚙️</span> Paramètres & Compte
@@ -473,7 +463,7 @@ export default function PokedexPage() {
             {currentUser ? (
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">Connecté : {currentUser.email}</div>
             ) : (
-              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">Se connecter avec Google</Link>
+              <Link href="/compte" className="block text-center bg-white text-slate-900 text-xs font-bold p-3 rounded-xl hover:bg-gray-200 transition shadow-md">Se connecter</Link>
             )}
           </div>
         </div>
@@ -545,6 +535,38 @@ export default function PokedexPage() {
                 <option value="jp">🇯🇵 Japonais</option>
               </select>
             </div>
+            {illustratorsList.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
+                <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
+                  <option value="ALL">Tous ({cards.length})</option>
+                  {illustratorsList.map(ill => <option key={ill} value={ill}>{ill}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(!isGlobalBinder && !activeSearch) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
+            <div>
+              <div className="flex justify-between text-sm mb-2 font-medium">
+                <span className="text-slate-300">Cartes Normales</span>
+                <span className="text-yellow-400">{normalCollected} / {totalCards} ({Math.round((normalCollected/totalCards)*100 || 0)}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((normalCollected/totalCards)*100 || 0)}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-2 font-medium">
+                <span className="text-slate-300">Cartes Foils (Brillantes)</span>
+                <span className="text-purple-400">{foilCollected} / {totalCards} ({Math.round((foilCollected/totalCards)*100 || 0)}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((foilCollected/totalCards)*100 || 0)}%` }}></div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -566,7 +588,6 @@ export default function PokedexPage() {
               return (
                 <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg relative">
                   
-                  {/* Bouton Cœur Wishlist discret */}
                   <button 
                     onClick={() => toggleWishlist(card.id)} 
                     className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
