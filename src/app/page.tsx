@@ -15,7 +15,7 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation complète de toutes les séries (Ordre chronologique PokéCardex)
+// Organisation complète avec les bons identifiants de sets pour les Promos
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
