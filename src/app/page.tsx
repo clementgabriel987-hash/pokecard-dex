@@ -254,6 +254,42 @@ export default function PokedexPage() {
     if (searchInput.trim()) { setIsGlobalBinder(false); setActiveSearch(searchInput.trim()); }
   };
 
+  const openMysteryCard = () => {
+    if (cards.length === 0) return alert("Ouvre d'abord une série contenant des cartes !");
+    alert("Carte mystère : " + cards[Math.floor(Math.random() * cards.length)].name);
+    setIsSidebarOpen(false);
+  };
+
+  // Fonctions de Sauvegarde & Importation
+  const exportCollectionJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userCollection, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "ma_collection_pokemon.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const importCollectionJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader();
+    if (e.target.files && e.target.files[0]) {
+      fileReader.readAsText(e.target.files[0], "UTF-8");
+      fileReader.onload = async (event) => {
+        try {
+          const parsed = JSON.parse(event.target?.result as string);
+          setUserCollection(parsed);
+          if (currentUser) {
+            await supabase.from("user_data").upsert({ id: currentUser.id, collection: parsed });
+          }
+          alert("Collection importée avec succès !");
+        } catch {
+          alert("Erreur lors de l'importation du fichier JSON.");
+        }
+      };
+    }
+  };
+
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -433,33 +469,54 @@ export default function PokedexPage() {
 
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
-        <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div>
-            <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+            <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
               <h2 className="text-lg font-extrabold text-yellow-400">Menu Dresseur 🧢</h2>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
-            <div className="space-y-3">
-              <Link href="/" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                <span>📚</span> Mon Pokedex / Classeur
-              </Link>
-              <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3.5 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
-                <span>❤️</span> Chasse aux cartes (Wishlist)
-              </Link>
-              <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                <span>🎨</span> Recherche par Artiste
-              </Link>
-              <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
-                <span>📈</span> Recherche de Prix
-              </Link>
-              <div className="pt-2">
-                <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                  <span>⚙️</span> Paramètres & Compte
-                </Link>
+            
+            <div className="space-y-4">
+              {/* Catégorie Navigation */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Navigation</p>
+                <div className="space-y-2">
+                  <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
+                    <span>✨</span> Ma Collection Globale
+                  </button>
+                  <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
+                    <span>❤️</span> Chasse aux cartes (Wishlist)
+                  </Link>
+                </div>
+              </div>
+
+              {/* Catégorie Outils */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Outils Dresseur</p>
+                <div className="space-y-2">
+                  <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
+                    <span>🎲</span> Carte Mystère
+                  </button>
+                </div>
+              </div>
+
+              {/* Catégorie Sauvegarde */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Sauvegarde & Données</p>
+                <div className="space-y-2">
+                  <button onClick={exportCollectionJSON} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3 rounded-xl font-semibold text-xs transition flex items-center gap-3 cursor-pointer text-emerald-400">
+                    <span>💾</span> Exporter mes données (JSON)
+                  </button>
+                  <label className="w-full bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3 rounded-xl font-semibold text-xs transition flex items-center gap-3 cursor-pointer text-amber-400">
+                    <span>📂</span> Importer une sauvegarde
+                    <input type="file" accept=".json" onChange={importCollectionJSON} className="hidden" />
+                  </label>
+                </div>
               </div>
             </div>
           </div>
-          <div className="pt-6 border-t border-slate-800">
+
+          <div className="pt-6 border-t border-slate-800 mt-4">
             {currentUser ? (
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 truncate">Connecté : {currentUser.email}</div>
             ) : (
