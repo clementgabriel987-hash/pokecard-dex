@@ -35,7 +35,6 @@ export default function PurchasesPage() {
   }, []);
 
   const loadPurchases = async (userId: string) => {
-    // On récupère depuis la colonne 'collection' (ou l'objet global user_data)
     const { data } = await supabase.from("user_data").select("collection").eq("id", userId).maybeSingle();
     if (data && data.collection && data.collection._purchases) {
       setPurchases(data.collection._purchases);
@@ -43,11 +42,9 @@ export default function PurchasesPage() {
   };
 
   const saveToSupabase = async (userId: string, updatedPurchases: Purchase[]) => {
-    // On récupère d'abord le JSON existant pour ne pas écraser les cartes du classeur
     const { data } = await supabase.from("user_data").select("collection").eq("id", userId).maybeSingle();
     const currentCollection = data?.collection || {};
     
-    // On y injecte les achats sous une clé protégée '_purchases'
     const newCollectionData = {
       ...currentCollection,
       _purchases: updatedPurchases
@@ -174,7 +171,7 @@ export default function PurchasesPage() {
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">📋 Historique récent</h2>
           {purchases.length > 0 ? (
             <div className="space-y-3">
-              {purchases.link ? null : purchases.map(p => (
+              {purchases.map(p => (
                 <div key={p.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl flex justify-between items-center text-xs">
                   <div>
                     <p className="font-bold text-sm text-white">{p.cardName} <span className="text-slate-400 font-normal">({p.setName || "Série non spécifiée"})</span></p>
