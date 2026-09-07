@@ -13,7 +13,6 @@ interface Card {
   seriesName?: string;
 }
 
-// Mise à jour de la structure pour inclure les notes, les prix et la wishlist
 interface CardDetails {
   normalOwned: boolean;
   foilOwned: boolean;
@@ -218,11 +217,6 @@ export default function PokedexPage() {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
-  // État pour la modale de notes/prix d'une carte spécifique
-  const [activeNoteCardId, setActiveNoteCardId] = useState<string | null>(null);
-  const [tempPrice, setTempPrice] = useState<string>("");
-  const [tempNote, setTempNote] = useState<string>("");
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setCurrentUser(session?.user || null));
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => setCurrentUser(session?.user || null));
@@ -361,7 +355,7 @@ export default function PokedexPage() {
     if (type === 'normal') newCollection[id].normalOwned = !newCollection[id].normalOwned;
     else newCollection[id].foilOwned = !newCollection[id].foilOwned;
     
-    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
+    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned) delete newCollection[id];
     
     setUserCollection(newCollection);
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
@@ -385,33 +379,6 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // Toggle de la Wishlist (Chasse aux cartes)
-  const toggleWishlist = async (id: string) => {
-    if (!currentUser) return alert("Connecte-toi pour gérer ta wishlist !");
-    const newCollection = { ...userCollection };
-    if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, isWishlist: true };
-    else newCollection[id].isWishlist = !newCollection[id].isWishlist;
-
-    if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
-
-    setUserCollection(newCollection);
-    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
-  };
-
-  // Sauvegarde des notes et prix d'achat
-  const saveCardNotes = async (id: string) => {
-    if (!currentUser) return;
-    const newCollection = { ...userCollection };
-    if (!newCollection[id]) newCollection[id] = { normalOwned: true, foilOwned: false };
-
-    newCollection[id].price = tempPrice;
-    newCollection[id].note = tempNote;
-
-    setUserCollection(newCollection);
-    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
-    setActiveNoteCardId(null);
-  };
-
   const filteredCards = cards.filter(card => {
     const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
     const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
@@ -428,7 +395,6 @@ export default function PokedexPage() {
       if (selectedStatus === "MISSING") matchStatus = !isNormal && !isFoil;
       else if (selectedStatus === "NORMAL") matchStatus = isNormal;
       else if (selectedStatus === "FOIL") matchStatus = isFoil;
-      else if (selectedStatus === "WISHLIST") matchStatus = cardData?.isWishlist || false;
     }
 
     if (selectedLanguage !== "ALL") {
@@ -464,32 +430,11 @@ export default function PokedexPage() {
               <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
                 <span>✨</span> Ma Collection
               </button>
+              {/* Prochaine étape : Ajouter ici le lien vers la page "Chasse aux cartes / Wishlist" */}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Modale Carnet de Notes & Prix d'achat */}
-      {activeNoteCardId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setActiveNoteCardId(null)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 space-y-4">
-            <h3 className="text-lg font-bold text-yellow-400">📝 Carnet de la carte</h3>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Prix payé (€) :</label>
-              <input type="text" placeholder="Ex: 15.00" value={tempPrice} onChange={(e) => setTempPrice(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-sm text-white outline-none focus:border-yellow-500" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Notes & Provenance :</label>
-              <textarea placeholder="Ex: Acheté en brocante, état mint..." value={tempNote} onChange={(e) => setTempNote(e.target.value)} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-sm text-white outline-none focus:border-yellow-500 h-24 resize-none" />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <button onClick={() => saveCardNotes(activeNoteCardId)} className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs cursor-pointer transition">Enregistrer</button>
-              <button onClick={() => setActiveNoteCardId(null)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg text-xs cursor-pointer transition">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
@@ -546,7 +491,6 @@ export default function PokedexPage() {
                 <option value="MISSING">❌ Manquantes</option>
                 <option value="NORMAL">✓ Normales possédées</option>
                 <option value="FOIL">✨ Foils possédées</option>
-                <option value="WISHLIST">❤️ Ma Wishlist (Chasse)</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -569,7 +513,6 @@ export default function PokedexPage() {
               const cardData = userCollection[card.id];
               const isNormalOwned = cardData?.normalOwned || false;
               const isFoilOwned = cardData?.foilOwned || false;
-              const isWishlisted = cardData?.isWishlist || false;
               const hasError = imageErrors[card.id];
               
               const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
@@ -577,17 +520,7 @@ export default function PokedexPage() {
               const showLanguageFlags = cardDefaultLang !== "en";
 
               return (
-                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg relative">
-                  
-                  {/* Bouton Cœur Wishlist (Chasse aux cartes) */}
-                  <button 
-                    onClick={() => toggleWishlist(card.id)} 
-                    className={`absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
-                    title="Ajouter à la Wishlist (Chasse aux cartes)"
-                  >
-                    {isWishlisted ? "❤️" : "🤍"}
-                  </button>
-
+                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg">
                   <div>
                     <div className="mb-3 flex justify-center bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[220px] items-center relative overflow-hidden">
                       {card.image && !hasError ? (
@@ -609,30 +542,6 @@ export default function PokedexPage() {
                     <button onClick={() => toggleCardOwnership(card.id, 'foil', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-800 text-slate-400"}`}>
                       {isFoilOwned ? "✨ Foil" : "Foil"}
                     </button>
-                  </div>
-
-                  {/* Boutons d'action Chasse aux cartes (Liens rapides) & Carnet de notes */}
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/50 text-[11px]">
-                    {/* Lien direct de recherche Cardmarket/Vinted */}
-                    <a 
-                      href={`https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name)}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline flex items-center gap-1"
-                      title="Chercher sur Cardmarket"
-                    >
-                      🛒 Chasser
-                    </a>
-
-                    {/* Bouton Notes (si possédée ou wishlistée) */}
-                    {(isNormalOwned || isFoilOwned || isWishlisted) && (
-                      <button 
-                        onClick={() => { setActiveNoteCardId(card.id); setTempPrice(cardData?.price || ""); setTempNote(cardData?.note || ""); }}
-                        className="text-yellow-400 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        📝 {cardData?.price ? `${cardData.price}€` : "Notes"}
-                      </button>
-                    )}
                   </div>
 
                   {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
