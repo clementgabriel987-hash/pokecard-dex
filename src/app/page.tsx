@@ -15,15 +15,15 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (100% en Français avec TCGDex)
+// Organisation en Blocs et Séries (Promos via TCG IO, le reste via TCGDex en Français + Bloc ME récupéré)
 const POKEMON_BLOCKS = [
   {
-    blockName: "⭐ Bloc Promos & Hors-Séries",
+    blockName: "⭐ Bloc Promos & Hors-Séries (TCG IO)",
     sets: [
-      { id: "svp", name: "EV Black Star Promos (FR)", lang: "fr" },
-      { id: "swsh-p", name: "EB Black Star Promos (FR)", lang: "fr" },
-      { id: "sm-p", name: "SM Black Star Promos (FR)", lang: "fr" },
-      { id: "xy-p", name: "XY Black Star Promos (FR)", lang: "fr" }
+      { id: "svp", name: "Scarlet & Violet Promos", lang: "io" },
+      { id: "swshp", name: "SWSH Black Star Promos", lang: "io" },
+      { id: "smp", name: "SM Black Star Promos", lang: "io" },
+      { id: "xyp", name: "XY Black Star Promos", lang: "io" }
     ]
   },
   {
@@ -163,6 +163,17 @@ const POKEMON_BLOCKS = [
       { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
       { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" }
+    ]
+  },
+  {
+    blockName: "Bloc Méga-Évolution (ME)",
+    sets: [
+      { id: "me01", name: "Méga-Évolution (FR)", lang: "fr" },
+      { id: "me02", name: "Flammes Fantasmagoriques (FR)", lang: "fr" },
+      { id: "me02.5", name: "Héros Transcendants (FR)", lang: "fr" },
+      { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
+      { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
+      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" }
     ]
   }
 ];
@@ -308,7 +319,6 @@ export default function PokedexPage() {
           const data = await response.json();
           if (Array.isArray(data)) {
             const formatted = await Promise.all(data.slice(0, 50).map(async (c: any) => {
-              // Double sécurité image TCGDex / Assets officiels
               let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/fr/base1/${c.localId}/high.png`;
               let illustrator = "Inconnu";
               let rarity = "Inconnue";
@@ -332,21 +342,42 @@ export default function PokedexPage() {
           let globalCards: Card[] = [];
           for (const series of ALL_FLAT_SERIES) {
             try {
-              const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
-              if (!response.ok) continue;
-              const data = await response.json();
-              if (data && data.cards) {
-                for (const card of data.cards) {
-                  if (ownedCardIds.includes(card.id)) {
-                    globalCards.push({
-                      id: card.id,
-                      name: card.name || "Inconnue",
-                      localId: card.localId || "?",
-                      image: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`,
-                      illustrator: card.illustrator || "Inconnu",
-                      rarity: card.rarity || "Inconnue",
-                      seriesName: series.name
-                    });
+              if (series.lang === "io") {
+                const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${series.id}&pageSize=250`);
+                if (!res.ok) continue;
+                const json = await res.json();
+                if (json && json.data) {
+                  for (const card of json.data) {
+                    if (ownedCardIds.includes(card.id)) {
+                      globalCards.push({
+                        id: card.id,
+                        name: card.name || "Inconnue",
+                        localId: card.number || "?",
+                        image: card.images?.large || card.images?.small || "",
+                        illustrator: card.artist || "Inconnu",
+                        rarity: card.rarity || "Inconnue",
+                        seriesName: series.name
+                      });
+                    }
+                  }
+                }
+              } else {
+                const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
+                if (!response.ok) continue;
+                const data = await response.json();
+                if (data && data.cards) {
+                  for (const card of data.cards) {
+                    if (ownedCardIds.includes(card.id)) {
+                      globalCards.push({
+                        id: card.id,
+                        name: card.name || "Inconnue",
+                        localId: card.localId || "?",
+                        image: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`,
+                        illustrator: card.illustrator || "Inconnu",
+                        rarity: card.rarity || "Inconnue",
+                        seriesName: series.name
+                      });
+                    }
                   }
                 }
               }
@@ -356,46 +387,52 @@ export default function PokedexPage() {
           extractFilters(globalCards);
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-          const lang = currentSeries ? currentSeries.lang : "fr";
-          const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
-          if (!response.ok) { setCards([]); setLoading(false); return; }
-          const data = await response.json();
-          if (data && data.cards) {
-            const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
-              // URL de base TCGDex
-              let imageUrl = c.image 
-                ? `${c.image}/high.png` 
-                : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
-              
-              let illustrator = "Inconnu";
-              let rarity = "Inconnue";
-              
-              try {
-                const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
-                if (cardRes.ok) {
-                  const cardData = await cardRes.json();
-                  illustrator = cardData.illustrator || "Inconnu";
-                  rarity = cardData.rarity || "Inconnue";
-                  if (cardData.image) {
-                    imageUrl = `${cardData.image}/high.png`;
-                  }
-                }
-              } catch {}
-              
-              return {
+          
+          // SI C'EST UN SET PROMO (GÉRÉ PAR TCG IO)
+          if (currentSeries?.lang === "io") {
+            const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${selectedSeriesId}&pageSize=250`);
+            if (!res.ok) { setCards([]); setLoading(false); return; }
+            const json = await res.json();
+            if (json && json.data) {
+              const sortedData = json.data.sort((a: any, b: any) => {
+                return parseInt(a.number) - parseInt(b.number) || a.number.localeCompare(b.number);
+              });
+              const formattedCards = sortedData.map((c: any) => ({
                 id: c.id,
                 name: c.name || "Inconnue",
-                localId: c.localId || "?",
-                image: imageUrl,
-                illustrator,
-                rarity
-              };
-            }));
-
-            setCards(formattedCards);
-            extractFilters(formattedCards);
+                localId: c.number || "?",
+                image: c.images?.large || c.images?.small || "",
+                illustrator: c.artist || "Inconnu",
+                rarity: c.rarity || "Inconnue"
+              }));
+              setCards(formattedCards);
+              extractFilters(formattedCards);
+            } else setCards([]);
           } else {
-            setCards([]);
+            // SETS CLASSIQUES VIA TCGDEX (FR)
+            const lang = currentSeries ? currentSeries.lang : "fr";
+            const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
+            if (!response.ok) { setCards([]); setLoading(false); return; }
+            const data = await response.json();
+            if (data && data.cards) {
+              const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
+                let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
+                let illustrator = "Inconnu";
+                let rarity = "Inconnue";
+                try {
+                  const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
+                  if (cardRes.ok) {
+                    const cardData = await cardRes.json();
+                    illustrator = cardData.illustrator || "Inconnu";
+                    rarity = cardData.rarity || "Inconnue";
+                    if (cardData.image) imageUrl = `${cardData.image}/high.png`;
+                  }
+                } catch {}
+                return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
+              }));
+              setCards(formattedCards);
+              extractFilters(formattedCards);
+            } else setCards([]);
           }
         }
       } catch {
