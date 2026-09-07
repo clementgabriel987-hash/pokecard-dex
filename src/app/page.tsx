@@ -17,22 +17,20 @@ type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: bool
 
 // Organisation en Blocs et Séries (avec le Bloc Promos en tête de liste !)
 const POKEMON_BLOCKS = [
-  {
+{
     blockName: "⭐ Bloc Promos & Hors-Séries",
     sets: [
-      { id: "base-p", name: "Promos Wizards (EN/FR)", lang: "en" },
-      { id: "ex-p", name: "Promos Bloc EX", lang: "en" },
-      { id: "dp-p", name: "DP Black Star Promos", lang: "en" },
-      { id: "pl-p", name: "Platine Promos", lang: "en" },
-      { id: "hgss-p", name: "HGSS Black Star Promos", lang: "en" },
-      { id: "bw-p", name: "BW Black Star Promos", lang: "en" },
-      { id: "xy-p", name: "XY Black Star Promos", lang: "fr" },
-      { id: "sm-p", name: "SM Black Star Promos", lang: "fr" },
-      { id: "swsh-p", name: "EB Black Star Promos (SwSh)", lang: "fr" },
-      { id: "svp", name: "EV Black Star Promos (SV)", lang: "fr" }
+      { id: "base-p", name: "Wizards Black Star Promos (EN)", lang: "en" },
+      { id: "np", name: "Nintendo Promos (EN)", lang: "en" },
+      { id: "dp-p", name: "DP Black Star Promos (FR/EN)", lang: "fr" },
+      { id: "hgss-p", name: "HGSS Black Star Promos (FR/EN)", lang: "fr" },
+      { id: "bw-p", name: "BW Black Star Promos (FR/EN)", lang: "fr" },
+      { id: "xy-p", name: "XY Black Star Promos (FR)", lang: "fr" },
+      { id: "sm-p", name: "SM Black Star Promos (FR)", lang: "fr" },
+      { id: "swsh-p", name: "EB Black Star Promos (FR)", lang: "fr" },
+      { id: "svp", name: "EV Black Star Promos (FR)", lang: "fr" }
     ]
   },
-  {
     blockName: "Bloc Wizards (Classic)",
     sets: [
       { id: "base1", name: "Base Set (FR)", lang: "fr" },
