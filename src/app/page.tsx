@@ -25,7 +25,7 @@ type UserCollectionJSON = Record<string, CardDetails>;
 // Organisation complète avec les Promos et blocs d'origine intacts
 const POKEMON_BLOCKS = [
   {
-    blockName: "⭐ Bloc Promos & Hors-Séries",
+    blockName: "⭐ Bloc Promos & Hors-Séries ( EN DEV..)",
     sets: [
       { id: "svp", name: "Scarlet & Violet Promos", lang: "io" },
       { id: "swshp", name: "SWSH Black Star Promos", lang: "io" },
@@ -549,43 +549,61 @@ export default function PokedexPage() {
               <h2 className="text-lg font-extrabold text-yellow-400">Menu Dresseur 🧢</h2>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
-            <div className="space-y-3">
-              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
-                <span>👑</span> Progression & Master Sets
-              </button>
-              <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
-                <span>✨</span> Ma Collection
-              </button>
-              <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3.5 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
-                <span>❤️</span> Chasse aux cartes (Wishlist)
-              </Link>
-              <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                <span>🎨</span> Recherche par Artiste
-              </Link>
-              <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
-                <span>🎲</span> La Carte Mystère du Jour
-              </button>
-              <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
-                <span>📈</span> Recherche de Prix
-              </Link>
-              <div className="pt-4 border-t border-slate-800 space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">📥 / 📤 Sauvegarde</span>
-                {currentUser && (
-                  <>
-                    <button onClick={exportCollectionJSON} className="w-full text-left bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2">
-                      <span>📥</span> Exporter le JSON
-                    </button>
-                    <label className="w-full text-left bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2 block">
-                      <span>📤</span> Importer le JSON
-                      <input type="file" accept=".json" onChange={importCollectionJSON} className="hidden" />
-                    </label>
-                  </>
-                )}
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">Navigation</span>
+                <div className="space-y-2">
+                  <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
+                    <span>👑</span> Progression & Master Sets
+                  </button>
+                  <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
+                    <span>✨</span> Ma Collection
+                  </button>
+                  <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3.5 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
+                    <span>❤️</span> Chasse aux cartes (Wishlist)
+                  </Link>
+                </div>
               </div>
-              <div className="pt-2">
-                <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
-                  <span>⚙️</span> Paramètres & Compte
-                </Link>
+
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">Outils Dresseur</span>
+                <div className="space-y-2">
+                  <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                    <span>🎨</span> Recherche par Artiste
+                  </Link>
+                  <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
+                    <span>🎲</span> La Carte Mystère du Jour
+                  </button>
+                  <Link href="/prix" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-green-300">
+                    <span>📈</span> Recherche de Prix
+                  </Link>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">📥 / 📤 Sauvegarde</span>
+                <div className="space-y-2">
+                  {currentUser && (
+                    <>
+                      <button onClick={exportCollectionJSON} className="w-full text-left bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2">
+                        <span>📥</span> Exporter le JSON
+                      </button>
+                      <label className="w-full text-left bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 p-3 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2 block">
+                        <span>📤</span> Importer le JSON
+                        <input type="file" accept=".json" onChange={importCollectionJSON} className="hidden" />
+                      </label>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">Paramètres</span>
+                <div className="space-y-2">
+                  <Link href="/compte" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                    <span>⚙️</span> Paramètres & Compte
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
