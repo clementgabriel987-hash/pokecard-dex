@@ -185,9 +185,11 @@ export default function PokedexPage() {
   const [selectedIllustrator, setSelectedIllustrator] = useState<string>("ALL");
   const [illustratorsList, setIllustratorsList] = useState<string[]>([]);
 
-  // Nouveaux états pour la rareté
   const [selectedRarity, setSelectedRarity] = useState<string>("ALL");
   const [raritiesList, setRaritiesList] = useState<string[]>([]);
+
+  // Nouveau filtre de statut (ALL, MISSING, NORMAL, FOIL)
+  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
 
   // Authentification et Collection
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -317,6 +319,7 @@ export default function PokedexPage() {
       setLoading(true);
       setSelectedIllustrator("ALL");
       setSelectedRarity("ALL");
+      setSelectedStatus("ALL");
       setImageErrors({});
       try {
         if (activeSearch) {
@@ -382,7 +385,6 @@ export default function PokedexPage() {
                     let rarity = card.rarity || "Inconnue";
                     let illustrator = card.illustrator || "Inconnu";
 
-                    // Requête détaillée pour récupérer la rareté exacte si absente de la liste du set
                     try {
                       const detailRes = await fetch(`https://api.tcgdex.net/v2/${series.lang}/cards/${card.id}`);
                       if (detailRes.ok) {
@@ -515,7 +517,20 @@ export default function PokedexPage() {
   const filteredCards = cards.filter(card => {
     const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
     const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
-    return matchIllustrator && matchRarity;
+    
+    const isNormal = userCollection[card.id]?.normalOwned || false;
+    const isFoil = userCollection[card.id]?.foilOwned || false;
+
+    let matchStatus = true;
+    if (selectedStatus === "MISSING") {
+      matchStatus = !isNormal && !isFoil;
+    } else if (selectedStatus === "NORMAL") {
+      matchStatus = isNormal;
+    } else if (selectedStatus === "FOIL") {
+      matchStatus = isFoil;
+    }
+
+    return matchIllustrator && matchRarity && matchStatus;
   });
 
   const totalCards = cards.length;
@@ -670,17 +685,32 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Filtres (Illustrateur & Rareté) */}
-        {(illustratorsList.length > 0 || raritiesList.length > 0) && (
-          <div className="mb-8 flex flex-col sm:flex-row items-center justify-center gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-            
-            {/* Filtre Illustrateur */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Filtres (Statut, Artiste & Rareté) */}
+        <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+          
+          {/* Filtre Statut (Manquantes / Possédées) */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <span className="text-xs text-slate-400 font-semibold shrink-0">🎯 Statut :</span>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
+            >
+              <option value="ALL">Toutes les cartes</option>
+              <option value="MISSING">❌ Manquantes</option>
+              <option value="NORMAL">✓ Normales possédées</option>
+              <option value="FOIL">✨ Foils possédées</option>
+            </select>
+          </div>
+
+          {/* Filtre Artiste */}
+          {illustratorsList.length > 0 && (
+            <div className="flex items-center gap-2 w-full md:w-auto">
               <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
               <select
                 value={selectedIllustrator}
                 onChange={(e) => setSelectedIllustrator(e.target.value)}
-                className="w-full sm:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
+                className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
               >
                 <option value="ALL">Tous ({cards.length})</option>
                 {illustratorsList.map(ill => (
@@ -688,14 +718,16 @@ export default function PokedexPage() {
                 ))}
               </select>
             </div>
+          )}
 
-            {/* Filtre Rareté */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Filtre Rareté */}
+          {raritiesList.length > 0 && (
+            <div className="flex items-center gap-2 w-full md:w-auto">
               <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
               <select
                 value={selectedRarity}
                 onChange={(e) => setSelectedRarity(e.target.value)}
-                className="w-full sm:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
+                className="w-full md:w-auto bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer"
               >
                 <option value="ALL">Toutes</option>
                 {raritiesList.map(rarity => (
@@ -703,9 +735,9 @@ export default function PokedexPage() {
                 ))}
               </select>
             </div>
+          )}
 
-          </div>
-        )}
+        </div>
 
         {/* Barres de progression */}
         {(!isGlobalBinder && !activeSearch) && (
