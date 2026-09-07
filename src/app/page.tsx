@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -15,21 +16,15 @@ interface Card {
 
 type UserCollectionJSON = Record<string, { normalOwned: boolean; foilOwned: boolean }>;
 
-// Organisation en Blocs et Séries (avec le Bloc Promos en tête de liste !)
-
+// Organisation en Blocs et Séries (avec le Bloc Promos fonctionnel)
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries",
     sets: [
-      { id: "base-p", name: "Wizards Black Star Promos (EN)", lang: "en" },
-      { id: "np", name: "Nintendo Promos (EN)", lang: "en" },
-      { id: "dp-p", name: "DP Black Star Promos (FR/EN)", lang: "fr" },
-      { id: "hgss-p", name: "HGSS Black Star Promos (FR/EN)", lang: "fr" },
-      { id: "bw-p", name: "BW Black Star Promos (FR/EN)", lang: "fr" },
-      { id: "xy-p", name: "XY Black Star Promos (FR)", lang: "fr" },
-      { id: "sm-p", name: "SM Black Star Promos (FR)", lang: "fr" },
+      { id: "svp", name: "EV Black Star Promos (FR)", lang: "fr" },
       { id: "swsh-p", name: "EB Black Star Promos (FR)", lang: "fr" },
-      { id: "svp", name: "EV Black Star Promos (SV)", lang: "fr" }
+      { id: "sm-p", name: "SM Black Star Promos (FR)", lang: "fr" },
+      { id: "xy-p", name: "XY Black Star Promos (FR)", lang: "fr" }
     ]
   },
   {
@@ -183,6 +178,7 @@ const POKEMON_BLOCKS = [
     ]
   }
 ];
+
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
 export default function PokedexPage() {
@@ -551,7 +547,7 @@ export default function PokedexPage() {
       {/* MODALE 1 : Progression */}
       {isProgressionOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsProgressionOpen(false)}></div>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsProgressionOpen(false)}></div>
           <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10">
             <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
               <h2 className="text-xl font-bold text-yellow-400">👑 Progression & Master Sets</h2>
@@ -590,7 +586,7 @@ export default function PokedexPage() {
       {/* MODALE 2 : Carte Mystère */}
       {isMysteryOpen && mysteryCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMysteryOpen(false)}></div>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsMysteryOpen(false)}></div>
           <div className="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 text-center">
             <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
               <h2 className="text-lg font-bold text-blue-400">🎲 Carte Mystère du Jour</h2>
@@ -679,6 +675,7 @@ export default function PokedexPage() {
           </div>
         )}
 
+        {/* FILTRES : MASQUÉS DANS LE MENU "MA COLLECTION" GLOBALE */}
         {!isGlobalBinder && (
           <div className="mb-8 flex flex-col md:flex-row items-center justify-center gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/85">
             <div className="flex items-center gap-2 w-full md:w-auto">
@@ -711,6 +708,7 @@ export default function PokedexPage() {
           </div>
         )}
 
+        {/* Barres de progression */}
         {(!isGlobalBinder && !activeSearch) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
             <div>
