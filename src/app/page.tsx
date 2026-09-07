@@ -260,7 +260,6 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // Fonctions de Sauvegarde & Importation
   const exportCollectionJSON = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userCollection, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -477,30 +476,27 @@ export default function PokedexPage() {
             </div>
             
             <div className="space-y-4">
-              {/* Catégorie Navigation */}
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Navigation</p>
                 <div className="space-y-2">
-                  <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 p-3 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
-                    <span>✨</span> Ma Collection Globale
+                  <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-purple-950/35 hover:bg-purple-900/40 border border-purple-800/50 p-3.5 rounded-xl font-semibold text-sm text-purple-300 transition flex items-center gap-3 cursor-pointer">
+                    <span>✨</span> Ma Collection
                   </button>
-                  <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
+                  <Link href="/wishlist" className="w-full text-left bg-red-950/30 hover:bg-red-900/40 border border-red-800/50 p-3.5 rounded-xl font-semibold text-sm text-red-300 transition flex items-center gap-3 cursor-pointer">
                     <span>❤️</span> Chasse aux cartes (Wishlist)
                   </Link>
                 </div>
               </div>
 
-              {/* Catégorie Outils */}
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Outils Dresseur</p>
                 <div className="space-y-2">
-                  <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
-                    <span>🎲</span> Carte Mystère
+                  <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
+                    <span>🎲</span> La Carte Mystère du Jour
                   </button>
                 </div>
               </div>
 
-              {/* Catégorie Sauvegarde */}
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Sauvegarde & Données</p>
                 <div className="space-y-2">
