@@ -546,7 +546,7 @@ export default function PokedexPage() {
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div>
             <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-              <h2 className="text-lg font-extrabold text-yellow-400">MENU DE NAVIGATION </h2>
+              <h2 className="text-lg font-extrabold text-yellow-400">MENU DE NAVIGATIONx </h2>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="space-y-4">
@@ -668,8 +668,8 @@ export default function PokedexPage() {
 
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">Ton Classeur En Ligne Pokémon</h1>
-          <p className="text-slate-400 text-sm">Le site internet ultime pour gérer ta collection de cartes </p>
+          <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">TON CLASSEUR EN LIGNE POKEMON !</h1>
+          <p className="text-slate-400 text-sm">Le site internet ultime pour gérer ta collection de cartes. </p>
           {(!isGlobalBinder && !activeSearch && isMasterSet && totalCards > 0) && (
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-yellow-500/50 px-4 py-1.5 rounded-full mt-3 shadow-[0_0_15px_rgba(234,179,8,0.3)] animate-pulse">
               <span className="text-yellow-400 font-bold text-sm">👑 MASTER SET VALIDÉ !</span>
