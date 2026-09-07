@@ -190,6 +190,9 @@ export default function PokedexPage() {
 
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
+  // État pour afficher ou non le bouton "Retour en haut"
+  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
@@ -199,7 +202,21 @@ export default function PokedexPage() {
       setCurrentUser(session?.user || null);
     });
 
-    return () => authListener.subscription.unsubscribe();
+    // Écouteur de scroll pour afficher le bouton de retour en haut
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      authListener.subscription.unsubscribe();
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -287,6 +304,10 @@ export default function PokedexPage() {
     setIsGlobalBinder(false);
     setActiveSearch("");
     setSearchInput("");
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -477,7 +498,7 @@ export default function PokedexPage() {
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10">
+    <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
       <div className="max-w-6xl mx-auto">
         
         {/* Barre d'auth */}
@@ -662,7 +683,7 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* Grille des cartes : 2 par 2 sur mobile (portrait), 3 sur tablette, 4 sur grand écran */}
+        {/* Grille des cartes */}
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">
             Ouverture du classeur en cours... ⚡
@@ -740,6 +761,19 @@ export default function PokedexPage() {
             <span className="text-4xl mb-4 block">👀</span>
             <p className="text-slate-400 text-lg">Introuvable dans les hautes herbes...</p>
           </div>
+        )}
+
+        {/* Bouton "Retour en haut" flottant */}
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-6 right-6 z-50 bg-yellow-500 hover:bg-yellow-400 text-slate-950 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110"
+            title="Retour en haut"
+          >
+            <svg className="w-5 h-5 font-bold" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"></path>
+            </svg>
+          </button>
         )}
 
       </div>
