@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 interface CardDetails {
   normalOwned: boolean;
@@ -42,7 +42,7 @@ export default function StatistiquesPage() {
   const wishlistCount = Object.values(collection).filter(c => c.isWishlist).length;
   const bothCount = Object.values(collection).filter(c => c.normalOwned && c.foilOwned).length;
 
-  // Analyse par bloc basée sur les préfixes des ID de cartes (ex: "base1-1" -> "base1", "swsh12.5-15" -> "swsh12.5")
+  // Analyse par bloc basée sur les préfixes des ID de cartes
   const blockStats: Record<string, number> = {};
   Object.keys(collection).forEach(cardId => {
     if (collection[cardId].normalOwned || collection[cardId].foilOwned) {
