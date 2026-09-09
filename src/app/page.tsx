@@ -23,36 +23,6 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// 🧠 Le "Cerveau" traducteur pour le Plan B (Pokécardex)
-function getPokecardexUrl(tcgdexSet: string, localId: string): string {
-  let id = tcgdexSet.toLowerCase();
-  
-  const exceptions: Record<string, string> = {
-    'svp': 'PR-SV', 'swshp': 'PR-EB', 'smp': 'PR-SL', 'xyp': 'PR-XY',
-    'bwp': 'PR-NB', 'hsp': 'PR-HS', 'dpp': 'PR-DP', 'basep': 'PR-W',
-    'det1': 'DPK', 'cel25': 'CEL', 'cel25c': 'CEL',
-    'dp1': 'DP', 'dp2': 'MT', 'dp3': 'SW', 'dp4': 'MD', 'dp5': 'LA', 'dp6': 'SF',
-    'pl1': 'PL', 'pl2': 'RR', 'pl3': 'SV', 'pl4': 'AR',
-    'hgss1': 'HS', 'hgss2': 'UL', 'hgss3': 'UD', 'hgss4': 'TM', 'col1': 'CL',
-  };
-  
-  if (exceptions[id]) {
-    id = exceptions[id];
-  } else {
-    id = id.replace(/^sv0/, 'EV').replace(/^sv/, 'EV');
-    id = id.replace(/^swsh/, 'EB').replace(/^sm/, 'SL').replace(/^bw/, 'NB');
-    id = id.toUpperCase();
-  }
-
-  const cleanId = localId.replace(/^0+/, '');
-  const oldBlocks = ['DP', 'MT', 'SW', 'MD', 'LA', 'SF', 'PL', 'RR', 'SV', 'AR', 'HS', 'UL', 'UD', 'TM', 'CL', 'DPK', 'CEL'];
-  
-  if (oldBlocks.includes(id)) {
-    return `https://www.pokecardex.com/assets/images/cartes/${id}/${cleanId}.jpg`;
-  }
-  return `https://www.pokecardex.com/assets/images/cartes/fr/${id}/${cleanId}.jpg`;
-}
-
 // Organisation complète de tous les blocs, promos et extensions
 const POKEMON_BLOCKS = [
   {
@@ -386,30 +356,23 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B automatique et infaillible géré par le navigateur
+  // 🛡️ Plan B automatique : Basculement instantané sur l'anglais TCGdex en cas d'erreur d'image
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    // Étape 1 : Si ce n'est pas encore Pokécardex, on tente Pokécardex
-    if (!currentImg.includes("pokecardex.com")) {
-      const setId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
-      const pokecardexUrl = getPokecardexUrl(setId, cardData.localId);
-      
-      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: pokecardexUrl } : c));
-      return;
-    }
-
-    // Étape 2 : Si Pokécardex a échoué, on tente la version anglaise TCGdex en dernier recours
+    // Si ce n'est pas encore l'URL anglaise, on bascule dessus
     if (!currentImg.includes("/en/")) {
-      const fallbackUrl = currentImg.replace("/fr/", "/en/");
-      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: fallbackUrl } : c));
+      const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+      const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
+      
+      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
       return;
     }
 
-    // Étape 3 : Si tout a échoué, on marque la carte comme non trouvée
+    // Si même l'anglais échoue, on marque la carte comme définitivement en échec
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
