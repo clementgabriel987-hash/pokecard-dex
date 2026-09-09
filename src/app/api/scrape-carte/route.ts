@@ -1,3 +1,4 @@
+// src/app/api/scrape-carte/route.ts
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 
@@ -5,8 +6,9 @@ import * as cheerio from 'cheerio';
 function translateSetId(tcgdexId: string): string {
   let id = tcgdexId.toLowerCase();
   
-  // 1. Les exceptions pures (Promos, Hors-séries)
+  // 1. Les exceptions pures et les anciens blocs (Le dictionnaire de traduction)
   const exceptions: Record<string, string> = {
+    // Promos & Hors-Séries
     'svp': 'PR-SV', 
     'swshp': 'PR-EB', 
     'smp': 'PR-SL', 
@@ -15,20 +17,40 @@ function translateSetId(tcgdexId: string): string {
     'hsp': 'PR-HS', 
     'dpp': 'PR-DP', 
     'basep': 'PR-W',
-    'det1': 'DET' // <-- La correction pour Détective Pikachu est ici !
+    'det1': 'DET', 
+    
+    // Bloc Diamant & Perle (Pokécardex utilise les abréviations US)
+    'dp1': 'DP',   // Diamant & Perle de base
+    'dp2': 'MT',   // Trésors Mystérieux (Mysterious Treasures)
+    'dp3': 'SW',   // Merveilles Secrètes (Secret Wonders)
+    'dp4': 'MD',   // Aube Majestueuse (Majestic Dawn)
+    'dp5': 'LA',   // Éveil des Légendes (Legends Awakened)
+    'dp6': 'SF',   // Tempête (Stormfront)
+
+    // Bloc Platine
+    'pl1': 'PL',   // Platine
+    'pl2': 'RR',   // Rivaux Émergents (Rising Rivals)
+    'pl3': 'SV',   // Vainqueurs Suprêmes (Supreme Victors)
+    'pl4': 'AR',   // Arceus
+
+    // Bloc HeartGold & SoulSilver
+    'hgss1': 'HS', // HeartGold SoulSilver
+    'hgss2': 'UL', // Déchaînement (Unleashed)
+    'hgss3': 'UD', // Indomptable (Undaunted)
+    'hgss4': 'TM', // Triomphant (Triumphant)
+    'col1': 'CL',  // Appel des Légendes (Call of Legends)
   };
   
   if (exceptions[id]) return exceptions[id];
 
-  // 2. Remplacements dynamiques (Convertit les blocs Entiers)
+  // 2. Remplacements dynamiques (Convertit les blocs modernes logiques)
   id = id.replace(/^sv0/, 'EV');  // sv01 -> EV1, sv03.5 -> EV3.5
   id = id.replace(/^sv/, 'EV');   // sv10 -> EV10
   id = id.replace(/^swsh/, 'EB'); // swsh1 -> EB1, swsh4.5 -> EB4.5
   id = id.replace(/^sm/, 'SL');   // sm1 -> SL1
   id = id.replace(/^bw/, 'NB');   // bw1 -> NB1
-  id = id.replace(/^hgss/, 'HS'); // hgss1 -> HS1
   
-  // Si c'est déjà bon (ex: xy1, ex1, pop1), ça le met juste en majuscules
+  // Si c'est déjà bon (ex: xy1, ex1), ça le met juste en majuscules
   return id.toUpperCase();
 }
 
