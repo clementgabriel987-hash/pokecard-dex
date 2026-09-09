@@ -381,28 +381,19 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B double : Secours TCGdex anglais pour le bloc ME, et pokemontcg.io pour le reste
+  // 🛡️ Plan B de secours via pokemontcg.io avec mapping exact des IDs (mep -> mep, etc.)
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
-
-    // 1. Pour le bloc Méga-Évolution (ME), on force l'anglais TCGdex
-    if (targetSeriesId.startsWith('me')) {
-      if (!currentImg.includes("/en/")) {
-        const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
-        setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
-        return;
-      }
-    }
-
-    // 2. Pour Pokémon Rumble et les autres séries récalcitrantes, on bascule sur pokemontcg.io
-    if (!currentImg.includes("pokemontcg.io") && !targetSeriesId.startsWith('me')) {
+    if (!currentImg.includes("pokemontcg.io")) {
+      const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+      
       const tcgIoSetMap: Record<string, string> = {
         'pl1': 'pl1',
+        'mep': 'mep',         // Code officiel correct pour les promos Méga sur pokemontcg.io
         'rumble': 'rumble',
         'bwtk': 'bwtk',
         'hgss.p': 'hgssp'
