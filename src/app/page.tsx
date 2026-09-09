@@ -790,12 +790,12 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Encart contextuel Dragon Shield pour la série en cours */}
+            {/* Encart contextuel Dragon Shield (Uniquement le nombre de pages) */}
             {totalCards > 0 && (
               <div className="pt-4 border-t border-slate-800 flex items-center gap-3 text-xs text-purple-300">
                 <span className="text-lg shrink-0">🛡️</span>
                 <div>
-                  <span className="font-bold text-white">Besoin de rangement :</span> Pour ranger cette extension complète de {totalCards} cartes (en pages standard 18 poches), il te faut environ <strong className="text-yellow-400">{Math.ceil(totalCards / 18)} pages</strong> (soit <strong className="text-yellow-400">{Math.ceil(Math.ceil(totalCards / 18) / 50)} paquet(s) de 50 Dragon Shield</strong>) et <strong className="text-yellow-400">{Math.ceil(Math.ceil(totalCards / 18) / 25)} classeur(s)</strong>.
+                  <span className="font-bold text-white">Info :</span> Pour ranger cette extension complète de {totalCards} cartes (en pages standard 18 poches), il te faut environ <strong className="text-yellow-400">{Math.ceil(totalCards / 18)} pages Dragon Shield</strong>.
                 </div>
               </div>
             )}
