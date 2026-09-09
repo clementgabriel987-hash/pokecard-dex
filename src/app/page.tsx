@@ -34,17 +34,13 @@ const POKEMON_BLOCKS = [
       { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
       { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" },
       { id: "dpp", name: "DP Black Star Promos", lang: "en" },
-      { id: "np", name: "Nintendo Promos (Ère EX)", lang: "en" },
-      { id: "bp", name: "Wizards Black Star Promos", lang: "en" },
-      { id: "mep", name: "Mega-Evolution Promos", lang: "en" }
+      { id: "basep", name: "Wizards Black Star Promos", lang: "en" }
     ]
   },
   {
     blockName: "📦 Hors-Séries & Spéciales",
     sets: [
-      { id: "si", name: "Southern Islands", lang: "en" },
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
-      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "en" },
       { id: "pop2", name: "POP Series 2", lang: "en" },
       { id: "pop3", name: "POP Series 3", lang: "en" },
@@ -54,26 +50,9 @@ const POKEMON_BLOCKS = [
       { id: "pop7", name: "POP Series 7", lang: "en" },
       { id: "pop8", name: "POP Series 8", lang: "en" },
       { id: "pop9", name: "POP Series 9", lang: "en" },
-      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
-      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
-      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
-      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
-      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
-      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
-      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
-      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
-      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
       { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
       { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
-      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
-      { id: "tk-ex-latios", name: "Trainer Kit EX - Latios", lang: "en" },
-      { id: "tk-ex-latias", name: "Trainer Kit EX - Latias", lang: "en" },
-      { id: "tk-dp-lucario", name: "Trainer Kit DP - Lucario", lang: "en" },
-      { id: "tk-dp-electivire", name: "Trainer Kit DP - Élekable", lang: "en" },
-      { id: "tk-bw-excadrill", name: "Trainer Kit BW - Minotaupe", lang: "en" },
-      { id: "tk-bw-zoroark", name: "Trainer Kit BW - Zoroark", lang: "en" },
-      { id: "tk-xy-sylveon", name: "Trainer Kit XY - Nymphali", lang: "en" },
-      { id: "tk-xy-noivern", name: "Trainer Kit XY - Bruyverne", lang: "en" }
+      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" }
     ]
   },
   {
