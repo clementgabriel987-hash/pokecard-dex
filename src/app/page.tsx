@@ -585,6 +585,8 @@ export default function PokedexPage() {
                   </Link>
                   <Link href="/budget" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-emerald-400">
   <span>💰</span> Simulateur de Budget
+</Link><Link href="/materiel" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-purple-300">
+  <span>🛡️</span> Calculateur Pages Dragon Shield
 </Link>
                 </div>
               </div>
