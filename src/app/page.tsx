@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs et séries spéciales
+// Organisation complète des blocs et extensions
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -45,6 +45,7 @@ const POKEMON_BLOCKS = [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
       { id: "pgo", name: "Pokémon GO", lang: "en" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
+      // Kits du Dresseur
       { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
       { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
       { id: "tk2a", name: "EX Trainer Kit 2 - Plusle", lang: "en" },
@@ -60,6 +61,7 @@ const POKEMON_BLOCKS = [
       { id: "tk10a", name: "SM Trainer Kit - Lycanroc", lang: "en" },
       { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" },
       { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" },
+      // Collections McDonald's
       { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
       { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
       { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
@@ -72,15 +74,16 @@ const POKEMON_BLOCKS = [
       { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
       { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
       { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
-      { id: "pop1", name: "POP Series 1", lang: "en" },
-      { id: "pop2", name: "POP Series 2", lang: "en" },
-      { id: "pop3", name: "POP Series 3", lang: "en" },
-      { id: "pop4", name: "POP Series 4", lang: "en" },
-      { id: "pop5", name: "POP Series 5", lang: "en" },
-      { id: "pop6", name: "POP Series 6", lang: "en" },
-      { id: "pop7", name: "POP Series 7", lang: "en" },
-      { id: "pop8", name: "POP Series 8", lang: "en" },
-      { id: "pop9", name: "POP Series 9", lang: "en" }
+      // POP Series (restés sur TCGdex en FR)
+      { id: "pop1", name: "POP Series 1", lang: "fr" },
+      { id: "pop2", name: "POP Series 2", lang: "fr" },
+      { id: "pop3", name: "POP Series 3", lang: "fr" },
+      { id: "pop4", name: "POP Series 4", lang: "fr" },
+      { id: "pop5", name: "POP Series 5", lang: "fr" },
+      { id: "pop6", name: "POP Series 6", lang: "fr" },
+      { id: "pop7", name: "POP Series 7", lang: "fr" },
+      { id: "pop8", name: "POP Series 8", lang: "fr" },
+      { id: "pop9", name: "POP Series 9", lang: "fr" }
     ]
   },
   {
@@ -419,32 +422,10 @@ export default function PokedexPage() {
       }
     }
 
-    if (!currentImg.includes("pokemontcg.io") && !targetSeriesId.startsWith('me')) {
-      const tcgIoSetMap: Record<string, string> = {
-        'pgo': 'pgo',
-        'rumble': 'ru1',
-        'tk1a': 'tk1', 'tk1b': 'tk1',
-        'tk2a': 'tk2', 'tk2b': 'tk2',
-        'tk3a': 'tk3', 'tk3b': 'tk3',
-        'tk4a': 'tk4', 'tk4b': 'tk4',
-        'tk5a': 'tk5', 'tk5b': 'tk5',
-        'tk6a': 'tk6', 'tk6b': 'tk6',
-        'tk10a': 'sm35tk', 'tk10b': 'sm35tk',
-        'mep': 'mep',
-        'hgss.p': 'hgssp'
-      };
-
-      const mappedSetId = tcgIoSetMap[targetSeriesId] || targetSeriesId;
-      const tcgIoUrl = `https://images.pokemontcg.io/${mappedSetId}/${cardData.localId}_hires.png`;
-
-      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: tcgIoUrl } : c));
-      return;
-    }
-
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes avec routage direct sur TCG.io pour Pokémon GO et les kits
+  // Chargement des cartes (avec routage TCG.io uniquement pour McDo, Kits et PGO/Rumble)
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -455,12 +436,14 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
-      // Liste de toutes les séries qui doivent passer exclusivement par l'API pokemontcg.io
+      // Les POP series (pop1 à pop9) ne sont PAS dedans, donc elles restent sur TCGdex en FR
       const tcgIoOnlySets = [
         'pgo', 'rumble', 
         'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
         'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 
-        'tk10a', 'tk10b'
+        'tk10a', 'tk10b',
+        'mcd11', 'mcd12', 'mcd14', 'mcd15', 'mcd16', 'mcd17', 
+        'mcd18', 'mcd19', 'mcd21', 'mcd22', 'mcd23', 'mcd24'
       ];
 
       try {
@@ -510,7 +493,7 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
-          // 🚀 ROUTAGE DIRECT ET EXCLUSIF SUR pokemontcg.io (via notre route proxy /api/pokemon)
+          // Routage vers pokemontcg.io via la route proxy
           const setMapCode: Record<string, string> = {
             'pgo': 'pgo',
             'rumble': 'ru1',
@@ -520,7 +503,10 @@ export default function PokedexPage() {
             'tk4a': 'tk4', 'tk4b': 'tk4',
             'tk5a': 'tk5', 'tk5b': 'tk5',
             'tk6a': 'tk6', 'tk6b': 'tk6',
-            'tk10a': 'sm35tk', 'tk10b': 'sm35tk'
+            'tk10a': 'sm35tk', 'tk10b': 'sm35tk',
+            'mcd11': 'mcd11', 'mcd12': 'mcd12', 'mcd14': 'mcd14', 'mcd15': 'mcd15',
+            'mcd16': 'mcd16', 'mcd17': 'mcd17', 'mcd18': 'mcd18', 'mcd19': 'mcd19',
+            'mcd21': 'mcd21', 'mcd22': 'mcd22', 'mcd23': 'mcd23', 'mcd24': 'mcd24'
           };
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
@@ -543,7 +529,7 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
-          // Pour toutes les autres séries classiques, on utilise TCGdex normalement
+          // Pour les POP series et les autres séries, on utilise TCGdex
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
