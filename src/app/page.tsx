@@ -74,7 +74,7 @@ const POKEMON_BLOCKS = [
       { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
       { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
       { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
-      // POP Series (restés sur TCGdex en FR)
+      // POP Series
       { id: "pop1", name: "POP Series 1", lang: "fr" },
       { id: "pop2", name: "POP Series 2", lang: "fr" },
       { id: "pop3", name: "POP Series 3", lang: "fr" },
@@ -425,7 +425,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes (avec routage TCG.io uniquement pour McDo, Kits et PGO/Rumble)
+  // Chargement des cartes avec routage direct et correct sur pokemontcg.io
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -436,7 +436,6 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
-      // Les POP series (pop1 à pop9) ne sont PAS dedans, donc elles restent sur TCGdex en FR
       const tcgIoOnlySets = [
         'pgo', 'rumble', 
         'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
@@ -493,7 +492,7 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
-          // Routage vers pokemontcg.io via la route proxy
+          // 🚀 Mappage précis des IDs officiels pour pokemontcg.io (McDonald's utilise souvent des codes de type mcd22, mcd12, etc.)
           const setMapCode: Record<string, string> = {
             'pgo': 'pgo',
             'rumble': 'ru1',
@@ -529,7 +528,7 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
-          // Pour les POP series et les autres séries, on utilise TCGdex
+          // Pour les autres séries classiques
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
