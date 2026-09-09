@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos, kits et extensions
+// Organisation complète de tous les blocs, promos, kits et extensions (avec le Coffret des Dragons)
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -133,6 +133,7 @@ const POKEMON_BLOCKS = [
       { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
       { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
       { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
+      { id: "bw6.5", name: "Coffret des Dragons (Dragon Vault)", lang: "en" }, // 🐉 Ajouté ici !
       { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
       { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
       { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
