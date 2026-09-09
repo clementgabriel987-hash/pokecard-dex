@@ -12,8 +12,8 @@ function translateSetId(tcgdexId: string): string {
     'bwp': 'PR-NB', 'hsp': 'PR-HS', 'dpp': 'PR-DP', 'basep': 'PR-W',
     
     // Détective Pikachu & Célébrations
-    'det1': 'DPK',     // Code officiel Pokécardex pour Détective Pikachu
-    'cel25': 'CEL',    // Célébrations (Pokécardex utilise souvent CEL)
+    'det1': 'DPK',
+    'cel25': 'CEL', 
     'cel25c': 'CEL',
     
     // Bloc Diamant & Perle
@@ -46,8 +46,7 @@ export async function GET(request: Request) {
   try {
     const pkxSetId = translateSetId(setId);
 
-    // 🚀 MÉTHODE 1 : Test direct de l'image (Ultra Rapide)
-    // On teste plusieurs formats possibles sur Pokécardex
+    // 🚀 MÉTHODE 1 : Test direct de l'image
     const possibleImages = [
       `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}/${localId}.jpg`,
       `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}/${localId}.png`,
@@ -59,16 +58,13 @@ export async function GET(request: Request) {
       try {
         const headRes = await fetch(imgUrl, { method: 'HEAD' });
         if (headRes.ok) {
-          console.log(`[Scraper] ⚡ Image directe trouvée : ${imgUrl}`);
           return NextResponse.json({ imageUrl: imgUrl });
         }
-      } catch (e) { /* on ignore et on tente le suivant */ }
+      } catch (e) { /* on ignore */ }
     }
 
-    // 🐢 MÉTHODE 2 : L'arme fatale (Scraping de la page de la série complète)
-    // Ex: https://www.pokecardex.com/series/DP
+    // 🐢 MÉTHODE 2 : Scraping de la page de la série complète
     const seriesUrl = `https://www.pokecardex.com/series/${pkxSetId}`;
-    console.log(`[Scraper] 🔍 Scraping de la page série complète : ${seriesUrl}`);
     
     const response = await fetch(seriesUrl, {
       headers: {
@@ -80,38 +76,36 @@ export async function GET(request: Request) {
     if (response.ok) {
       const html = await response.text();
       const $ = cheerio.load(html);
-      let foundImageUrl: string | null = null;
       
-      // On fouille dans TOUTES les images de la page de la série
+      // ✅ La solution magique est ici : on force le type de la variable
+      let foundImageUrl: string = "";
+      
       $('img').each((i, el) => {
-        const src = $(el).attr('src');
+        const src = $(el).attr('src') || "";
         
-        // Si l'image contient le code de la série (ex: /DP/ ou /DPK/)
-        if (src && src.includes(`/${pkxSetId}/`)) {
-          // On vérifie si le nom du fichier correspond au numéro de la carte (ex: /1.jpg, /01.jpg)
+        if (src.includes(`/${pkxSetId}/`)) {
           const regexStrict = new RegExp(`/${localId}\\.(jpg|png)$`, 'i');
           const regexPadded = new RegExp(`/0+${localId}\\.(jpg|png)$`, 'i'); 
           
           if (regexStrict.test(src) || regexPadded.test(src)) {
              foundImageUrl = src;
-             return false; // Ça arrête la boucle, on a trouvé !
+             return false; 
           }
         }
       });
 
-      if (foundImageUrl) {
+      // Maintenant TypeScript sait que foundImageUrl est toujours un string
+      if (foundImageUrl.length > 0) {
         if (foundImageUrl.startsWith('/')) {
           foundImageUrl = `https://www.pokecardex.com${foundImageUrl}`;
         }
-        console.log(`[Scraper] ✅ Image extraite de la page série : ${foundImageUrl}`);
         return NextResponse.json({ imageUrl: foundImageUrl });
       }
     }
     
-    console.log(`[Scraper] ❌ Échec total pour le set ${pkxSetId} (carte ${localId})`);
     return NextResponse.json({ error: 'Image introuvable sur la page série' }, { status: 404 });
-  } catch (error: any) {
-    console.error(`[Scraper] 💥 Erreur API :`, error.message);
+  } catch (error) {
+    console.error(`[Scraper] 💥 Erreur API :`, (error as Error).message);
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
   }
 }
