@@ -45,7 +45,6 @@ const POKEMON_BLOCKS = [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
       { id: "pgo", name: "Pokémon GO", lang: "fr" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
-      // 🛠️ Intégration de TOUS les Kits du Dresseur officiels (via TCG.io)
       { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
       { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
       { id: "tk2a", name: "EX Trainer Kit 2 - Plusle", lang: "en" },
@@ -61,7 +60,6 @@ const POKEMON_BLOCKS = [
       { id: "tk10a", name: "SM Trainer Kit - Lycanroc", lang: "en" },
       { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" },
       { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" },
-      // 🍔 Collections McDonald's
       { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
       { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
       { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
@@ -228,7 +226,6 @@ const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Écarlate & Violet (EV)",
     sets: [
-      { id: "swsh12.5", name: "Zénith Suprême (FR)", lang: "fr" },
       { id: "sv01", name: "Écarlate et Violet (FR)", lang: "fr" },
       { id: "sv02", name: "Évolutions à Paldea (FR)", lang: "fr" },
       { id: "sv03", name: "Flammes Obsidiennes (FR)", lang: "fr" },
@@ -406,7 +403,7 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B intelligent : routage exclusif sur pokemontcg.io pour les kits non présents sur TCGdex
+  // 🛡️ Plan B de secours via pokemontcg.io avec gestion complète des kits, McDo, Rumble et PGO
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
@@ -448,7 +445,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Pour les kits spécifiques absents de TCGdex, on force le chargement direct depuis pokemontcg.io
+  // Chargement des cartes (avec route interne sécurisée pour les kits du dresseur via TCG.io)
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -508,7 +505,7 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
-          // Gestion spécifique pour interroger pokemontcg.io pour les kits du dresseur purs
+          // 🚀 Utilisation de la route API interne Next.js pour contourner le CORS
           const setMapCode: Record<string, string> = {
             'tk1a': 'tk1', 'tk1b': 'tk1',
             'tk2a': 'tk2', 'tk2b': 'tk2',
@@ -519,7 +516,7 @@ export default function PokedexPage() {
             'tk10a': 'sm35tk', 'tk10b': 'sm35tk'
           };
           const apiCode = setMapCode[selectedSeriesId];
-          const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${apiCode}`);
+          const res = await fetch(`/api/pokemon?set=${apiCode}`);
           const json = await res.json();
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
 
