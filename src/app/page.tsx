@@ -22,7 +22,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète avec les Promos et blocs d'origine intacts
+// Organisation complète de tous les blocs, promos et hors-séries
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -242,6 +242,7 @@ const POKEMON_BLOCKS = [
     ]
   }
 ];
+
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
 export default function PokedexPage() {
@@ -365,6 +366,18 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
+  // Gestion intelligente du repli d'image (Fallback FR -> EN si scan manquant)
+  const handleImageError = (cardId: string, currentImg: string) => {
+    if (currentImg && currentImg.includes("/fr/")) {
+      const fallbackUrl = currentImg.replace("/fr/", "/en/");
+      setCards(prevCards => 
+        prevCards.map(c => c.id === cardId ? { ...c, image: fallbackUrl } : c)
+      );
+      return;
+    }
+    setImageErrors(prev => ({ ...prev, [cardId]: true }));
+  };
+
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -401,34 +414,17 @@ export default function PokedexPage() {
           let globalCards: Card[] = [];
           for (const series of ALL_FLAT_SERIES) {
             try {
-              if (series.lang === "io") {
-                const res = await fetch(`/api/tcgio?setId=${series.id}`);
-                if (!res.ok) continue;
-                const json = await res.json();
-                if (json && json.data) {
-                  for (const card of json.data) {
-                    if (ownedCardIds.includes(card.id)) {
-                      globalCards.push({
-                        id: card.id, name: card.name || "Inconnue", localId: card.number || "?",
-                        image: card.images?.large || card.images?.small || "",
-                        illustrator: card.artist || "Inconnu", rarity: card.rarity || "Inconnue", seriesName: series.name
-                      });
-                    }
-                  }
-                }
-              } else {
-                const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
-                if (!response.ok) continue;
-                const data = await response.json();
-                if (data && data.cards) {
-                  for (const card of data.cards) {
-                    if (ownedCardIds.includes(card.id)) {
-                      globalCards.push({
-                        id: card.id, name: card.name || "Inconnue", localId: card.localId || "?",
-                        image: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`,
-                        illustrator: card.illustrator || "Inconnu", rarity: card.rarity || "Inconnue", seriesName: series.name
-                      });
-                    }
+              const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
+              if (!response.ok) continue;
+              const data = await response.json();
+              if (data && data.cards) {
+                for (const card of data.cards) {
+                  if (ownedCardIds.includes(card.id)) {
+                    globalCards.push({
+                      id: card.id, name: card.name || "Inconnue", localId: card.localId || "?",
+                      image: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${card.localId}/high.png`,
+                      illustrator: card.illustrator || "Inconnu", rarity: card.rarity || "Inconnue", seriesName: series.name
+                    });
                   }
                 }
               }
@@ -438,47 +434,28 @@ export default function PokedexPage() {
           extractFilters(globalCards);
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-          
-          if (currentSeries?.lang === "io") {
-            const res = await fetch(`/api/tcgio?setId=${selectedSeriesId}`);
-            if (!res.ok) { setCards([]); setLoading(false); return; }
-            const json = await res.json();
-            if (json && json.data) {
-              const sortedData = json.data.sort((a: any, b: any) => {
-                return parseInt(a.number) - parseInt(b.number) || a.number.localeCompare(b.number);
-              });
-              const formattedCards = sortedData.map((c: any) => ({
-                id: c.id, name: c.name || "Inconnue", localId: c.number || "?",
-                image: c.images?.large || c.images?.small || "",
-                illustrator: c.artist || "Inconnu", rarity: c.rarity || "Inconnue"
-              }));
-              setCards(formattedCards);
-              extractFilters(formattedCards);
-            } else setCards([]);
-          } else {
-            const lang = currentSeries ? currentSeries.lang : "fr";
-            const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
-            if (!response.ok) { setCards([]); setLoading(false); return; }
-            const data = await response.json();
-            if (data && data.cards) {
-              const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
-                let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
-                let illustrator = "Inconnu", rarity = "Inconnue";
-                try {
-                  const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
-                  if (cardRes.ok) {
-                    const cardData = await cardRes.json();
-                    illustrator = cardData.illustrator || "Inconnu";
-                    rarity = cardData.rarity || "Inconnue";
-                    if (cardData.image) imageUrl = `${cardData.image}/high.png`;
-                  }
-                } catch {}
-                return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
-              }));
-              setCards(formattedCards);
-              extractFilters(formattedCards);
-            } else setCards([]);
-          }
+          const lang = currentSeries ? currentSeries.lang : "fr";
+          const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
+          if (!response.ok) { setCards([]); setLoading(false); return; }
+          const data = await response.json();
+          if (data && data.cards) {
+            const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
+              let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
+              let illustrator = "Inconnu", rarity = "Inconnue";
+              try {
+                const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
+                if (cardRes.ok) {
+                  const cardData = await cardRes.json();
+                  illustrator = cardData.illustrator || "Inconnu";
+                  rarity = cardData.rarity || "Inconnue";
+                  if (cardData.image) imageUrl = `${cardData.image}/high.png`;
+                }
+              } catch {}
+              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
+            }));
+            setCards(formattedCards);
+            extractFilters(formattedCards);
+          } else setCards([]);
         }
       } catch {
         setCards([]);
@@ -746,7 +723,7 @@ export default function PokedexPage() {
         {(!isGlobalBinder && !activeSearch) && (
           <div className="mb-8 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis une Bloc :</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis un Bloc :</label>
               <div className="flex flex-wrap gap-2">
                 {POKEMON_BLOCKS.map((block, index) => (
                   <button key={block.blockName} onClick={() => handleBlockChange(index)} className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedBlockIndex === index ? "bg-yellow-500 text-slate-950 font-bold shadow-md" : "bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800"}`}>
@@ -841,7 +818,7 @@ export default function PokedexPage() {
 
               const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
               const cardDefaultLang = cardSeries?.lang || "fr";
-              const showLanguageFlags = cardDefaultLang !== "en" && cardDefaultLang !== "io";
+              const showLanguageFlags = cardDefaultLang !== "en";
 
               return (
                 <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg relative">
@@ -857,7 +834,12 @@ export default function PokedexPage() {
                   <div>
                     <div className="mb-3 flex justify-center bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[220px] items-center relative overflow-hidden">
                       {card.image && !hasError ? (
-                        <img src={card.image} alt={card.name} className="h-36 md:h-48 object-contain drop-shadow-md" onError={() => setImageErrors(prev => ({ ...prev, [card.id]: true }))} />
+                        <img 
+                          src={card.image} 
+                          alt={card.name} 
+                          className="h-36 md:h-48 object-contain drop-shadow-md" 
+                          onError={() => handleImageError(card.id, card.image)} 
+                        />
                       ) : (
                         <span className="text-[11px] text-slate-500 italic text-center">Image indisponible</span>
                       )}
