@@ -22,7 +22,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète et mise à jour de tous les blocs, promos et extensions de l'histoire du JCC
+// Organisation complète de tous les blocs, promos et extensions
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -234,6 +234,9 @@ export default function PokedexPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
   
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
+  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("pages"); // Mode classeur 3x3 par défaut dans Ma Collection
+  const [currentBinderPage, setCurrentBinderPage] = useState<number>(1);
+
   const [searchInput, setSearchInput] = useState<string>("");
   const [activeSearch, setActiveSearch] = useState<string>("");
 
@@ -350,7 +353,6 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // Gestion intelligente du repli d'image (Fallback FR -> EN si scan manquant)
   const handleImageError = (cardId: string, currentImg: string) => {
     if (currentImg && currentImg.includes("/fr/")) {
       const fallbackUrl = currentImg.replace("/fr/", "/en/");
@@ -370,6 +372,7 @@ export default function PokedexPage() {
       setSelectedStatus("ALL");
       setSelectedLanguage("ALL");
       setImageErrors({});
+      setCurrentBinderPage(1);
       try {
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${encodeURIComponent(activeSearch)}`);
@@ -535,6 +538,13 @@ export default function PokedexPage() {
   const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
+  // Pagination pour le mode Classeur 3x3 (9 cartes par page)
+  const itemsPerBinderPage = 9;
+  const totalBinderPages = Math.ceil(filteredCards.length / itemsPerBinderPage) || 1;
+  const paginatedBinderCards = isGlobalBinder && binderViewStyle === "pages" 
+    ? filteredCards.slice((currentBinderPage - 1) * itemsPerBinderPage, currentBinderPage * itemsPerBinderPage)
+    : filteredCards;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
       <div className="absolute top-4 left-4 z-40">
@@ -698,7 +708,7 @@ export default function PokedexPage() {
           </div>
         </form>
 
-        <div className="mb-8 flex justify-center gap-4">
+        <div className="mb-8 flex justify-center gap-4 items-center flex-wrap">
           {(!isGlobalBinder && !activeSearch) ? (
             <button onClick={() => setIsGlobalBinder(true)} className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 border border-purple-800/60">
               <span>✨ Ma Collection</span>
@@ -707,6 +717,24 @@ export default function PokedexPage() {
             <button onClick={handleBackToSeries} className="px-6 py-2.5 rounded-full text-sm font-bold transition cursor-pointer flex items-center gap-2 shadow-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600">
               <span>⬅️ Retour aux séries</span>
             </button>
+          )}
+
+          {/* Sélecteur de vue spécifique pour "Ma Collection" */}
+          {isGlobalBinder && (
+            <div className="flex bg-slate-900 p-1 rounded-full border border-slate-800">
+              <button 
+                onClick={() => setBinderViewStyle("pages")} 
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "pages" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
+              >
+                📖 Vue Classeur (3x3)
+              </button>
+              <button 
+                onClick={() => setBinderViewStyle("standard")} 
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "standard" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
+              >
+                🖥️ Vue Grille Classique
+              </button>
+            </div>
           )}
         </div>
 
@@ -795,7 +823,6 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Encart contextuel Dragon Shield (Format Info exact) */}
             {totalCards > 0 && (
               <div className="pt-4 border-t border-slate-800 flex items-center gap-3 text-xs text-purple-300">
                 <span className="text-lg shrink-0">🛡️</span>
@@ -810,84 +837,50 @@ export default function PokedexPage() {
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Chargement de la collection... ⚡</div>
         ) : filteredCards.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-            {filteredCards.map(card => {
-              const cardData = userCollection[card.id];
-              const isNormalOwned = cardData?.normalOwned || false;
-              const isFoilOwned = cardData?.foilOwned || false;
-              const isWishlisted = cardData?.isWishlist || false;
-              const hasError = imageErrors[card.id];
-
-              const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
-              const cardDefaultLang = cardSeries?.lang || "fr";
-              const showLanguageFlags = cardDefaultLang !== "en";
-
-              return (
-                <div key={card.id} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 flex flex-col justify-between shadow-lg relative">
-                  
-                  <button 
-                    onClick={() => toggleWishlist(card.id)} 
-                    className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
-                    title="Ajouter à la Wishlist (Chasse aux cartes)"
-                  >
-                    {isWishlisted ? "❤️" : "🤍"}
-                  </button>
-
-                  <div>
-                    <div className="mb-3 flex justify-center bg-slate-950/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[220px] items-center relative overflow-hidden">
-                      {card.image && !hasError ? (
-                        <img 
-                          src={card.image} 
-                          alt={card.name} 
-                          className="h-36 md:h-48 object-contain drop-shadow-md" 
-                          onError={() => handleImageError(card.id, card.image)} 
-                        />
-                      ) : (
-                        <span className="text-[11px] text-slate-500 italic text-center">Image indisponible</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between items-start mb-1 gap-1">
-                      <h3 className="text-xs md:text-sm font-bold truncate">{card.name}</h3>
-                      <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
-                    <button onClick={() => toggleCardOwnership(card.id, 'normal', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-800 text-slate-400"}`}>
-                      {isNormalOwned ? "✓ Normale" : "Normale"}
-                    </button>
-                    <button onClick={() => toggleCardOwnership(card.id, 'foil', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-800 text-slate-400"}`}>
-                      {isFoilOwned ? "✨ Foil" : "Foil"}
-                    </button>
-                  </div>
-
-                  {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
-                    <div className="flex justify-center gap-4 mt-2 pt-2 border-t border-slate-800/50">
-                      {['fr', 'en', 'jp'].map(l => {
-                         const isActive = (cardData?.langs || [cardDefaultLang]).includes(l);
-                         const flagEmoji = l === 'fr' ? '🇫🇷' : l === 'en' ? '🇬🇧' : '🇯🇵';
-                         return (
-                           <button 
-                             key={l}
-                             onClick={() => toggleCardLanguage(card.id, l, cardDefaultLang)}
-                             className={`text-base transition-all duration-200 cursor-pointer ${isActive ? 'grayscale-0 opacity-100 scale-110 drop-shadow-md' : 'grayscale opacity-30 hover:opacity-70'}`}
-                             title={`Marquer comme possédée en ${l.toUpperCase()}`}
-                           >
-                             {flagEmoji}
-                           </button>
-                         )
-                      })}
-                    </div>
-                  )}
-
+          <>
+            {/* Pagination si mode Classeur 3x3 actif dans Ma Collection */}
+            {isGlobalBinder && binderViewStyle === "pages" && (
+              <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-6 shadow-md">
+                <button 
+                  onClick={() => setCurrentBinderPage(p => Math.max(1, p - 1))} 
+                  disabled={currentBinderPage === 1}
+                  className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  ◀️ Page précédente
+                </button>
+                <div className="text-sm font-bold text-slate-300">
+                  Page <span className="text-purple-400">{currentBinderPage}</span> sur <span className="text-yellow-400">{totalBinderPages}</span>
                 </div>
-              );
-            })}
-          </div>
+                <button 
+                  onClick={() => setCurrentBinderPage(p => Math.min(totalBinderPages, p + 1))} 
+                  disabled={currentBinderPage === totalBinderPages}
+                  className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Page suivante ▶️
+                </button>
+              </div>
+            )}
+
+            {/* Conteneur visuel de la page physique si mode binder 3x3 */}
+            {isGlobalBinder && binderViewStyle === "pages" ? (
+              <div className="bg-slate-900/90 border-2 border-purple-900/40 rounded-3xl p-6 md:p-8 shadow-[0_0_30px_rgba(147,51,234,0.15)] relative">
+                <div className="absolute top-4 right-6 text-xs text-purple-400 font-semibold tracking-wider uppercase">
+                  Classeur Dragon Shield • 3x3 Pockets
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+                  {paginatedBinderCards.map(card => renderCardItem(card))}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                {paginatedBinderCards.map(card => renderCardItem(card))}
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
             <span className="text-4xl mb-4 block">⚠️</span>
-            <p className="text-slate-300 text-base font-semibold">Aucune carte trouvée pour cette série.</p>
+            <p className="text-slate-300 text-base font-semibold">Aucune carte trouvée pour cette sélection.</p>
           </div>
         )}
 
@@ -899,4 +892,76 @@ export default function PokedexPage() {
       </div>
     </main>
   );
+
+  // Helper pour rendre chaque carte proprement
+  function renderCardItem(card: Card) {
+    const cardData = userCollection[card.id];
+    const isNormalOwned = cardData?.normalOwned || false;
+    const isFoilOwned = cardData?.foilOwned || false;
+    const isWishlisted = cardData?.isWishlist || false;
+    const hasError = imageErrors[card.id];
+
+    const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
+    const cardDefaultLang = cardSeries?.lang || "fr";
+    const showLanguageFlags = cardDefaultLang !== "en";
+
+    return (
+      <div key={card.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 md:p-4 flex flex-col justify-between shadow-lg relative">
+        <button 
+          onClick={() => toggleWishlist(card.id)} 
+          className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
+          title="Ajouter à la Wishlist"
+        >
+          {isWishlisted ? "❤️" : "🤍"}
+        </button>
+
+        <div>
+          <div className="mb-3 flex justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[200px] items-center relative overflow-hidden">
+            {card.image && !hasError ? (
+              <img 
+                src={card.image} 
+                alt={card.name} 
+                className="h-32 md:h-44 object-contain drop-shadow-md" 
+                onError={() => handleImageError(card.id, card.image)} 
+              />
+            ) : (
+              <span className="text-[11px] text-slate-500 italic text-center">Image indisponible</span>
+            )}
+          </div>
+          <div className="flex justify-between items-start mb-1 gap-1">
+            <h3 className="text-xs md:text-sm font-bold truncate">{card.name}</h3>
+            <span className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
+          <button onClick={() => toggleCardOwnership(card.id, 'normal', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-900 text-slate-400"}`}>
+            {isNormalOwned ? "✓ Normale" : "Normale"}
+          </button>
+          <button onClick={() => toggleCardOwnership(card.id, 'foil', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-900 text-slate-400"}`}>
+            {isFoilOwned ? "✨ Foil" : "Foil"}
+          </button>
+        </div>
+
+        {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
+          <div className="flex justify-center gap-4 mt-2 pt-2 border-t border-slate-800/50">
+            {['fr', 'en', 'jp'].map(l => {
+               const isActive = (cardData?.langs || [cardDefaultLang]).includes(l);
+               const flagEmoji = l === 'fr' ? '🇫🇷' : l === 'en' ? '🇬🇧' : '🇯🇵';
+               return (
+                 <button 
+                   key={l}
+                   onClick={() => toggleCardLanguage(card.id, l, cardDefaultLang)}
+                   className={`text-base transition-all duration-200 cursor-pointer ${isActive ? 'grayscale-0 opacity-100 scale-110 drop-shadow-md' : 'grayscale opacity-30 hover:opacity-70'}`}
+                   title={`Marquer comme possédée en ${l.toUpperCase()}`}
+                 >
+                   {flagEmoji}
+                 </button>
+               )
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
 }
