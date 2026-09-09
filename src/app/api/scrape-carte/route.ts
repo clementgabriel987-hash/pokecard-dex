@@ -1,6 +1,5 @@
 // src/app/api/scrape-carte/route.ts
 import { NextResponse } from 'next/server';
-import * as cheerio from 'cheerio';
 
 // 🧠 Le "Cerveau" traducteur
 function translateSetId(tcgdexId: string): string {
@@ -46,12 +45,18 @@ export async function GET(request: Request) {
   try {
     const pkxSetId = translateSetId(setId);
 
-    // 🚀 MÉTHODE 1 : Test direct de l'image
+    // Astuce : Certains numéros TCGdex ont des zéros devant ("001"). On les nettoie pour Pokécardex ("1")
+    let cleanLocalId = localId;
+    if (/^0+\d+$/.test(localId)) {
+      cleanLocalId = localId.replace(/^0+/, ''); 
+    }
+
+    // 🚀 MÉTHODE 1 : Test direct (On essaie de deviner le lien HD, marche pour 90% des cartes)
     const possibleImages = [
-      `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}/${localId}.jpg`,
-      `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}/${localId}.png`,
-      `https://www.pokecardex.com/assets/images/cartes/${pkxSetId}/${localId}.jpg`,
-      `https://www.pokecardex.com/assets/images/cartes/${pkxSetId}/${localId}.png`
+      `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}/${cleanLocalId}.jpg`,
+      `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}/${cleanLocalId}.png`,
+      `https://www.pokecardex.com/assets/images/cartes/${pkxSetId}/${cleanLocalId}.jpg`,
+      `https://www.pokecardex.com/assets/images/cartes/${pkxSetId}/${cleanLocalId}.png`
     ];
 
     for (const imgUrl of possibleImages) {
@@ -60,10 +65,10 @@ export async function GET(request: Request) {
         if (headRes.ok) {
           return NextResponse.json({ imageUrl: imgUrl });
         }
-      } catch (e) { /* on ignore */ }
+      } catch (e) { /* On ignore l'erreur et on passe à la suivante */ }
     }
 
-    // 🐢 MÉTHODE 2 : Scraping de la page de la série complète
+    // 🐢 MÉTHODE 2 : Le Radar (Scraping du texte brut pour contourner le Lazy-Loading)
     const seriesUrl = `https://www.pokecardex.com/series/${pkxSetId}`;
     
     const response = await fetch(seriesUrl, {
@@ -75,37 +80,33 @@ export async function GET(request: Request) {
     
     if (response.ok) {
       const html = await response.text();
-      const $ = cheerio.load(html);
       
-      // ✅ La solution magique est ici : on force le type de la variable
-      let foundImageUrl: string = "";
+      // Le Radar : Cherche toute chaîne de texte qui ressemble à " /DP/1.jpg "
+      const regexPattern = `[^"'\\\\s]*?/${pkxSetId}/0*${cleanLocalId}\\.(jpg|png)`;
+      const matches = Array.from(html.matchAll(new RegExp(regexPattern, 'gi')));
       
-      $('img').each((i, el) => {
-        const src = $(el).attr('src') || "";
+      if (matches.length > 0) {
+        let bestMatch = matches[0][0];
         
-        if (src.includes(`/${pkxSetId}/`)) {
-          const regexStrict = new RegExp(`/${localId}\\.(jpg|png)$`, 'i');
-          const regexPadded = new RegExp(`/0+${localId}\\.(jpg|png)$`, 'i'); 
-          
-          if (regexStrict.test(src) || regexPadded.test(src)) {
-             foundImageUrl = src;
-             return false; 
-          }
+        // S'il trouve plusieurs images (miniatures vs HD), on force à prendre la version non-miniature
+        for (const m of matches) {
+           if (!m[0].toLowerCase().includes('mini') && !m[0].toLowerCase().includes('thumb')) {
+              bestMatch = m[0];
+              break;
+           }
         }
-      });
-
-      // Maintenant TypeScript sait que foundImageUrl est toujours un string
-      if (foundImageUrl.length > 0) {
-        if (foundImageUrl.startsWith('/')) {
-          foundImageUrl = `https://www.pokecardex.com${foundImageUrl}`;
+        
+        // Si l'URL n'a pas le "https://..." au début, on le rajoute
+        if (bestMatch.startsWith('/')) {
+          bestMatch = `https://www.pokecardex.com${bestMatch}`;
         }
-        return NextResponse.json({ imageUrl: foundImageUrl });
+        
+        return NextResponse.json({ imageUrl: bestMatch });
       }
     }
     
-    return NextResponse.json({ error: 'Image introuvable sur la page série' }, { status: 404 });
+    return NextResponse.json({ error: 'Image introuvable par le radar' }, { status: 404 });
   } catch (error) {
-    console.error(`[Scraper] 💥 Erreur API :`, (error as Error).message);
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
   }
 }
