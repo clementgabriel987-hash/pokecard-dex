@@ -234,8 +234,7 @@ export default function PokedexPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
   
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
-  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("pages"); // Mode classeur 3x3 par défaut dans Ma Collection
-  const [currentBinderPage, setCurrentBinderPage] = useState<number>(1);
+  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("pages");
 
   const [searchInput, setSearchInput] = useState<string>("");
   const [activeSearch, setActiveSearch] = useState<string>("");
@@ -372,7 +371,6 @@ export default function PokedexPage() {
       setSelectedStatus("ALL");
       setSelectedLanguage("ALL");
       setImageErrors({});
-      setCurrentBinderPage(1);
       try {
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${encodeURIComponent(activeSearch)}`);
@@ -438,7 +436,7 @@ export default function PokedexPage() {
                   if (cardData.image) imageUrl = `${cardData.image}/high.png`;
                 }
               } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity };
+              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName: currentSeries?.name };
             }));
             setCards(formattedCards);
             extractFilters(formattedCards);
@@ -538,12 +536,22 @@ export default function PokedexPage() {
   const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
-  // Pagination pour le mode Classeur 3x3 (9 cartes par page)
-  const itemsPerBinderPage = 9;
-  const totalBinderPages = Math.ceil(filteredCards.length / itemsPerBinderPage) || 1;
-  const paginatedBinderCards = isGlobalBinder && binderViewStyle === "pages" 
-    ? filteredCards.slice((currentBinderPage - 1) * itemsPerBinderPage, currentBinderPage * itemsPerBinderPage)
-    : filteredCards;
+  // Helper pour couper les listes par paquets de 9 (pages de classeur 3x3)
+  const chunkArray = (arr: Card[], size: number) => {
+    const chunks = [];
+    for (let i = 0; i < arr.length; i += size) {
+      chunks.push(arr.slice(i, i + size));
+    }
+    return chunks;
+  };
+
+  // Grouper les cartes par série
+  const groupedBySeries = filteredCards.reduce((acc, card) => {
+    const sName = card.seriesName || "Série inconnue";
+    if (!acc[sName]) acc[sName] = [];
+    acc[sName].push(card);
+    return acc;
+  }, {} as Record<string, Card[]>);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
@@ -719,20 +727,19 @@ export default function PokedexPage() {
             </button>
           )}
 
-          {/* Sélecteur de vue spécifique pour "Ma Collection" */}
           {isGlobalBinder && (
             <div className="flex bg-slate-900 p-1 rounded-full border border-slate-800">
               <button 
                 onClick={() => setBinderViewStyle("pages")} 
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "pages" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
               >
-                📖 Vue Classeur (3x3)
+                📖 Pages de Classeur (3x3)
               </button>
               <button 
                 onClick={() => setBinderViewStyle("standard")} 
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "standard" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
               >
-                🖥️ Vue Grille Classique
+                🖥️ Grille Standard
               </button>
             </div>
           )}
@@ -837,46 +844,54 @@ export default function PokedexPage() {
         {loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Chargement de la collection... ⚡</div>
         ) : filteredCards.length > 0 ? (
-          <>
-            {/* Pagination si mode Classeur 3x3 actif dans Ma Collection */}
-            {isGlobalBinder && binderViewStyle === "pages" && (
-              <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-6 shadow-md">
-                <button 
-                  onClick={() => setCurrentBinderPage(p => Math.max(1, p - 1))} 
-                  disabled={currentBinderPage === 1}
-                  className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  ◀️ Page précédente
-                </button>
-                <div className="text-sm font-bold text-slate-300">
-                  Page <span className="text-purple-400">{currentBinderPage}</span> sur <span className="text-yellow-400">{totalBinderPages}</span>
-                </div>
-                <button 
-                  onClick={() => setCurrentBinderPage(p => Math.min(totalBinderPages, p + 1))} 
-                  disabled={currentBinderPage === totalBinderPages}
-                  className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Page suivante ▶️
-                </button>
-              </div>
-            )}
+          <div>
+            {/* Si nous sommes en mode "Ma Collection" avec tri par série */}
+            {isGlobalBinder ? (
+              <div className="space-y-10">
+                {Object.entries(groupedBySeries).map(([seriesName, seriesCards]) => {
+                  const binderPages = chunkArray(seriesCards, 9);
+                  return (
+                    <div key={seriesName} className="space-y-4">
+                      {/* En-tête de série */}
+                      <div className="flex justify-between items-center bg-slate-900 border border-slate-800 px-6 py-3 rounded-xl shadow-md">
+                        <h2 className="text-base font-bold text-yellow-400 flex items-center gap-2">
+                          <span>📂</span> {seriesName}
+                        </h2>
+                        <span className="text-xs bg-slate-950 text-purple-300 px-3 py-1 rounded-lg border border-slate-800 font-semibold">
+                          {seriesCards.length} carte(s) possédée(s)
+                        </span>
+                      </div>
 
-            {/* Conteneur visuel de la page physique si mode binder 3x3 */}
-            {isGlobalBinder && binderViewStyle === "pages" ? (
-              <div className="bg-slate-900/90 border-2 border-purple-900/40 rounded-3xl p-6 md:p-8 shadow-[0_0_30px_rgba(147,51,234,0.15)] relative">
-                <div className="absolute top-4 right-6 text-xs text-purple-400 font-semibold tracking-wider uppercase">
-                  Classeur Dragon Shield • 3x3 Pockets
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-                  {paginatedBinderCards.map(card => renderCardItem(card))}
-                </div>
+                      {/* Affichage par pages de classeur 3x3 ou grille standard */}
+                      {binderViewStyle === "pages" ? (
+                        <div className="space-y-6">
+                          {binderPages.map((pageCards, pageIndex) => (
+                            <div key={pageIndex} className="bg-slate-900/90 border-2 border-purple-900/40 rounded-3xl p-6 md:p-8 shadow-[0_0_20px_rgba(147,51,234,0.1)] relative">
+                              <div className="absolute top-4 right-6 text-[11px] text-purple-400 font-semibold uppercase tracking-wider">
+                                {seriesName} • Page {pageIndex + 1}
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mt-4">
+                                {pageCards.map(card => renderCardItem(card))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                          {seriesCards.map(card => renderCardItem(card))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
+              /* Vue normale pour une seule série ou recherche active */
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                {paginatedBinderCards.map(card => renderCardItem(card))}
+                {filteredCards.map(card => renderCardItem(card))}
               </div>
             )}
-          </>
+          </div>
         ) : (
           <div className="text-center bg-slate-900/50 border border-slate-800 rounded-xl p-10 mt-8">
             <span className="text-4xl mb-4 block">⚠️</span>
