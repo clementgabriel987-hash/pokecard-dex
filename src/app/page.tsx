@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète avec les séries spéciales intégrées et leurs IDs adaptés
+// Organisation complète avec tous les McDo, Kits du Dresseur, Rumble et Extensions
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -43,11 +43,28 @@ const POKEMON_BLOCKS = [
     blockName: "📦 Hors-Séries, Kits & Spéciales",
     sets: [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
-      { id: "pgo", name: "Pokémon GO", lang: "fr" }, // 📱 Ajouté ici (Pokémon GO)
+      { id: "pgo", name: "Pokémon GO", lang: "fr" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
+      // 🛠️ Tous les Kits du Dresseur complets
       { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
-      { id: "xy1tk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
-      { id: "xy1tk-cha", name: "Kit du Dresseur XY (Blindépique)", lang: "en" },
+      { id: "xytk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
+      { id: "xytk-cha", name: "Kit du Dresseur XY (Blindépique)", lang: "en" },
+      { id: "smtk-lyc", name: "Kit du Dresseur Soleil & Lune (Loupio/Lougaroc)", lang: "en" },
+      { id: "smtk-alr", name: "Kit du Dresseur Soleil & Lune (Alola/Raichu)", lang: "en" },
+      { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" },
+      // 🍔 Collections McDonald's complètes
+      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
+      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
+      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
+      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
+      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
+      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
+      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
+      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
+      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
+      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
+      { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
+      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "en" },
       { id: "pop2", name: "POP Series 2", lang: "en" },
       { id: "pop3", name: "POP Series 3", lang: "en" },
@@ -56,10 +73,7 @@ const POKEMON_BLOCKS = [
       { id: "pop6", name: "POP Series 6", lang: "en" },
       { id: "pop7", name: "POP Series 7", lang: "en" },
       { id: "pop8", name: "POP Series 8", lang: "en" },
-      { id: "pop9", name: "POP Series 9", lang: "en" },
-      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
-      { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
-      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" }
+      { id: "pop9", name: "POP Series 9", lang: "en" }
     ]
   },
   {
@@ -382,7 +396,7 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B de secours via pokemontcg.io avec les correspondances exactes (pgo -> pgo, rumble -> ru1, etc.)
+  // 🛡️ Plan B de secours via pokemontcg.io avec gestion complète des kits, McDo, Rumble et PGO
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
@@ -400,12 +414,17 @@ export default function PokedexPage() {
       }
     }
 
-    // 2. Pour Pokémon GO, Rumble, et les séries spéciales, on bascule sur pokemontcg.io avec leurs vrais codes
+    // 2. Pour les séries spéciales, McDo, kits et Rumble, on bascule sur pokemontcg.io
     if (!currentImg.includes("pokemontcg.io") && !targetSeriesId.startsWith('me')) {
       const tcgIoSetMap: Record<string, string> = {
-        'pgo': 'pgo',         // Pokémon GO
-        'rumble': 'ru1',      // Pokémon Rumble (code officiel pokemontcg.io : ru1)
+        'pgo': 'pgo',
+        'rumble': 'ru1',
         'bwtk': 'bwtk',
+        'xytk-klo': 'xy1tk',
+        'xytk-cha': 'xy1tk',
+        'smtk-lyc': 'sm35tk',
+        'smtk-alr': 'sm35tk',
+        'swshtk': 'swshtk',
         'mep': 'mep',
         'hgss.p': 'hgssp'
       };
