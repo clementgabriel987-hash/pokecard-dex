@@ -33,6 +33,7 @@ const POKEMON_BLOCKS = [
       { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
       { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
       { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" },
+      { id: "np", name: "Nintendo Promos (Ère EX)", lang: "en" },
       { id: "mep", name: "Mega-Evolution Promos", lang: "en" }
     ]
   },
@@ -222,7 +223,8 @@ const POKEMON_BLOCKS = [
       { id: "sv06", name: "Mascarade Crépusculaire (FR)", lang: "fr" },
       { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
-      { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" }
+      { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" },
+      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" }
     ]
   },
   {
