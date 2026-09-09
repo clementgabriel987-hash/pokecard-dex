@@ -381,23 +381,30 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B ultime : Si TCGdex échoue, on bascule sur la Pokémon TCG API officielle (pokemontcg.io)
+  // 🛡️ Plan B double : Secours TCGdex anglais pour le bloc ME, et pokemontcg.io pour le reste
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    // Si on n'est pas encore passé par pokemontcg.io, on l'utilise en secours absolu
-    if (!currentImg.includes("pokemontcg.io")) {
-      const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
-      
-      // Correspondances d'IDs pour pokemontcg.io (ex: platine -> 'pl1', promos méga -> 'mep', etc.)
+    const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+
+    // 1. Pour le bloc Méga-Évolution (ME), on force l'anglais TCGdex
+    if (targetSeriesId.startsWith('me')) {
+      if (!currentImg.includes("/en/")) {
+        const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
+        setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
+        return;
+      }
+    }
+
+    // 2. Pour Pokémon Rumble et les autres séries récalcitrantes, on bascule sur pokemontcg.io
+    if (!currentImg.includes("pokemontcg.io") && !targetSeriesId.startsWith('me')) {
       const tcgIoSetMap: Record<string, string> = {
         'pl1': 'pl1',
-        'mep': 'mep',
-        'bwtk': 'bwtk',
         'rumble': 'rumble',
+        'bwtk': 'bwtk',
         'hgss.p': 'hgssp'
       };
 
