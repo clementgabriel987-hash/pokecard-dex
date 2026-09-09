@@ -356,23 +356,28 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B automatique : Basculement instantané sur l'anglais TCGdex en cas d'erreur d'image
+  // 🛡️ Plan B automatique : Basculement sécurisé sur l'anglais TCGdex avec correction d'ID si besoin
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    // Si ce n'est pas encore l'URL anglaise, on bascule dessus
     if (!currentImg.includes("/en/")) {
-      const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
-      const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
+      let targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
       
+      const enSetExceptions: Record<string, string> = {
+        'dp1': 'dp1', 'dp2': 'dp2', 'dp3': 'dp3', 'dp4': 'dp4', 'dp5': 'dp5', 'dp6': 'dp6'
+      };
+      if (enSetExceptions[targetSeriesId]) {
+        targetSeriesId = enSetExceptions[targetSeriesId];
+      }
+
+      const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
       setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
       return;
     }
 
-    // Si même l'anglais échoue, on marque la carte comme définitivement en échec
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
