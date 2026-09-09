@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos, kits et extensions (avec le Coffret des Dragons)
+// Organisation complète de tous les blocs, promos, kits et extensions (avec dv1 corrigé)
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -133,7 +133,7 @@ const POKEMON_BLOCKS = [
       { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
       { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
       { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
-      { id: "bw6.5", name: "Coffret des Dragons (Dragon Vault)", lang: "en" }, // 🐉 Ajouté ici !
+      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" }, // 🐉 ID corrigé en 'dv1'
       { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
       { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
       { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
@@ -312,16 +312,36 @@ export default function PokedexPage() {
     URL.revokeObjectURL(url);
   };
 
+  // 🔄 Importation intelligente en mode FUSION (Merge) pour ne rien perdre
   const importCollectionJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return alert("Connecte-toi et sélectionne un JSON.");
+    
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const importedData = JSON.parse(event.target?.result as string);
-        setUserCollection(importedData);
-        await supabase.from("user_data").upsert({ id: currentUser.id, collection: importedData });
-        alert("Importation réussie !");
+        const mergedCollection: UserCollectionJSON = { ...userCollection };
+
+        for (const [cardId, importedDetails] of Object.entries(importedData)) {
+          if (!mergedCollection[cardId]) {
+            mergedCollection[cardId] = importedDetails as CardDetails;
+          } else {
+            const existing = mergedCollection[cardId];
+            const incoming = importedDetails as CardDetails;
+
+            mergedCollection[cardId] = {
+              normalOwned: existing.normalOwned || incoming.normalOwned,
+              foilOwned: existing.foilOwned || incoming.foilOwned,
+              isWishlist: existing.isWishlist || incoming.isWishlist,
+              langs: Array.from(new Set([...(existing.langs || []), ...(incoming.langs || [])]))
+            };
+          }
+        }
+
+        setUserCollection(mergedCollection);
+        await supabase.from("user_data").upsert({ id: currentUser.id, collection: mergedCollection });
+        alert("Fusion et importation réussies ! Tes anciennes et nouvelles cartes sont combinées. 🎉");
       } catch (err) {
         alert("Fichier JSON invalide.");
       }
@@ -360,7 +380,6 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B automatique : Basculement sécurisé sur l'anglais TCGdex avec gestion propre des erreurs
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
