@@ -32,13 +32,15 @@ const POKEMON_BLOCKS = [
       { id: "smp", name: "SM Black Star Promos", lang: "fr" },
       { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
       { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
-      { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" }
+      { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" },
+      { id: "mep", name: "Mega-Evolution Promos", lang: "en" }
     ]
   },
   {
     blockName: "📦 Hors-Séries & Spéciales",
     sets: [
-      // Séries POP (1 à 9)
+      { id: "det1", name: "Détective Pikachu", lang: "fr" },
+      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "en" },
       { id: "pop2", name: "POP Series 2", lang: "en" },
       { id: "pop3", name: "POP Series 3", lang: "en" },
@@ -48,8 +50,6 @@ const POKEMON_BLOCKS = [
       { id: "pop7", name: "POP Series 7", lang: "en" },
       { id: "pop8", name: "POP Series 8", lang: "en" },
       { id: "pop9", name: "POP Series 9", lang: "en" },
-
-      // Promos McDonald's
       { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
       { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
       { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
@@ -62,8 +62,6 @@ const POKEMON_BLOCKS = [
       { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
       { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
       { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
-
-      // Kits de Dresseur (Trainer Kits)
       { id: "tk-ex-latios", name: "Trainer Kit EX - Latios", lang: "en" },
       { id: "tk-ex-latias", name: "Trainer Kit EX - Latias", lang: "en" },
       { id: "tk-dp-lucario", name: "Trainer Kit DP - Lucario", lang: "en" },
@@ -74,7 +72,7 @@ const POKEMON_BLOCKS = [
       { id: "tk-xy-noivern", name: "Trainer Kit XY - Bruyverne", lang: "en" }
     ]
   },
-  // ... (la suite de tes blocs existants : Wizards, EX, etc.)
+  {
     blockName: "Bloc Wizards (Classic)",
     sets: [
       { id: "base1", name: "Base Set (FR)", lang: "fr" },
