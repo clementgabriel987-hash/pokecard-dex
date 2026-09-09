@@ -1,5 +1,6 @@
 // src/app/api/scrape-carte/route.ts
 import { NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
 
 function translateSetId(tcgdexId: string): string {
   let id = tcgdexId.toLowerCase();
@@ -30,20 +31,59 @@ export async function GET(request: Request) {
   }
 
   const pkxSetId = translateSetId(setId);
-  
-  // On gère proprement les formats de numéros (ex: "13" -> "13" et "013")
   const cleanId = localId.replace(/^0+/, '');
-  const paddedId = cleanId.padStart(3, '0'); // ex: "013" pour les séries qui le demandent
-  const standardId = cleanId;                // ex: "13"
 
-  const oldBlocks = ['DP', 'MT', 'SW', 'MD', 'LA', 'SF', 'PL', 'RR', 'SV', 'AR', 'HS', 'UL', 'UD', 'TM', 'CL', 'DPK', 'CEL'];
-  const basePath = oldBlocks.includes(pkxSetId) 
-    ? `https://www.pokecardex.com/assets/images/cartes/${pkxSetId}`
-    : `https://www.pokecardex.com/assets/images/cartes/fr/${pkxSetId}`;
+  try {
+    // ÉTAPE 1 : On va sur la page de la série (ex: https://www.pokecardex.com/series/MD pour Aube Majestueuse / DP4)
+    const seriesUrl = `https://www.pokecardex.com/series/${pkxSetId}`;
+    
+    const response = await fetch(seriesUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html'
+      }
+    });
 
-  // On privilégie le format standard, mais on s'assure d'envoyer une URL valide
-  // Note: Si le navigateur échoue sur le premier lien, ton front-end peut basculer sur un texte de secours.
-  const imageUrl = `${basePath}/${standardId}.jpg`;
+    if (!response.ok) {
+      return NextResponse.json({ error: 'Série introuvable' }, { status: 404 });
+    }
 
-  return NextResponse.json({ imageUrl });
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    let cardImageUrl: string | null = null;
+
+    // ÉTAPE 2 : On cherche dans la page de la série le lien qui correspond à notre carte (ex: numéro 130)
+    // Sur Pokécardex, les vignettes ou les liens ont souvent le numéro de la carte dans leur texte ou leur structure
+    $('a').each((i, el) => {
+      const href = $(el).attr('href') || '';
+      const text = $(el).text().trim();
+      
+      // Si le lien mène vers une carte (/carte/XXXX) et que le texte correspond au numéro de la carte
+      if (href.startsWith('/carte/') && (text === cleanId || text === localId)) {
+        // On a trouvé le lien de la carte (ex: /carte/3568) ! 
+        // L'image est généralement juste à côté ou dans ce bloc.
+        const img = $(el).find('img').attr('src') || $(el).closest('.card-container, .card, li, div').find('img').attr('src');
+        if (img) {
+          cardImageUrl = img;
+          return false; // Stop la boucle
+        }
+      }
+    });
+
+    // Si on a trouvé l'image via la liste de la série
+    if (cardImageUrl) {
+      if (cardImageUrl.startsWith('/')) {
+        cardImageUrl = `https://www.pokecardex.com${cardImageUrl}`;
+      }
+      return NextResponse.json({ imageUrl: cardImageUrl });
+    }
+
+    // ÉTAPE 3 (Secours direct) : Si le lien direct de l'image est introuvable par le texte, 
+    // on renvoie une structure de repli propre.
+    return NextResponse.json({ error: 'Image non indexée' }, { status: 404 });
+
+  } catch (error) {
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }
