@@ -839,7 +839,6 @@ export default function PokedexPage() {
           <div>
             {isGlobalBinder && binderViewStyle === "pages" ? (
               <div className="space-y-6">
-                {/* Boutons de pagination globale */}
                 <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-md">
                   <button 
                     onClick={() => setCurrentGlobalBinderPage(p => Math.max(1, p - 1))} 
@@ -860,7 +859,6 @@ export default function PokedexPage() {
                   </button>
                 </div>
 
-                {/* Page de classeur 3x3 unique affichant les 9 cartes courantes */}
                 <div className="bg-slate-900/90 border-2 border-purple-900/40 rounded-3xl p-6 md:p-8 shadow-[0_0_30px_rgba(147,51,234,0.15)] relative">
                   <div className="absolute top-4 right-6 text-xs text-purple-400 font-semibold tracking-wider uppercase">
                     Classeur Dragon Shield • Page {currentGlobalBinderPage} / {totalGlobalPages}
@@ -870,7 +868,6 @@ export default function PokedexPage() {
                   </div>
                 </div>
 
-                {/* Boutons de pagination en bas également pour le confort */}
                 <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-md">
                   <button 
                     onClick={() => setCurrentGlobalBinderPage(p => Math.max(1, p - 1))} 
@@ -913,7 +910,7 @@ export default function PokedexPage() {
     </main>
   );
 
-  // Helper pour rendre chaque carte proprement avec sa série affichée discrètement
+  // Helper pour rendre chaque carte proprement (le nom de la série n'apparaît QUE dans le classeur global)
   function renderCardItem(card: Card) {
     const cardData = userCollection[card.id];
     const isNormalOwned = cardData?.normalOwned || false;
@@ -936,7 +933,8 @@ export default function PokedexPage() {
         </button>
 
         <div>
-          {card.seriesName && (
+          {/* 💡 Le nom de la série s'affiche uniquement dans le classeur global ("Ma Collection") */}
+          {isGlobalBinder && card.seriesName && (
             <div className="text-[10px] text-purple-400 font-semibold mb-2 truncate bg-purple-950/30 px-2 py-0.5 rounded border border-purple-900/30">
               {card.seriesName}
             </div>
