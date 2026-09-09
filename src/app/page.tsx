@@ -22,7 +22,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos et hors-séries stabilisés
+// Organisation complète et mise à jour de tous les blocs, promos et extensions de l'histoire du JCC
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -115,8 +115,9 @@ const POKEMON_BLOCKS = [
     sets: [
       { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
       { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
-      { id: "hgss3", name: "HS - Vainqueurs Suprêmes (FR)", lang: "fr" },
-      { id: "hgss4", name: "HS - L'Appel des Légendes (FR)", lang: "fr" }
+      { id: "hgss3", name: "HS - Indomptable (FR)", lang: "fr" },
+      { id: "hgss4", name: "HS - Triomphant (FR)", lang: "fr" },
+      { id: "col1", name: "L'Appel des Légendes (FR)", lang: "fr" }
     ]
   },
   {
@@ -206,7 +207,11 @@ const POKEMON_BLOCKS = [
       { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
       { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" },
-      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" }
+      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" },
+      { id: "sv09", name: "Aventures Ensemble (FR)", lang: "fr" },
+      { id: "sv10", name: "Rivalités Destinées (FR)", lang: "fr" },
+      { id: "blk", name: "Foudre Noire (FR)", lang: "fr" },
+      { id: "wht", name: "Flamme Blanche (FR)", lang: "fr" }
     ]
   },
   {
@@ -790,12 +795,12 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Encart contextuel Dragon Shield (Uniquement le nombre de pages) */}
+            {/* Encart contextuel Dragon Shield (Format Info exact) */}
             {totalCards > 0 && (
               <div className="pt-4 border-t border-slate-800 flex items-center gap-3 text-xs text-purple-300">
                 <span className="text-lg shrink-0">🛡️</span>
                 <div>
-                  <span className="font-bold text-white">Info :</span> Pour ranger cette extension complète de {totalCards} cartes (en pages standard 18 poches), il te faut environ <strong className="text-yellow-400">{Math.ceil(totalCards / 18)} pages Dragon Shield</strong>.
+                  <span className="font-bold text-white">Info :</span> Pour ranger cette extension complète de <strong className="text-yellow-400">{totalCards}</strong> cartes (en pages standard 18 poches), il te faut environ <strong className="text-yellow-400">{Math.ceil(totalCards / 18)}</strong> pages Dragon Shield.
                 </div>
               </div>
             )}
