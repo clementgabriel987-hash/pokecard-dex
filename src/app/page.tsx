@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos, kits et extensions (avec les langues forcées en EN là où le FR plante)
+// Organisation complète de tous les blocs, promos, kits et extensions
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -42,7 +42,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "📦 Hors-Séries, Kits & Spéciales",
     sets: [
-      { id: "det1", name: "Détective Pikachu", lang: "en" }, // 🌍 Forcé en EN pour les images
+      { id: "det1", name: "Détective Pikachu", lang: "fr" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
       { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
       { id: "xy1tk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
@@ -381,24 +381,30 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
+  // 🛡️ Plan B ultime : Si TCGdex échoue, on bascule sur la Pokémon TCG API officielle (pokemontcg.io)
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    if (!currentImg.includes("/en/")) {
-      let targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+    // Si on n'est pas encore passé par pokemontcg.io, on l'utilise en secours absolu
+    if (!currentImg.includes("pokemontcg.io")) {
+      const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
       
-      const enSetExceptions: Record<string, string> = {
-        'dp1': 'dp1', 'dp2': 'dp2', 'dp3': 'dp3', 'dp4': 'dp4', 'dp5': 'dp5', 'dp6': 'dp6'
+      // Correspondances d'IDs pour pokemontcg.io (ex: platine -> 'pl1', promos méga -> 'mep', etc.)
+      const tcgIoSetMap: Record<string, string> = {
+        'pl1': 'pl1',
+        'mep': 'mep',
+        'bwtk': 'bwtk',
+        'rumble': 'rumble',
+        'hgss.p': 'hgssp'
       };
-      if (enSetExceptions[targetSeriesId]) {
-        targetSeriesId = enSetExceptions[targetSeriesId];
-      }
 
-      const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
-      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
+      const mappedSetId = tcgIoSetMap[targetSeriesId] || targetSeriesId;
+      const tcgIoUrl = `https://images.pokemontcg.io/${mappedSetId}/${cardData.localId}_hires.png`;
+
+      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: tcgIoUrl } : c));
       return;
     }
 
