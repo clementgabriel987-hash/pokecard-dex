@@ -33,13 +33,16 @@ const POKEMON_BLOCKS = [
       { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
       { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
       { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" },
+      { id: "dpp", name: "DP Black Star Promos", lang: "en" },
       { id: "np", name: "Nintendo Promos (Ère EX)", lang: "en" },
+      { id: "bp", name: "Wizards Black Star Promos", lang: "en" },
       { id: "mep", name: "Mega-Evolution Promos", lang: "en" }
     ]
   },
   {
     blockName: "📦 Hors-Séries & Spéciales",
     sets: [
+      { id: "si", name: "Southern Islands", lang: "en" },
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
       { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "en" },
@@ -239,7 +242,6 @@ const POKEMON_BLOCKS = [
     ]
   }
 ];
-
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
 export default function PokedexPage() {
