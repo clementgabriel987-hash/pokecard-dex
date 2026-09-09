@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète avec tous les McDo, Kits du Dresseur, Rumble et Extensions
+// Organisation complète avec l'intégralité des Kits du Dresseur et collections spéciales
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -45,14 +45,23 @@ const POKEMON_BLOCKS = [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
       { id: "pgo", name: "Pokémon GO", lang: "fr" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
-      // 🛠️ Tous les Kits du Dresseur complets
-      { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
-      { id: "xytk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
-      { id: "xytk-cha", name: "Kit du Dresseur XY (Blindépique)", lang: "en" },
-      { id: "smtk-lyc", name: "Kit du Dresseur Soleil & Lune (Loupio/Lougaroc)", lang: "en" },
-      { id: "smtk-alr", name: "Kit du Dresseur Soleil & Lune (Alola/Raichu)", lang: "en" },
+      // 🛠️ Intégration de TOUS les Kits du Dresseur officiels (via TCG.io)
+      { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
+      { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
+      { id: "tk2a", name: "EX Trainer Kit 2 - Plusle", lang: "en" },
+      { id: "tk2b", name: "EX Trainer Kit 2 - Minun", lang: "en" },
+      { id: "tk3a", name: "DP Trainer Kit - Manaphy", lang: "en" },
+      { id: "tk3b", name: "DP Trainer Kit - Lucario", lang: "en" },
+      { id: "tk4a", name: "HGSS Trainer Kit - Raichu", lang: "en" },
+      { id: "tk4b", name: "HGSS Trainer Kit - Gyarados", lang: "en" },
+      { id: "tk5a", name: "BW Trainer Kit - Zoroark", lang: "en" },
+      { id: "tk5b", name: "BW Trainer Kit - Excadrill", lang: "en" },
+      { id: "tk6a", name: "XY Trainer Kit - Sylveon", lang: "en" },
+      { id: "tk6b", name: "XY Trainer Kit - Noivern", lang: "en" },
+      { id: "tk10a", name: "SM Trainer Kit - Lycanroc", lang: "en" },
+      { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" },
       { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" },
-      // 🍔 Collections McDonald's complètes
+      // 🍔 Collections McDonald's
       { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
       { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
       { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
@@ -219,6 +228,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Écarlate & Violet (EV)",
     sets: [
+      { id: "swsh12.5", name: "Zénith Suprême (FR)", lang: "fr" },
       { id: "sv01", name: "Écarlate et Violet (FR)", lang: "fr" },
       { id: "sv02", name: "Évolutions à Paldea (FR)", lang: "fr" },
       { id: "sv03", name: "Flammes Obsidiennes (FR)", lang: "fr" },
@@ -396,7 +406,7 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B de secours via pokemontcg.io avec gestion complète des kits, McDo, Rumble et PGO
+  // 🛡️ Plan B intelligent : routage exclusif sur pokemontcg.io pour les kits non présents sur TCGdex
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
@@ -405,7 +415,6 @@ export default function PokedexPage() {
 
     const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
 
-    // 1. Pour le bloc Méga-Évolution (ME), on force l'anglais TCGdex
     if (targetSeriesId.startsWith('me')) {
       if (!currentImg.includes("/en/")) {
         const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
@@ -414,17 +423,17 @@ export default function PokedexPage() {
       }
     }
 
-    // 2. Pour les séries spéciales, McDo, kits et Rumble, on bascule sur pokemontcg.io
     if (!currentImg.includes("pokemontcg.io") && !targetSeriesId.startsWith('me')) {
       const tcgIoSetMap: Record<string, string> = {
         'pgo': 'pgo',
         'rumble': 'ru1',
-        'bwtk': 'bwtk',
-        'xytk-klo': 'xy1tk',
-        'xytk-cha': 'xy1tk',
-        'smtk-lyc': 'sm35tk',
-        'smtk-alr': 'sm35tk',
-        'swshtk': 'swshtk',
+        'tk1a': 'tk1', 'tk1b': 'tk1',
+        'tk2a': 'tk2', 'tk2b': 'tk2',
+        'tk3a': 'tk3', 'tk3b': 'tk3',
+        'tk4a': 'tk4', 'tk4b': 'tk4',
+        'tk5a': 'tk5', 'tk5b': 'tk5',
+        'tk6a': 'tk6', 'tk6b': 'tk6',
+        'tk10a': 'sm35tk', 'tk10b': 'sm35tk',
         'mep': 'mep',
         'hgss.p': 'hgssp'
       };
@@ -439,6 +448,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
+  // Pour les kits spécifiques absents de TCGdex, on force le chargement direct depuis pokemontcg.io
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -449,6 +459,8 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
+      const tcgIoOnlySets = ['tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 'tk10a', 'tk10b'];
+
       try {
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${encodeURIComponent(activeSearch)}`);
@@ -495,6 +507,37 @@ export default function PokedexPage() {
           }
           setCards(globalCards);
           extractFilters(globalCards);
+        } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
+          // Gestion spécifique pour interroger pokemontcg.io pour les kits du dresseur purs
+          const setMapCode: Record<string, string> = {
+            'tk1a': 'tk1', 'tk1b': 'tk1',
+            'tk2a': 'tk2', 'tk2b': 'tk2',
+            'tk3a': 'tk3', 'tk3b': 'tk3',
+            'tk4a': 'tk4', 'tk4b': 'tk4',
+            'tk5a': 'tk5', 'tk5b': 'tk5',
+            'tk6a': 'tk6', 'tk6b': 'tk6',
+            'tk10a': 'sm35tk', 'tk10b': 'sm35tk'
+          };
+          const apiCode = setMapCode[selectedSeriesId];
+          const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${apiCode}`);
+          const json = await res.json();
+          const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
+
+          if (json && json.data) {
+            const formatted = json.data.map((c: any) => ({
+              id: `${selectedSeriesId}-${c.number}`,
+              name: c.name,
+              localId: c.number,
+              image: c.images.large || c.images.small,
+              illustrator: c.artist || "Inconnu",
+              rarity: c.rarity || "Commune",
+              seriesName: currentSeries?.name
+            }));
+            setCards(formatted);
+            extractFilters(formatted);
+          } else {
+            setCards([]);
+          }
         } else {
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
