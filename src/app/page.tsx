@@ -22,7 +22,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos et hors-séries
+// Organisation complète de tous les blocs, promos et hors-séries stabilisés
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -579,15 +579,13 @@ export default function PokedexPage() {
                   </Link>
                   <Link href="/analyse-sets" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-amber-300">
                     <span>📊</span> Analyse des Coûts (Full Sets)
-                    </Link>
-                    <Link href="/statistiques" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-indigo-300">
+                  </Link>
+                  <Link href="/statistiques" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-indigo-300">
                     <span>📈</span> Tableau de Bord & Stats
                   </Link>
                   <Link href="/budget" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-emerald-400">
-  <span>💰</span> Simulateur de Budget
-</Link><Link href="/materiel" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-purple-300">
-  <span>🛡️</span> Calculateur Pages Dragon Shield
-</Link>
+                    <span>💰</span> Simulateur de Budget
+                  </Link>
                 </div>
               </div>
 
@@ -770,25 +768,37 @@ export default function PokedexPage() {
         )}
 
         {(!isGlobalBinder && !activeSearch) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl">
-            <div>
-              <div className="flex justify-between text-sm mb-2 font-medium">
-                <span className="text-slate-300">Cartes Normales</span>
-                <span className="text-yellow-400">{normalCollected} / {totalCards} ({Math.round((normalCollected/totalCards)*100 || 0)}%)</span>
+          <div className="mb-10 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="flex justify-between text-sm mb-2 font-medium">
+                  <span className="text-slate-300">Cartes Normales</span>
+                  <span className="text-yellow-400">{normalCollected} / {totalCards} ({Math.round((normalCollected/totalCards)*100 || 0)}%)</span>
+                </div>
+                <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                  <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((normalCollected/totalCards)*100 || 0)}%` }}></div>
+                </div>
               </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-yellow-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((normalCollected/totalCards)*100 || 0)}%` }}></div>
+              <div>
+                <div className="flex justify-between text-sm mb-2 font-medium">
+                  <span className="text-slate-300">Cartes Foils (Brillantes)</span>
+                  <span className="text-purple-400">{foilCollected} / {totalCards} ({Math.round((foilCollected/totalCards)*100 || 0)}%)</span>
+                </div>
+                <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                  <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((foilCollected/totalCards)*100 || 0)}%` }}></div>
+                </div>
               </div>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2 font-medium">
-                <span className="text-slate-300">Cartes Foils (Brillantes)</span>
-                <span className="text-purple-400">{foilCollected} / {totalCards} ({Math.round((foilCollected/totalCards)*100 || 0)}%)</span>
+
+            {/* Encart contextuel Dragon Shield pour la série en cours */}
+            {totalCards > 0 && (
+              <div className="pt-4 border-t border-slate-800 flex items-center gap-3 text-xs text-purple-300">
+                <span className="text-lg shrink-0">🛡️</span>
+                <div>
+                  <span className="font-bold text-white">Besoin de rangement :</span> Pour ranger cette extension complète de {totalCards} cartes (en pages standard 18 poches), il te faut environ <strong className="text-yellow-400">{Math.ceil(totalCards / 18)} pages</strong> (soit <strong className="text-yellow-400">{Math.ceil(Math.ceil(totalCards / 18) / 50)} paquet(s) de 50 Dragon Shield</strong>) et <strong className="text-yellow-400">{Math.ceil(Math.ceil(totalCards / 18) / 25)} classeur(s)</strong>.
+                </div>
               </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-purple-500 h-full transition-all duration-500 rounded-full" style={{ width: `${Math.round((foilCollected/totalCards)*100 || 0)}%` }}></div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
