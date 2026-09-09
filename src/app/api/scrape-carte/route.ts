@@ -1,26 +1,36 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 
-// Dictionnaire pour traduire les identifiants TCGdex vers les identifiants Pokécardex
-const setMapper: Record<string, string> = {
-  // --- Cartes Promos ---
-  'svp': 'PR-SV',     // Promos Écarlate et Violet
-  'swshp': 'PR-EB',   // Promos Épée et Bouclier
-  'smp': 'PR-SL',     // Promos Soleil et Lune
-  'xyp': 'PR-XY',     // Promos XY
-  'bwp': 'PR-NB',     // Promos Noir & Blanc
-  'hsp': 'PR-HS',     // Promos HeartGold SoulSilver
-  'dpp': 'PR-DP',     // Promos Diamant & Perle
+// 🧠 Le "Cerveau" traducteur : convertit les codes TCGdex vers Pokécardex
+function translateSetId(tcgdexId: string): string {
+  let id = tcgdexId.toLowerCase();
   
-  // --- Blocs Récents (TCGdex utilise sv01, Pokécardex utilise EV1) ---
-  'sv01': 'EV1', 'sv02': 'EV2', 'sv03': 'EV3', 'sv03.5': 'EV3.5',
-  'sv04': 'EV4', 'sv04.5': 'EV4.5', 'sv05': 'EV5', 'sv06': 'EV6',
-  'sv06.5': 'EV6.5', 'sv07': 'EV7', 'sv08': 'EV8', 'sv08.5': 'EV8.5',
-  'swsh1': 'EB1', 'swsh2': 'EB2', 'swsh3': 'EB3', 'swsh3.5': 'EB3.5',
-  'swsh4': 'EB4', 'swsh4.5': 'EB4.5', 'swsh5': 'EB5', 'swsh6': 'EB6',
-  'swsh7': 'EB7', 'swsh8': 'EB8', 'swsh9': 'EB9', 'swsh10': 'EB10',
-  'swsh11': 'EB11', 'swsh12': 'EB12', 'swsh12.5': 'EB12.5',
-};
+  // 1. Les exceptions pures (Promos, Hors-séries)
+  const exceptions: Record<string, string> = {
+    'svp': 'PR-SV', 
+    'swshp': 'PR-EB', 
+    'smp': 'PR-SL', 
+    'xyp': 'PR-XY',
+    'bwp': 'PR-NB', 
+    'hsp': 'PR-HS', 
+    'dpp': 'PR-DP', 
+    'basep': 'PR-W',
+    'det1': 'DET' // <-- La correction pour Détective Pikachu est ici !
+  };
+  
+  if (exceptions[id]) return exceptions[id];
+
+  // 2. Remplacements dynamiques (Convertit les blocs Entiers)
+  id = id.replace(/^sv0/, 'EV');  // sv01 -> EV1, sv03.5 -> EV3.5
+  id = id.replace(/^sv/, 'EV');   // sv10 -> EV10
+  id = id.replace(/^swsh/, 'EB'); // swsh1 -> EB1, swsh4.5 -> EB4.5
+  id = id.replace(/^sm/, 'SL');   // sm1 -> SL1
+  id = id.replace(/^bw/, 'NB');   // bw1 -> NB1
+  id = id.replace(/^hgss/, 'HS'); // hgss1 -> HS1
+  
+  // Si c'est déjà bon (ex: xy1, ex1, pop1), ça le met juste en majuscules
+  return id.toUpperCase();
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -32,14 +42,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 1. On traduit l'identifiant (Si on ne le connaît pas, on le met juste en majuscules)
-    const pkxSetId = setMapper[setId.toLowerCase()] || setId.toUpperCase();
+    // On passe le code TCGdex dans la moulinette
+    const pkxSetId = translateSetId(setId);
 
-    // 2. On fabrique l'URL de la carte
+    // On fabrique l'URL exacte de Pokécardex
     const url = `https://www.pokecardex.com/series/fr/${pkxSetId}/${localId}`;
     
-    // 💡 Astuce : Ceci va s'afficher dans le terminal de ton éditeur (VS Code) pour que tu voies ce qu'il cherche !
-    console.log(`[Scraper] Recherche de l'image sur : ${url}`);
+    console.log(`[Scraper] 🔍 Recherche sur : ${url}`);
 
     const response = await fetch(url, {
       headers: {
@@ -48,19 +57,17 @@ export async function GET(request: Request) {
       }
     });
     
-    // Au lieu de planter (500), on renvoie une vraie erreur "Non trouvée" (404)
     if (!response.ok) {
-      console.log(`[Scraper] ❌ Page introuvable pour ${url}`);
+      console.log(`[Scraper] ❌ Erreur ${response.status} pour ${url}`);
       return NextResponse.json({ error: 'Page introuvable sur Pokécardex' }, { status: 404 });
     }
     
     const html = await response.text();
     const $ = cheerio.load(html);
     
-    // On cherche la balise image HD
+    // On cherche l'image HD
     let imageUrl = $('meta[property="og:image"]').attr('content');
 
-    // Alternative si og:image ne marche pas
     if (!imageUrl) {
       imageUrl = $('.card-image img').attr('src'); 
     }
@@ -69,15 +76,14 @@ export async function GET(request: Request) {
       if (imageUrl.startsWith('/')) {
         imageUrl = `https://www.pokecardex.com${imageUrl}`;
       }
-      console.log(`[Scraper] ✅ Image trouvée : ${imageUrl}`);
+      console.log(`[Scraper] ✅ Trouvé ! -> ${imageUrl}`);
       return NextResponse.json({ imageUrl });
     } else {
-      console.log(`[Scraper] ❌ Image non trouvée dans le HTML de ${url}`);
-      return NextResponse.json({ error: 'Image introuvable dans le code source' }, { status: 404 });
+      return NextResponse.json({ error: 'Image introuvable dans le code HTML' }, { status: 404 });
     }
     
   } catch (error: any) {
-    console.error(`[Scraper] ❌ Erreur critique :`, error.message);
+    console.error(`[Scraper] 💥 Erreur interne :`, error.message);
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
   }
 }
