@@ -16,7 +16,6 @@ interface SetOption {
   blockName: string;
 }
 
-// Récupération de tous les blocs et séries de l'application
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -109,8 +108,9 @@ const POKEMON_BLOCKS = [
     sets: [
       { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
       { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
-      { id: "hgss3", name: "HS - Vainqueurs Suprêmes (FR)", lang: "fr" },
-      { id: "hgss4", name: "HS - L'Appel des Légendes (FR)", lang: "fr" }
+      { id: "hgss3", name: "HS - Indomptable (FR)", lang: "fr" },
+      { id: "hgss4", name: "HS - Triomphant (FR)", lang: "fr" },
+      { id: "col1", name: "L'Appel des Légendes (FR)", lang: "fr" }
     ]
   },
   {
@@ -200,7 +200,11 @@ const POKEMON_BLOCKS = [
       { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
       { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" },
-      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" }
+      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" },
+      { id: "sv09", name: "Aventures Ensemble (FR)", lang: "fr" },
+      { id: "sv10", name: "Rivalités Destinées (FR)", lang: "fr" },
+      { id: "blk", name: "Foudre Noire (FR)", lang: "fr" },
+      { id: "wht", name: "Flamme Blanche (FR)", lang: "fr" }
     ]
   },
   {
@@ -268,7 +272,6 @@ export default function BudgetSimulatorPage() {
   const currentSetInfo = ALL_AVAILABLE_SETS.find(s => s.id === selectedSetId) || ALL_AVAILABLE_SETS[0];
   const totalCardsInSet = setCards.length;
 
-  // Calcul des cartes manquantes
   const missingCards = setCards.filter(card => {
     const cardData = collection[card.id];
     const isNormal = cardData?.normalOwned || false;
@@ -279,9 +282,9 @@ export default function BudgetSimulatorPage() {
   const missingCount = missingCards.length;
   const ownedCount = totalCardsInSet - missingCount;
   
-  // Estimation dynamique intelligente du coût total du set selon l'ère
+  // 💡 NOUVEAU TARIF RÉALISTE : ~3,50 € à 4 € par carte pour le rétro, ~0,90 € pour le moderne en moyenne globale
   const isRetro = currentSetInfo.blockName.includes("Wizards") || currentSetInfo.blockName.includes("EX");
-  const estimatedCostPerCard = isRetro ? 12 : 4; // ~12€ par carte pour le rétro, ~4€ pour le moderne en moyenne
+  const estimatedCostPerCard = isRetro ? 3.5 : 0.90; 
   const estimatedTotalCost = totalCardsInSet * estimatedCostPerCard;
   
   const averagePricePerCard = totalCardsInSet > 0 ? estimatedTotalCost / totalCardsInSet : 0;
@@ -300,7 +303,7 @@ export default function BudgetSimulatorPage() {
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mb-8 shadow-xl space-y-4">
           <p className="text-sm text-slate-300">
-            Sélectionne <strong>n'importe quelle extension</strong> de l'application ci-dessous pour calculer instantanément les cartes manquantes et estimer ton budget restant en euros.
+            Sélectionne une extension pour estimer ton budget restant en euros de manière réaliste (en lissant le prix des communes/peu communes et des cartes rares).
           </p>
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Choisir l'extension à simuler :</label>
@@ -324,11 +327,10 @@ export default function BudgetSimulatorPage() {
           </div>
         ) : loading ? (
           <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">
-            Chargement de l'extension et calcul du budget... 💸
+            Calcul du budget et analyse du set... 💸
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Résultats du budget */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
                 <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Budget Restant Estimé</p>
@@ -347,7 +349,6 @@ export default function BudgetSimulatorPage() {
               </div>
             </div>
 
-            {/* Liste détaillée des cartes manquantes */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
               <h2 className="text-base font-bold text-white mb-4">🛒 Liste d'achats prioritaire ({missingCount} cartes)</h2>
               {missingCount === 0 ? (
