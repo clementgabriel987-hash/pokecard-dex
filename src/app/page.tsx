@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos, kits et extensions
+// Organisation complète avec les séries spéciales intégrées et leurs IDs adaptés
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -43,6 +43,7 @@ const POKEMON_BLOCKS = [
     blockName: "📦 Hors-Séries, Kits & Spéciales",
     sets: [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
+      { id: "pgo", name: "Pokémon GO", lang: "fr" }, // 📱 Ajouté ici (Pokémon GO)
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
       { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
       { id: "xy1tk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
@@ -381,21 +382,31 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B de secours via pokemontcg.io avec mapping exact des IDs (mep -> mep, etc.)
+  // 🛡️ Plan B de secours via pokemontcg.io avec les correspondances exactes (pgo -> pgo, rumble -> ru1, etc.)
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    if (!currentImg.includes("pokemontcg.io")) {
-      const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
-      
+    const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+
+    // 1. Pour le bloc Méga-Évolution (ME), on force l'anglais TCGdex
+    if (targetSeriesId.startsWith('me')) {
+      if (!currentImg.includes("/en/")) {
+        const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
+        setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
+        return;
+      }
+    }
+
+    // 2. Pour Pokémon GO, Rumble, et les séries spéciales, on bascule sur pokemontcg.io avec leurs vrais codes
+    if (!currentImg.includes("pokemontcg.io") && !targetSeriesId.startsWith('me')) {
       const tcgIoSetMap: Record<string, string> = {
-        'pl1': 'pl1',
-        'mep': 'mep',         // Code officiel correct pour les promos Méga sur pokemontcg.io
-        'rumble': 'rumble',
+        'pgo': 'pgo',         // Pokémon GO
+        'rumble': 'ru1',      // Pokémon Rumble (code officiel pokemontcg.io : ru1)
         'bwtk': 'bwtk',
+        'mep': 'mep',
         'hgss.p': 'hgssp'
       };
 
