@@ -25,7 +25,7 @@ type UserCollectionJSON = Record<string, CardDetails>;
 // Organisation complète avec les Promos et blocs d'origine intacts
 const POKEMON_BLOCKS = [
   {
-    blockName: "⭐ Bloc Promos & Hors-Séries ( EN DEV..)",
+    blockName: "⭐ Cartes Promotionnelles",
     sets: [
       { id: "svp", name: "Scarlet & Violet Promos", lang: "fr" },
       { id: "swshp", name: "SWSH Black Star Promos", lang: "fr" },
@@ -36,6 +36,45 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
+    blockName: "📦 Hors-Séries & Spéciales",
+    sets: [
+      // Séries POP (1 à 9)
+      { id: "pop1", name: "POP Series 1", lang: "en" },
+      { id: "pop2", name: "POP Series 2", lang: "en" },
+      { id: "pop3", name: "POP Series 3", lang: "en" },
+      { id: "pop4", name: "POP Series 4", lang: "en" },
+      { id: "pop5", name: "POP Series 5", lang: "en" },
+      { id: "pop6", name: "POP Series 6", lang: "en" },
+      { id: "pop7", name: "POP Series 7", lang: "en" },
+      { id: "pop8", name: "POP Series 8", lang: "en" },
+      { id: "pop9", name: "POP Series 9", lang: "en" },
+
+      // Promos McDonald's
+      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
+      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
+      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
+      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
+      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
+      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
+      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
+      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
+      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
+      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
+      { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
+      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
+
+      // Kits de Dresseur (Trainer Kits)
+      { id: "tk-ex-latios", name: "Trainer Kit EX - Latios", lang: "en" },
+      { id: "tk-ex-latias", name: "Trainer Kit EX - Latias", lang: "en" },
+      { id: "tk-dp-lucario", name: "Trainer Kit DP - Lucario", lang: "en" },
+      { id: "tk-dp-electivire", name: "Trainer Kit DP - Élekable", lang: "en" },
+      { id: "tk-bw-excadrill", name: "Trainer Kit BW - Minotaupe", lang: "en" },
+      { id: "tk-bw-zoroark", name: "Trainer Kit BW - Zoroark", lang: "en" },
+      { id: "tk-xy-sylveon", name: "Trainer Kit XY - Nymphali", lang: "en" },
+      { id: "tk-xy-noivern", name: "Trainer Kit XY - Bruyverne", lang: "en" }
+    ]
+  },
+  // ... (la suite de tes blocs existants : Wizards, EX, etc.)
     blockName: "Bloc Wizards (Classic)",
     sets: [
       { id: "base1", name: "Base Set (FR)", lang: "fr" },
