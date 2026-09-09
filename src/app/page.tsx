@@ -583,6 +583,9 @@ export default function PokedexPage() {
                     <Link href="/statistiques" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-indigo-300">
                     <span>📈</span> Tableau de Bord & Stats
                   </Link>
+                  <Link href="/budget" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-emerald-400">
+  <span>💰</span> Simulateur de Budget
+</Link>
                 </div>
               </div>
 
