@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos, kits, rumble et extensions demandées
+// Organisation complète de tous les blocs, promos, kits et extensions (avec les langues forcées en EN là où le FR plante)
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -33,17 +33,17 @@ const POKEMON_BLOCKS = [
       { id: "smp", name: "SM Black Star Promos", lang: "fr" },
       { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
       { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
-      { id: "hgss.p", name: "HGSS Black Star Promos", lang: "en" }, // ✨ Ajouté
+      { id: "hgss.p", name: "HGSS Black Star Promos", lang: "en" },
       { id: "dpp", name: "DP Black Star Promos", lang: "en" },
       { id: "basep", name: "Wizards Black Star Promos", lang: "en" },
-      { id: "mep", name: "Mega-Evolution Black Star Promos", lang: "en" } // ✨ Ajouté
+      { id: "mep", name: "Mega-Evolution Black Star Promos", lang: "en" }
     ]
   },
   {
     blockName: "📦 Hors-Séries, Kits & Spéciales",
     sets: [
-      { id: "det1", name: "Détective Pikachu", lang: "fr" },
-      { id: "rumble", name: "Pokémon Rumble", lang: "en" }, // ✨ Ajouté
+      { id: "det1", name: "Détective Pikachu", lang: "en" }, // 🌍 Forcé en EN pour les images
+      { id: "rumble", name: "Pokémon Rumble", lang: "en" },
       { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
       { id: "xy1tk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
       { id: "xy1tk-cha", name: "Kit du Dresseur XY (Blindépique)", lang: "en" },
@@ -110,7 +110,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Platine",
     sets: [
-      { id: "pl1", name: "Platine de base (FR)", lang: "fr" }, // ✨ Mis à jour
+      { id: "pl1", name: "Platine de base (FR)", lang: "fr" },
       { id: "pl2", name: "Rivaux Émergents (FR)", lang: "fr" },
       { id: "pl3", name: "Vainqueurs Suprêmes (FR)", lang: "fr" },
       { id: "pl4", name: "Arceus (FR)", lang: "fr" }
