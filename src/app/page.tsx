@@ -257,7 +257,10 @@ export default function PokedexPage() {
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  
+  // État pour savoir quelles images ont définitivement planté après tous nos essais
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
   useEffect(() => {
@@ -353,15 +356,45 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  const handleImageError = (cardId: string, currentImg: string) => {
-    if (currentImg && currentImg.includes("/fr/")) {
-      const fallbackUrl = currentImg.replace("/fr/", "/en/");
-      setCards(prevCards => 
-        prevCards.map(c => c.id === cardId ? { ...c, image: fallbackUrl } : c)
-      );
-      return;
+  // La nouvelle fonction ultra puissante pour réparer les images cassées
+  const handleImageError = async (cardId: string, currentImg: string) => {
+    // 1. Si on a déjà essayé de la réparer et que ça a foiré partout, on arrête pour ne pas boucler.
+    if (failedImages[cardId]) return;
+
+    const cardData = cards.find(c => c.id === cardId);
+    if (!cardData) return;
+
+    // 2. Si c'est l'image française originale qui a planté, on tente de scraper Pokécardex.
+    // (On sait qu'elle est originale si l'URL ne vient ni du scraping ni du fallback anglais)
+    if (!currentImg.includes("pokecardex.com") && !currentImg.includes("/en/")) {
+       try {
+          const setId = cardId.split('-')[0];
+          const localId = cardData.localId;
+          
+          // On appelle notre route API Next.js (le robot)
+          const res = await fetch(`/api/scrape-carte?set=${setId}&id=${localId}`);
+          
+          if (res.ok) {
+             const data = await res.json();
+             if (data.imageUrl) {
+                // Succès ! Le robot a trouvé une image, on met à jour la carte.
+                setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: data.imageUrl } : c));
+                return; // On arrête là
+             }
+          }
+       } catch (e) {
+          console.error("Erreur avec le robot scraper pour la carte :", cardId);
+       }
+
+       // 3. Si le scraper a échoué (ou s'il a renvoyé une erreur), on tente la version anglaise en dernier recours.
+       const fallbackUrl = currentImg.replace("/fr/", "/en/");
+       setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: fallbackUrl } : c));
+       return;
     }
-    setImageErrors(prev => ({ ...prev, [cardId]: true }));
+
+    // 4. Si l'image actuelle est DÉJÀ une image scrapée ou anglaise ET qu'elle plante ENCORE,
+    // on abandonne et on marque la carte comme définitivement sans image.
+    setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
   useEffect(() => {
@@ -372,7 +405,8 @@ export default function PokedexPage() {
       setSelectedStatus("ALL");
       setSelectedLanguage("ALL");
       setCurrentGlobalBinderPage(1);
-      setImageErrors({});
+      setFailedImages({}); // On réinitialise les erreurs d'image à chaque chargement de série
+      
       try {
         if (activeSearch) {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${encodeURIComponent(activeSearch)}`);
@@ -910,13 +944,12 @@ export default function PokedexPage() {
     </main>
   );
 
-  // Helper pour rendre chaque carte proprement (le nom de la série n'apparaît QUE dans le classeur global)
   function renderCardItem(card: Card) {
     const cardData = userCollection[card.id];
     const isNormalOwned = cardData?.normalOwned || false;
     const isFoilOwned = cardData?.foilOwned || false;
     const isWishlisted = cardData?.isWishlist || false;
-    const hasError = imageErrors[card.id];
+    const hasError = failedImages[card.id];
 
     const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
     const cardDefaultLang = cardSeries?.lang || "fr";
@@ -933,7 +966,6 @@ export default function PokedexPage() {
         </button>
 
         <div>
-          {/* 💡 Le nom de la série s'affiche uniquement dans le classeur global ("Ma Collection") */}
           {isGlobalBinder && card.seriesName && (
             <div className="text-[10px] text-purple-400 font-semibold mb-2 truncate bg-purple-950/30 px-2 py-0.5 rounded border border-purple-900/30">
               {card.seriesName}
@@ -948,7 +980,9 @@ export default function PokedexPage() {
                 onError={() => handleImageError(card.id, card.image)} 
               />
             ) : (
-              <span className="text-[11px] text-slate-500 italic text-center">Image indisponible</span>
+              <span className="text-[11px] text-slate-500 italic text-center px-4">
+                {hasError ? "Image non trouvée sur TCGdex et Pokécardex" : "Chargement..."}
+              </span>
             )}
           </div>
           <div className="flex justify-between items-start mb-1 gap-1">
