@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
@@ -21,6 +22,36 @@ interface CardDetails {
 }
 
 type UserCollectionJSON = Record<string, CardDetails>;
+
+// 🧠 Le "Cerveau" traducteur pour le Plan B (Pokécardex)
+function getPokecardexUrl(tcgdexSet: string, localId: string): string {
+  let id = tcgdexSet.toLowerCase();
+  
+  const exceptions: Record<string, string> = {
+    'svp': 'PR-SV', 'swshp': 'PR-EB', 'smp': 'PR-SL', 'xyp': 'PR-XY',
+    'bwp': 'PR-NB', 'hsp': 'PR-HS', 'dpp': 'PR-DP', 'basep': 'PR-W',
+    'det1': 'DPK', 'cel25': 'CEL', 'cel25c': 'CEL',
+    'dp1': 'DP', 'dp2': 'MT', 'dp3': 'SW', 'dp4': 'MD', 'dp5': 'LA', 'dp6': 'SF',
+    'pl1': 'PL', 'pl2': 'RR', 'pl3': 'SV', 'pl4': 'AR',
+    'hgss1': 'HS', 'hgss2': 'UL', 'hgss3': 'UD', 'hgss4': 'TM', 'col1': 'CL',
+  };
+  
+  if (exceptions[id]) {
+    id = exceptions[id];
+  } else {
+    id = id.replace(/^sv0/, 'EV').replace(/^sv/, 'EV');
+    id = id.replace(/^swsh/, 'EB').replace(/^sm/, 'SL').replace(/^bw/, 'NB');
+    id = id.toUpperCase();
+  }
+
+  const cleanId = localId.replace(/^0+/, '');
+  const oldBlocks = ['DP', 'MT', 'SW', 'MD', 'LA', 'SF', 'PL', 'RR', 'SV', 'AR', 'HS', 'UL', 'UD', 'TM', 'CL', 'DPK', 'CEL'];
+  
+  if (oldBlocks.includes(id)) {
+    return `https://www.pokecardex.com/assets/images/cartes/${id}/${cleanId}.jpg`;
+  }
+  return `https://www.pokecardex.com/assets/images/cartes/fr/${id}/${cleanId}.jpg`;
+}
 
 // Organisation complète de tous les blocs, promos et extensions
 const POKEMON_BLOCKS = [
@@ -173,7 +204,7 @@ const POKEMON_BLOCKS = [
       { id: "sm12", name: "Éclipse Cosmique (FR)", lang: "fr" }
     ]
   },
-{
+  {
     blockName: "Bloc Épée & Bouclier",
     sets: [
       { id: "swsh1", name: "Épée et Bouclier (FR)", lang: "fr" },
@@ -185,7 +216,7 @@ const POKEMON_BLOCKS = [
       { id: "swsh5", name: "Styles de Combat (FR)", lang: "fr" },
       { id: "swsh6", name: "Règne de Glace (FR)", lang: "fr" },
       { id: "swsh7", name: "Évolution Céleste (FR)", lang: "fr" },
-      { id: "cel25", name: "Célébrations FR)", lang: "fr" },
+      { id: "cel25", name: "Célébrations (FR)", lang: "fr" },
       { id: "swsh8", name: "Poing de Fusion (FR)", lang: "fr" },
       { id: "swsh9", name: "Stars Étincelantes (FR)", lang: "fr" },
       { id: "swsh10", name: "Astres Radieux (FR)", lang: "fr" },
@@ -259,9 +290,7 @@ export default function PokedexPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
   
-  // État pour savoir quelles images ont définitivement planté après tous nos essais
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
-  
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
   useEffect(() => {
@@ -357,44 +386,30 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // La nouvelle fonction ultra puissante pour réparer les images cassées
-  const handleImageError = async (cardId: string, currentImg: string) => {
-    // 1. Si on a déjà essayé de la réparer et que ça a foiré partout, on arrête pour ne pas boucler.
+  // 🛡️ Plan B automatique et infaillible géré par le navigateur
+  const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
     const cardData = cards.find(c => c.id === cardId);
     if (!cardData) return;
 
-    // 2. Si c'est l'image française originale qui a planté, on tente de scraper Pokécardex.
-    // (On sait qu'elle est originale si l'URL ne vient ni du scraping ni du fallback anglais)
-    if (!currentImg.includes("pokecardex.com") && !currentImg.includes("/en/")) {
-       try {
-          const setId = cardId.split('-')[0];
-          const localId = cardData.localId;
-          
-          // On appelle notre route API Next.js (le robot)
-          const res = await fetch(`/api/scrape-carte?set=${setId}&id=${localId}`);
-          
-          if (res.ok) {
-             const data = await res.json();
-             if (data.imageUrl) {
-                // Succès ! Le robot a trouvé une image, on met à jour la carte.
-                setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: data.imageUrl } : c));
-                return; // On arrête là
-             }
-          }
-       } catch (e) {
-          console.error("Erreur avec le robot scraper pour la carte :", cardId);
-       }
-
-       // 3. Si le scraper a échoué (ou s'il a renvoyé une erreur), on tente la version anglaise en dernier recours.
-       const fallbackUrl = currentImg.replace("/fr/", "/en/");
-       setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: fallbackUrl } : c));
-       return;
+    // Étape 1 : Si ce n'est pas encore Pokécardex, on tente Pokécardex
+    if (!currentImg.includes("pokecardex.com")) {
+      const setId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+      const pokecardexUrl = getPokecardexUrl(setId, cardData.localId);
+      
+      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: pokecardexUrl } : c));
+      return;
     }
 
-    // 4. Si l'image actuelle est DÉJÀ une image scrapée ou anglaise ET qu'elle plante ENCORE,
-    // on abandonne et on marque la carte comme définitivement sans image.
+    // Étape 2 : Si Pokécardex a échoué, on tente la version anglaise TCGdex en dernier recours
+    if (!currentImg.includes("/en/")) {
+      const fallbackUrl = currentImg.replace("/fr/", "/en/");
+      setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: fallbackUrl } : c));
+      return;
+    }
+
+    // Étape 3 : Si tout a échoué, on marque la carte comme non trouvée
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
@@ -406,7 +421,7 @@ export default function PokedexPage() {
       setSelectedStatus("ALL");
       setSelectedLanguage("ALL");
       setCurrentGlobalBinderPage(1);
-      setFailedImages({}); // On réinitialise les erreurs d'image à chaque chargement de série
+      setFailedImages({});
       
       try {
         if (activeSearch) {
@@ -573,7 +588,6 @@ export default function PokedexPage() {
   const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
-  // Pagination globale pour le classeur unique (9 cartes par page)
   const itemsPerGlobalPage = 9;
   const totalGlobalPages = Math.ceil(filteredCards.length / itemsPerGlobalPage) || 1;
   const paginatedGlobalCards = isGlobalBinder && binderViewStyle === "pages"
@@ -593,7 +607,7 @@ export default function PokedexPage() {
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div>
             <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-              <h2 className="text-lg font-extrabold text-yellow-400">MENU DE NAVIGATION </h2>
+              <h2 className="text-lg font-extrabold text-yellow-400">MENU DE NAVIGATION</h2>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="space-y-4">
@@ -728,7 +742,7 @@ export default function PokedexPage() {
       <div className="max-w-6xl mx-auto pt-6 md:pt-0">
         <div className="text-center mb-6">
           <h1 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">TON CLASSEUR EN LIGNE POKÉMON !</h1>
-          <p className="text-slate-400 text-sm">Le site internet ultime pour gérer ta collection de cartes. </p>
+          <p className="text-slate-400 text-sm">Le site internet ultime pour gérer ta collection de cartes.</p>
           {(!isGlobalBinder && !activeSearch && isMasterSet && totalCards > 0) && (
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-yellow-500/50 px-4 py-1.5 rounded-full mt-3 shadow-[0_0_15px_rgba(234,179,8,0.3)] animate-pulse">
               <span className="text-yellow-400 font-bold text-sm">👑 MASTER SET VALIDÉ !</span>
@@ -982,7 +996,7 @@ export default function PokedexPage() {
               />
             ) : (
               <span className="text-[11px] text-slate-500 italic text-center px-4">
-                {hasError ? "Image non trouvée sur TCGdex et Pokécardex" : "Chargement..."}
+                {hasError ? "Image non trouvée" : "Chargement..."}
               </span>
             )}
           </div>
