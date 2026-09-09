@@ -579,9 +579,9 @@ export default function PokedexPage() {
                   </Link>
                   <Link href="/analyse-sets" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-amber-300">
                     <span>📊</span> Analyse des Coûts (Full Sets)
+                    </Link>
                     <Link href="/statistiques" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-indigo-300">
                     <span>📈</span> Tableau de Bord & Stats
-                    </Link>
                   </Link>
                 </div>
               </div>
