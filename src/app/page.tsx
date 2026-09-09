@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos et extensions
+// Organisation complète de tous les blocs, promos, kits et extensions
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -39,9 +39,12 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
-    blockName: "📦 Hors-Séries & Spéciales",
+    blockName: "📦 Hors-Séries, Kits & Decks",
     sets: [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
+      { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
+      { id: "xytk", name: "Kit du Dresseur XY", lang: "en" },
+      { id: "smtk", name: "Kit du Dresseur Soleil & Lune", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "en" },
       { id: "pop2", name: "POP Series 2", lang: "en" },
       { id: "pop3", name: "POP Series 3", lang: "en" },
@@ -356,7 +359,7 @@ export default function PokedexPage() {
     setIsSidebarOpen(false);
   };
 
-  // 🛡️ Plan B automatique : Basculement sécurisé sur l'anglais TCGdex avec correction d'ID si besoin
+  // 🛡️ Plan B automatique : Basculement sécurisé sur l'anglais TCGdex avec gestion propre des erreurs
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
@@ -963,9 +966,11 @@ export default function PokedexPage() {
                 onError={() => handleImageError(card.id, card.image)} 
               />
             ) : (
-              <span className="text-[11px] text-slate-500 italic text-center px-4">
-                {hasError ? "Image non trouvée" : "Chargement..."}
-              </span>
+              <div className="flex flex-col items-center justify-center text-center p-2">
+                <span className="text-2xl mb-1">🃏</span>
+                <span className="text-[11px] text-slate-400 font-medium">Image non disponible</span>
+                <span className="text-[9px] text-slate-500">#{card.localId}</span>
+              </div>
             )}
           </div>
           <div className="flex justify-between items-start mb-1 gap-1">
