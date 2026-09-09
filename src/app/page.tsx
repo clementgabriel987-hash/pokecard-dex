@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète avec l'ID "pgo" pour Pokémon GO et tous les kits/spéciales
+// Organisation complète de tous les blocs et séries spéciales
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -43,7 +43,7 @@ const POKEMON_BLOCKS = [
     blockName: "📦 Hors-Séries, Kits & Spéciales",
     sets: [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
-      { id: "pgo", name: "Pokémon GO", lang: "en" }, // 📱 Pokémon GO géré via TCG.io
+      { id: "pgo", name: "Pokémon GO", lang: "en" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
       { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
       { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
@@ -444,7 +444,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes (avec route interne sécurisée pour Pokémon GO et les kits du dresseur via TCG.io)
+  // Chargement des cartes avec routage direct sur TCG.io pour Pokémon GO et les kits
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -455,7 +455,13 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
-      const tcgIoOnlySets = ['pgo', 'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 'tk10a', 'tk10b'];
+      // Liste de toutes les séries qui doivent passer exclusivement par l'API pokemontcg.io
+      const tcgIoOnlySets = [
+        'pgo', 'rumble', 
+        'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
+        'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 
+        'tk10a', 'tk10b'
+      ];
 
       try {
         if (activeSearch) {
@@ -504,9 +510,10 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
-          // 🚀 Route API interne Next.js pour Pokémon GO et les kits du dresseur
+          // 🚀 ROUTAGE DIRECT ET EXCLUSIF SUR pokemontcg.io (via notre route proxy /api/pokemon)
           const setMapCode: Record<string, string> = {
             'pgo': 'pgo',
+            'rumble': 'ru1',
             'tk1a': 'tk1', 'tk1b': 'tk1',
             'tk2a': 'tk2', 'tk2b': 'tk2',
             'tk3a': 'tk3', 'tk3b': 'tk3',
@@ -515,7 +522,7 @@ export default function PokedexPage() {
             'tk6a': 'tk6', 'tk6b': 'tk6',
             'tk10a': 'sm35tk', 'tk10b': 'sm35tk'
           };
-          const apiCode = setMapCode[selectedSeriesId];
+          const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
           const json = await res.json();
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
@@ -536,6 +543,7 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
+          // Pour toutes les autres séries classiques, on utilise TCGdex normalement
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
