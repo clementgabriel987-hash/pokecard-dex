@@ -27,12 +27,12 @@ const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Bloc Promos & Hors-Séries ( EN DEV..)",
     sets: [
-      { id: "svp", name: "Scarlet & Violet Promos", lang: "io" },
-      { id: "swshp", name: "SWSH Black Star Promos", lang: "io" },
-      { id: "smp", name: "SM Black Star Promos", lang: "io" },
-      { id: "xyp", name: "XY Black Star Promos", lang: "io" },
-      { id: "bwp", name: "BW Black Star Promos", lang: "io" },
-      { id: "hsp", name: "HGSS Black Star Promos", lang: "io" }
+      { id: "svp", name: "Scarlet & Violet Promos", lang: "fr" },
+      { id: "swshp", name: "SWSH Black Star Promos", lang: "fr" },
+      { id: "smp", name: "SM Black Star Promos", lang: "fr" },
+      { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
+      { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
+      { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" }
     ]
   },
   {
