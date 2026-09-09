@@ -34,7 +34,6 @@ export async function GET(request: Request) {
   const cleanId = localId.replace(/^0+/, '');
 
   try {
-    // ÉTAPE 1 : On va sur la page de la série (ex: https://www.pokecardex.com/series/MD pour Aube Majestueuse / DP4)
     const seriesUrl = `https://www.pokecardex.com/series/${pkxSetId}`;
     
     const response = await fetch(seriesUrl, {
@@ -51,36 +50,29 @@ export async function GET(request: Request) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    let cardImageUrl: string | null = null;
+    // ✅ On type explicitement la variable en string pour éviter l'erreur TypeScript
+    let cardImageUrl: string = '';
 
-    // ÉTAPE 2 : On cherche dans la page de la série le lien qui correspond à notre carte (ex: numéro 130)
-    // Sur Pokécardex, les vignettes ou les liens ont souvent le numéro de la carte dans leur texte ou leur structure
     $('a').each((i, el) => {
       const href = $(el).attr('href') || '';
       const text = $(el).text().trim();
       
-      // Si le lien mène vers une carte (/carte/XXXX) et que le texte correspond au numéro de la carte
       if (href.startsWith('/carte/') && (text === cleanId || text === localId)) {
-        // On a trouvé le lien de la carte (ex: /carte/3568) ! 
-        // L'image est généralement juste à côté ou dans ce bloc.
-        const img = $(el).find('img').attr('src') || $(el).closest('.card-container, .card, li, div').find('img').attr('src');
+        const img = $(el).find('img').attr('src') || $(el).closest('.card-container, .card, li, div').find('img').attr('src') || '';
         if (img) {
           cardImageUrl = img;
-          return false; // Stop la boucle
+          return false; 
         }
       }
     });
 
-    // Si on a trouvé l'image via la liste de la série
-    if (cardImageUrl) {
+    if (cardImageUrl.length > 0) {
       if (cardImageUrl.startsWith('/')) {
         cardImageUrl = `https://www.pokecardex.com${cardImageUrl}`;
       }
       return NextResponse.json({ imageUrl: cardImageUrl });
     }
 
-    // ÉTAPE 3 (Secours direct) : Si le lien direct de l'image est introuvable par le texte, 
-    // on renvoie une structure de repli propre.
     return NextResponse.json({ error: 'Image non indexée' }, { status: 404 });
 
   } catch (error) {
