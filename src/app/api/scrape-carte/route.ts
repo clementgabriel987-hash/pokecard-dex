@@ -18,6 +18,7 @@ function translateSetId(tcgdexId: string): string {
     'dpp': 'PR-DP', 
     'basep': 'PR-W',
     'det1': 'DET', 
+    'cel25': 'CEL', // Célébrations
     
     // Bloc Diamant & Perle (Pokécardex utilise les abréviations US)
     'dp1': 'DP',   // Diamant & Perle de base
