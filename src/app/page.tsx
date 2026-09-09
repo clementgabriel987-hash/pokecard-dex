@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète de tous les blocs, promos, kits et extensions (avec dv1 corrigé)
+// Organisation complète de tous les blocs, promos, kits, rumble et extensions demandées
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -33,18 +33,20 @@ const POKEMON_BLOCKS = [
       { id: "smp", name: "SM Black Star Promos", lang: "fr" },
       { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
       { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
-      { id: "hsp", name: "HGSS Black Star Promos", lang: "fr" },
+      { id: "hgss.p", name: "HGSS Black Star Promos", lang: "en" }, // ✨ Ajouté
       { id: "dpp", name: "DP Black Star Promos", lang: "en" },
-      { id: "basep", name: "Wizards Black Star Promos", lang: "en" }
+      { id: "basep", name: "Wizards Black Star Promos", lang: "en" },
+      { id: "mep", name: "Mega-Evolution Black Star Promos", lang: "en" } // ✨ Ajouté
     ]
   },
   {
-    blockName: "📦 Hors-Séries, Kits & Decks",
+    blockName: "📦 Hors-Séries, Kits & Spéciales",
     sets: [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
+      { id: "rumble", name: "Pokémon Rumble", lang: "en" }, // ✨ Ajouté
       { id: "bwtk", name: "Kit du Dresseur Noir & Blanc", lang: "en" },
-      { id: "xytk", name: "Kit du Dresseur XY", lang: "en" },
-      { id: "smtk", name: "Kit du Dresseur Soleil & Lune", lang: "en" },
+      { id: "xy1tk-klo", name: "Kit du Dresseur XY (Goupelin)", lang: "en" },
+      { id: "xy1tk-cha", name: "Kit du Dresseur XY (Blindépique)", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "en" },
       { id: "pop2", name: "POP Series 2", lang: "en" },
       { id: "pop3", name: "POP Series 3", lang: "en" },
@@ -108,7 +110,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Platine",
     sets: [
-      { id: "pl1", name: "Platine (FR)", lang: "fr" },
+      { id: "pl1", name: "Platine de base (FR)", lang: "fr" }, // ✨ Mis à jour
       { id: "pl2", name: "Rivaux Émergents (FR)", lang: "fr" },
       { id: "pl3", name: "Vainqueurs Suprêmes (FR)", lang: "fr" },
       { id: "pl4", name: "Arceus (FR)", lang: "fr" }
@@ -133,7 +135,7 @@ const POKEMON_BLOCKS = [
       { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
       { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
       { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
-      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" }, // 🐉 ID corrigé en 'dv1'
+      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" },
       { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
       { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
       { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
@@ -312,7 +314,6 @@ export default function PokedexPage() {
     URL.revokeObjectURL(url);
   };
 
-  // 🔄 Importation intelligente en mode FUSION (Merge) pour ne rien perdre
   const importCollectionJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return alert("Connecte-toi et sélectionne un JSON.");
@@ -341,7 +342,7 @@ export default function PokedexPage() {
 
         setUserCollection(mergedCollection);
         await supabase.from("user_data").upsert({ id: currentUser.id, collection: mergedCollection });
-        alert("Fusion et importation réussies ! Tes anciennes et nouvelles cartes sont combinées. 🎉");
+        alert("Fusion et importation réussies ! Tes cartes ont été combinées sans perte. 🎉");
       } catch (err) {
         alert("Fichier JSON invalide.");
       }
