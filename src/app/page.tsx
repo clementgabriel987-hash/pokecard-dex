@@ -173,7 +173,7 @@ const POKEMON_BLOCKS = [
       { id: "sm12", name: "Éclipse Cosmique (FR)", lang: "fr" }
     ]
   },
-  {
+{
     blockName: "Bloc Épée & Bouclier",
     sets: [
       { id: "swsh1", name: "Épée et Bouclier (FR)", lang: "fr" },
@@ -185,7 +185,9 @@ const POKEMON_BLOCKS = [
       { id: "swsh5", name: "Styles de Combat (FR)", lang: "fr" },
       { id: "swsh6", name: "Règne de Glace (FR)", lang: "fr" },
       { id: "swsh7", name: "Évolution Céleste (FR)", lang: "fr" },
-      { id: "swsh8", name: "Célébrations (FR)", lang: "fr" },
+      { id: "cel25", name: "Célébrations (FR)", lang: "fr" },
+      { id: "cel25c", name: "Célébrations : Classique (FR)", lang: "fr" },
+      { id: "swsh8", name: "Poing de Fusion (FR)", lang: "fr" },
       { id: "swsh9", name: "Stars Étincelantes (FR)", lang: "fr" },
       { id: "swsh10", name: "Astres Radieux (FR)", lang: "fr" },
       { id: "swsh11", name: "Origine Perdue (FR)", lang: "fr" },
