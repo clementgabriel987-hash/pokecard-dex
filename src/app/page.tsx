@@ -124,7 +124,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Diamant & Perle",
     sets: [
-      { id: "dp1", name: "Diamant & Perle (FR)", lang: "fr" },
+      { id: "dp1", name: "Diamant & Perle (FR)", lang: "en" }, // ✨ DP1 basculé sur TCG.io pour les images
       { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
       { id: "dp3", name: "Merveilles Secrètes (FR)", lang: "fr" },
       { id: "dp4", name: "Aube Majestueuse (FR)", lang: "fr" },
@@ -425,7 +425,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes avec routage direct et correct sur pokemontcg.io
+  // Chargement des cartes avec DP1 inclus dans les sets exclusifs TCG.io
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -437,6 +437,7 @@ export default function PokedexPage() {
       setFailedImages({});
       
       const tcgIoOnlySets = [
+        'dp1', // ✨ DP1 ajouté ici
         'pgo', 'rumble', 
         'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
         'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 
@@ -492,8 +493,9 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
-          // 🚀 Mappage précis des IDs officiels pour pokemontcg.io (McDonald's utilise souvent des codes de type mcd22, mcd12, etc.)
+          // Routage vers pokemontcg.io via la route proxy pour DP1, McDo, Kits, etc.
           const setMapCode: Record<string, string> = {
+            'dp1': 'dp1', // ✨ Code exact DP1 sur pokemontcg.io
             'pgo': 'pgo',
             'rumble': 'ru1',
             'tk1a': 'tk1', 'tk1b': 'tk1',
