@@ -45,7 +45,6 @@ const POKEMON_BLOCKS = [
       { id: "det1", name: "Détective Pikachu", lang: "fr" },
       { id: "pgo", name: "Pokémon GO", lang: "en" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
-      // Kits du Dresseur
       { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
       { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
       { id: "tk2a", name: "EX Trainer Kit 2 - Plusle", lang: "en" },
@@ -61,7 +60,6 @@ const POKEMON_BLOCKS = [
       { id: "tk10a", name: "SM Trainer Kit - Lycanroc", lang: "en" },
       { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" },
       { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" },
-      // Collections McDonald's
       { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
       { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
       { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
@@ -74,7 +72,6 @@ const POKEMON_BLOCKS = [
       { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
       { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
       { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
-      // POP Series
       { id: "pop1", name: "POP Series 1", lang: "fr" },
       { id: "pop2", name: "POP Series 2", lang: "fr" },
       { id: "pop3", name: "POP Series 3", lang: "fr" },
@@ -262,6 +259,9 @@ const POKEMON_BLOCKS = [
 
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
+// 🚀 Objet cache global en mémoire pour stocker les séries déjà téléchargées
+const seriesCache: Record<string, Card[]> = {};
+
 export default function PokedexPage() {
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
@@ -425,10 +425,9 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes avec routage TCG.io et Lazy Loading des images
+  // Chargement des cartes optimisé avec le CACHE LOCAL ⚡
   useEffect(() => {
     async function fetchCards() {
-      setLoading(true);
       setSelectedIllustrator("ALL");
       setSelectedRarity("ALL");
       setSelectedStatus("ALL");
@@ -436,6 +435,16 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
+      // 1. Si la série est déjà dans le cache, on l'affiche instantanément !
+      if (!activeSearch && !isGlobalBinder && seriesCache[selectedSeriesId]) {
+        setCards(seriesCache[selectedSeriesId]);
+        extractFilters(seriesCache[selectedSeriesId]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
       const tcgIoOnlySets = [
         'dp1', 'pgo', 'rumble', 
         'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
@@ -493,15 +502,10 @@ export default function PokedexPage() {
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
           const setMapCode: Record<string, string> = {
-            'dp1': 'dp1',
-            'pgo': 'pgo',
-            'rumble': 'ru1',
-            'tk1a': 'tk1', 'tk1b': 'tk1',
-            'tk2a': 'tk2', 'tk2b': 'tk2',
-            'tk3a': 'tk3', 'tk3b': 'tk3',
-            'tk4a': 'tk4', 'tk4b': 'tk4',
-            'tk5a': 'tk5', 'tk5b': 'tk5',
-            'tk6a': 'tk6', 'tk6b': 'tk6',
+            'dp1': 'dp1', 'pgo': 'pgo', 'rumble': 'ru1',
+            'tk1a': 'tk1', 'tk1b': 'tk1', 'tk2a': 'tk2', 'tk2b': 'tk2',
+            'tk3a': 'tk3', 'tk3b': 'tk3', 'tk4a': 'tk4', 'tk4b': 'tk4',
+            'tk5a': 'tk5', 'tk5b': 'tk5', 'tk6a': 'tk6', 'tk6b': 'tk6',
             'tk10a': 'sm35tk', 'tk10b': 'sm35tk',
             'mcd11': 'mcd11', 'mcd12': 'mcd12', 'mcd14': 'mcd14', 'mcd15': 'mcd15',
             'mcd16': 'mcd16', 'mcd17': 'mcd17', 'mcd18': 'mcd18', 'mcd19': 'mcd19',
@@ -522,6 +526,7 @@ export default function PokedexPage() {
               rarity: c.rarity || "Commune",
               seriesName: currentSeries?.name
             }));
+            seriesCache[selectedSeriesId] = formatted; // 💾 Sauvegarde dans le cache
             setCards(formatted);
             extractFilters(formatted);
           } else {
@@ -548,6 +553,7 @@ export default function PokedexPage() {
               } catch {}
               return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName: currentSeries?.name };
             }));
+            seriesCache[selectedSeriesId] = formattedCards; // 💾 Sauvegarde dans le cache
             setCards(formattedCards);
             extractFilters(formattedCards);
           } else setCards([]);
@@ -1050,8 +1056,8 @@ export default function PokedexPage() {
                 src={card.image} 
                 alt={card.name} 
                 className="h-32 md:h-42 object-contain drop-shadow-md" 
-                loading="lazy" // 🚀 Lazy loading natif activé ici !
-                decoding="async" // 🚀 Décodage asynchrone pour fluidifier le scroll
+                loading="lazy" 
+                decoding="async" 
                 onError={() => handleImageError(card.id, card.image)} 
               />
             ) : (
