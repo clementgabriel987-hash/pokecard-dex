@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Blocs organisés avec HGSS Promos pris en charge
+// Blocs organisés
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -247,7 +247,6 @@ const POKEMON_BLOCKS = [
 
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
-// Séries assignées exclusivement à pokemontcg.io (avec HGSS Black Star Promos)
 const TCG_IO_ONLY_SETS = [
   'dp1', 'pgo', 'rumble', 'det1', 'hgss.p',
   'mcd11', 'mcd12', 'mcd14', 'mcd15', 'mcd16', 'mcd17', 
@@ -422,6 +421,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
+  // Chargement ultra-optimisé ⚡
   useEffect(() => {
     async function fetchCards() {
       setSelectedIllustrator("ALL");
@@ -430,29 +430,100 @@ export default function PokedexPage() {
       setSelectedLanguage("ALL");
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
-      
-      const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
 
-      // Lecture du sessionStorage
-      if (!activeSearch && !isGlobalBinder) {
-        const cachedData = sessionStorage.getItem(cacheKey);
-        if (cachedData) {
-          try {
-            const parsedCards = JSON.parse(cachedData);
-            if (Array.isArray(parsedCards) && parsedCards.length > 0) {
-              setCards(parsedCards);
-              extractFilters(parsedCards);
-              setLoading(false);
-              return;
-            }
-          } catch (e) {}
+      // 🚀 1. MODE CLASSEUR GLOBAL : ULTRA RAPIDE
+      if (isGlobalBinder) {
+        if (!currentUser) { setCards([]); setLoading(false); return; }
+
+        const ownedCardIds = Object.keys(userCollection).filter(
+          id => userCollection[id]?.normalOwned || userCollection[id]?.foilOwned
+        );
+
+        if (ownedCardIds.length === 0) {
+          setCards([]);
+          setLoading(false);
+          return;
         }
+
+        setLoading(true);
+
+        // On identifie uniquement les séries dont l'utilisateur possède au moins une carte
+        const relevantSeries = ALL_FLAT_SERIES.filter(series => {
+          return ownedCardIds.some(cardId => cardId.startsWith(`${series.id}-`));
+        });
+
+        // Téléchargement / Extraction des cartes en parallèle
+        const seriesPromises = relevantSeries.map(async (series) => {
+          const cacheKey = `pokedex_series_v4_${series.id}`;
+          let seriesCards: Card[] = [];
+
+          // Vérification dans le cache sessionStorage d'abord (0ms)
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            try {
+              seriesCards = JSON.parse(cached);
+            } catch (e) {}
+          }
+
+          // Si non présent dans le cache, requête ciblée
+          if (!seriesCards || seriesCards.length === 0) {
+            try {
+              if (TCG_IO_ONLY_SETS.includes(series.id)) {
+                const apiCode = series.id === 'hgss.p' ? 'hsp' : (series.id === 'rumble' ? 'ru1' : series.id);
+                const res = await fetch(`/api/pokemon?set=${apiCode}`);
+                if (res.ok) {
+                  const json = await res.json();
+                  if (json && Array.isArray(json.data)) {
+                    seriesCards = json.data.map((c: any) => ({
+                      id: `${series.id}-${c.number}`,
+                      name: c.name,
+                      localId: c.number,
+                      image: c.images?.large || c.images?.small || "",
+                      illustrator: c.artist || "Inconnu",
+                      rarity: c.rarity || "Commune",
+                      seriesName: series.name
+                    }));
+                    sessionStorage.setItem(cacheKey, JSON.stringify(seriesCards));
+                  }
+                }
+              } else {
+                const res = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data && Array.isArray(data.cards)) {
+                    seriesCards = data.cards.map((c: any) => ({
+                      id: c.id,
+                      name: c.name || "Inconnue",
+                      localId: c.localId || "?",
+                      image: c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${c.localId}/high.png`,
+                      illustrator: "Inconnu",
+                      rarity: "Inconnue",
+                      seriesName: series.name
+                    }));
+                    sessionStorage.setItem(cacheKey, JSON.stringify(seriesCards));
+                  }
+                }
+              }
+            } catch (err) {}
+          }
+
+          // On filtre uniquement les cartes possédées
+          return (seriesCards || []).filter(c => ownedCardIds.includes(c.id));
+        });
+
+        const results = await Promise.all(seriesPromises);
+        const allOwnedCards = results.flat();
+
+        setCards(allOwnedCards);
+        extractFilters(allOwnedCards);
+        setLoading(false);
+        return;
       }
 
-      setLoading(true);
-
-      try {
-        if (activeSearch) {
+      // 🚀 2. MODE RECHERCHE
+      if (activeSearch) {
+        setLoading(true);
+        try {
           const response = await fetch(`https://api.tcgdex.net/v2/fr/cards?name=${encodeURIComponent(activeSearch)}`);
           if (!response.ok) throw new Error();
           const data = await response.json();
@@ -473,74 +544,38 @@ export default function PokedexPage() {
             setCards(formatted);
             extractFilters(formatted);
           } else setCards([]);
-        } else if (isGlobalBinder) {
-          if (!currentUser) { setCards([]); setLoading(false); return; }
-          const ownedCardIds = Object.keys(userCollection).filter(id => userCollection[id]?.normalOwned || userCollection[id]?.foilOwned);
-          let globalCards: Card[] = [];
-          for (const series of ALL_FLAT_SERIES) {
-            try {
-              if (TCG_IO_ONLY_SETS.includes(series.id)) {
-                const res = await fetch(`/api/pokemon?set=${series.id === 'hgss.p' ? 'hsp' : series.id}`);
-                if (!res.ok) continue;
-                const json = await res.json();
-                if (json && json.data) {
-                  for (const c of json.data) {
-                    const customId = `${series.id}-${c.number}`;
-                    if (ownedCardIds.includes(customId)) {
-                      globalCards.push({
-                        id: customId,
-                        name: c.name || "Inconnue",
-                        localId: c.number || "?",
-                        image: c.images?.large || c.images?.small || "",
-                        illustrator: c.artist || "Inconnu",
-                        rarity: c.rarity || "Commune",
-                        seriesName: series.name
-                      });
-                    }
-                  }
-                }
-              } else {
-                const response = await fetch(`https://api.tcgdex.net/v2/${series.lang}/sets/${series.id}`);
-                if (!response.ok) continue;
-                const data = await response.json();
-                if (data && data.cards) {
-                  for (const card of data.cards) {
-                    if (ownedCardIds.includes(card.id)) {
-                      globalCards.push({
-                        id: card.id,
-                        name: card.name || "Inconnue",
-                        localId: card.localId || "?",
-                        image: card.image ? `${card.image}/high.png` : "",
-                        illustrator: card.illustrator || "Inconnu",
-                        rarity: card.rarity || "Inconnue",
-                        seriesName: series.name
-                      });
-                    }
-                  }
-                }
-              }
-            } catch {}
+        } catch {
+          setCards([]);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // 🚀 3. MODE AFFICHAGE D'UNE SÉRIE SIMPLE
+      const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      if (cachedData) {
+        try {
+          const parsedCards = JSON.parse(cachedData);
+          if (Array.isArray(parsedCards) && parsedCards.length > 0) {
+            setCards(parsedCards);
+            extractFilters(parsedCards);
+            setLoading(false);
+            return;
           }
-          setCards(globalCards);
-          extractFilters(globalCards);
-        } else if (TCG_IO_ONLY_SETS.includes(selectedSeriesId)) {
-          // ROUTAGE EXCLUSIF POKEMONTCG.IO
+        } catch (e) {}
+      }
+
+      setLoading(true);
+
+      try {
+        if (TCG_IO_ONLY_SETS.includes(selectedSeriesId)) {
           const setMapCode: Record<string, string> = {
-            'dp1': 'dp1',
-            'pgo': 'pgo',
-            'rumble': 'ru1',
-            'det1': 'det1',
-            'hgss.p': 'hsp', // Code officiel sur pokemontcg.io
-            'mcd11': 'mcd11',
-            'mcd12': 'mcd12',
-            'mcd14': 'mcd14',
-            'mcd15': 'mcd15',
-            'mcd16': 'mcd16',
-            'mcd17': 'mcd17',
-            'mcd18': 'mcd18',
-            'mcd19': 'mcd19',
-            'mcd21': 'mcd21',
-            'mcd22': 'mcd22'
+            'dp1': 'dp1', 'pgo': 'pgo', 'rumble': 'ru1', 'det1': 'det1', 'hgss.p': 'hsp',
+            'mcd11': 'mcd11', 'mcd12': 'mcd12', 'mcd14': 'mcd14', 'mcd15': 'mcd15',
+            'mcd16': 'mcd16', 'mcd17': 'mcd17', 'mcd18': 'mcd18', 'mcd19': 'mcd19',
+            'mcd21': 'mcd21', 'mcd22': 'mcd22'
           };
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
@@ -564,7 +599,6 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
-          // AUTRES SÉRIES : APPEL TCGDEX
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
