@@ -707,11 +707,10 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // CALCUL RAPIDE DU FULL SET VIA NOTRE ROUTE API /api/tcg-prices (TCGplayer / TCGCSV)
+  // CALCUL PRÉCIS DU FULL SET AVEC FALLBACK INTELLIGENT PAR NUMÉRO
   const calculateRealMissingCost = async () => {
     if (cards.length === 0 || isCalculatingCost) return;
 
-    // Cartes manquantes : 0 exemplaire (ni normale ni foil)
     const missingCards = cards.filter(c => {
       const cData = userCollection[c.id];
       return !cData?.normalOwned && !cData?.foilOwned;
@@ -728,8 +727,11 @@ export default function PokedexPage() {
     try {
       const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
       const res = await fetch(`/api/tcg-prices?set=${selectedSeriesId}&name=${encodeURIComponent(currentSeries?.name || "")}`);
-      const data = await res.json();
-      const tcgPrices: Record<string, number> = data?.prices || {};
+      let tcgPrices: Record<string, number> = {};
+      if (res.ok) {
+        const data = await res.json();
+        tcgPrices = data?.prices || {};
+      }
 
       let totalCost = 0;
 
@@ -738,31 +740,37 @@ export default function PokedexPage() {
         const cleanNum = localNum.replace(/^0+/, "");
         const cardName = card.name?.toLowerCase() || "";
         const cleanId = card.id?.toLowerCase() || "";
-        const rarity = (card.rarity || "").toLowerCase();
+        const numInt = parseInt(cleanNum, 10);
 
         // 1. Recherche du prix direct TCGplayer
         let price = tcgPrices[localNum] || tcgPrices[cleanNum] || tcgPrices[cardName];
 
-        // 2. Si non trouvé dans l'export TCGplayer, fallback intelligent
+        // 2. Barème si non coté sur TCGplayer
         if (!price || price <= 0) {
-          // Cas spécifique Nuit Noire : Darkrai SAR
-          if (cleanId.startsWith("me05") && cardName.includes("darkrai")) {
-            const isSecret = rarity.includes("sar") || rarity.includes("special") || rarity.includes("hyper") || rarity.includes("gold");
-            price = isSecret ? 300.0 : 4.0;
-          } else if (cleanId.startsWith("pop")) {
-            price = rarity.includes("rare") ? 25.0 : 3.0;
-          } else if (rarity.includes("special art") || rarity.includes("sar") || rarity.includes("hyper") || rarity.includes("gold")) {
-            price = 28.0;
-          } else if (rarity.includes("illustration") || rarity.includes("ar")) {
-            price = 6.0;
-          } else if (rarity.includes("ultra") || rarity.includes("ex") || rarity.includes("v")) {
-            price = 2.5;
-          } else if (rarity.includes("holo") || rarity.includes("rare")) {
-            price = 0.8;
-          } else if (rarity.includes("uncommon") || rarity.includes("peu commune")) {
-            price = 0.35;
-          } else {
-            price = 0.20;
+          // --- NUIT NOIRE (ME05) ---
+          if (cleanId.startsWith("me05")) {
+            const isSecretNumber = !isNaN(numInt) && numInt > 84;
+
+            if (cardName.includes("darkrai")) {
+              price = isSecretNumber ? 300.0 : 4.0;
+            } else if (isSecretNumber) {
+              price = numInt >= 114 ? 35.0 : 8.0;
+            } else {
+              price = 0.30;
+            }
+          } 
+          // --- SÉRIES POP ---
+          else if (cleanId.startsWith("pop")) {
+            const isPopRare = cardName.includes("star") || cardName.includes("ex") || (card.rarity && card.rarity.toLowerCase().includes("rare"));
+            price = isPopRare ? 35.0 : 2.50;
+          } 
+          // --- AUTRES SÉRIES (EV, SWSH...) ---
+          else {
+            if (!isNaN(numInt) && numInt > 160) {
+              price = 15.0;
+            } else {
+              price = 0.25;
+            }
           }
         }
 
