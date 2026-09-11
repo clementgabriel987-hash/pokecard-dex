@@ -23,10 +23,13 @@ interface Card {
       avg?: number;
       trend?: number;
       low?: number;
+      avg30?: number;
+      "avg-holo"?: number;
     };
     tcgplayer?: {
-      marketPrice?: number;
-      midPrice?: number;
+      normal?: { marketPrice?: number; midPrice?: number };
+      reverse?: { marketPrice?: number };
+      holofoil?: { marketPrice?: number };
     };
   };
 }
@@ -262,13 +265,13 @@ const POKEMON_BLOCKS = [
   }
 ];
 
-const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
+const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap((b) => b.sets);
 
 // Séries assignées exclusivement à pokemontcg.io
 const TCG_IO_ONLY_SETS = [
-  'dp1', 'pgo', 'rumble', 'det1', 'hgss.p',
-  'mcd11', 'mcd12', 'mcd14', 'mcd15', 'mcd16', 'mcd17', 
-  'mcd18', 'mcd19', 'mcd21', 'mcd22'
+  "dp1", "pgo", "rumble", "det1", "hgss.p",
+  "mcd11", "mcd12", "mcd14", "mcd15", "mcd16", "mcd17", 
+  "mcd18", "mcd19", "mcd21", "mcd22"
 ];
 
 export default function PokedexPage() {
@@ -303,7 +306,7 @@ export default function PokedexPage() {
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
-  // État du calculateur de coût pour le Full Set (via TCGCSV / TCGplayer)
+  // Calcul du Full Set via l'API officielle TCGdex (à la demande)
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
@@ -429,25 +432,25 @@ export default function PokedexPage() {
   const handleImageError = (cardId: string, currentImg: string) => {
     if (failedImages[cardId]) return;
 
-    const cardData = cards.find(c => c.id === cardId);
+    const cardData = cards.find((c) => c.id === cardId);
     if (!cardData) return;
 
-    const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
+    const targetSeriesId = isGlobalBinder ? cardId.split("-")[0] : selectedSeriesId;
 
     if (TCG_IO_ONLY_SETS.includes(targetSeriesId)) {
-      setFailedImages(prev => ({ ...prev, [cardId]: true }));
+      setFailedImages((prev) => ({ ...prev, [cardId]: true }));
       return;
     }
 
-    if (targetSeriesId.startsWith('me')) {
+    if (targetSeriesId.startsWith("me")) {
       if (!currentImg.includes("/en/")) {
         const englishUrl = `https://assets.tcgdex.net/en/${targetSeriesId}/${cardData.localId}/high.png`;
-        setCards(prevCards => prevCards.map(c => c.id === cardId ? { ...c, image: englishUrl } : c));
+        setCards((prevCards) => prevCards.map((c) => (c.id === cardId ? { ...c, image: englishUrl } : c)));
         return;
       }
     }
 
-    setFailedImages(prev => ({ ...prev, [cardId]: true }));
+    setFailedImages((prev) => ({ ...prev, [cardId]: true }));
   };
 
   useEffect(() => {
@@ -464,7 +467,7 @@ export default function PokedexPage() {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
         const ownedCardIds = Object.keys(userCollection).filter(
-          id => userCollection[id]?.normalOwned || userCollection[id]?.foilOwned
+          (id) => userCollection[id]?.normalOwned || userCollection[id]?.foilOwned
         );
 
         if (ownedCardIds.length === 0) {
@@ -475,8 +478,8 @@ export default function PokedexPage() {
 
         setLoading(true);
 
-        const relevantSeries = ALL_FLAT_SERIES.filter(series => {
-          return ownedCardIds.some(cardId => cardId.startsWith(`${series.id}-`));
+        const relevantSeries = ALL_FLAT_SERIES.filter((series) => {
+          return ownedCardIds.some((cardId) => cardId.startsWith(`${series.id}-`));
         });
 
         const seriesPromises = relevantSeries.map(async (series) => {
@@ -493,7 +496,7 @@ export default function PokedexPage() {
           if (!seriesCards || seriesCards.length === 0) {
             try {
               if (TCG_IO_ONLY_SETS.includes(series.id)) {
-                const apiCode = series.id === 'hgss.p' ? 'hsp' : (series.id === 'rumble' ? 'ru1' : series.id);
+                const apiCode = series.id === "hgss.p" ? "hsp" : (series.id === "rumble" ? "ru1" : series.id);
                 const res = await fetch(`/api/pokemon?set=${apiCode}`);
                 if (res.ok) {
                   const json = await res.json();
@@ -532,7 +535,7 @@ export default function PokedexPage() {
             } catch (err) {}
           }
 
-          return (seriesCards || []).filter(c => ownedCardIds.includes(c.id));
+          return (seriesCards || []).filter((c) => ownedCardIds.includes(c.id));
         });
 
         const results = await Promise.all(seriesPromises);
@@ -596,15 +599,15 @@ export default function PokedexPage() {
       try {
         if (TCG_IO_ONLY_SETS.includes(selectedSeriesId)) {
           const setMapCode: Record<string, string> = {
-            'dp1': 'dp1', 'pgo': 'pgo', 'rumble': 'ru1', 'det1': 'det1', 'hgss.p': 'hsp',
-            'mcd11': 'mcd11', 'mcd12': 'mcd12', 'mcd14': 'mcd14', 'mcd15': 'mcd15',
-            'mcd16': 'mcd16', 'mcd17': 'mcd17', 'mcd18': 'mcd18', 'mcd19': 'mcd19',
-            'mcd21': 'mcd21', 'mcd22': 'mcd22'
+            dp1: "dp1", pgo: "pgo", rumble: "ru1", det1: "det1", "hgss.p": "hsp",
+            mcd11: "mcd11", mcd12: "mcd12", mcd14: "mcd14", mcd15: "mcd15",
+            mcd16: "mcd16", mcd17: "mcd17", mcd18: "mcd18", mcd19: "mcd19",
+            mcd21: "mcd21", mcd22: "mcd22"
           };
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
           const json = await res.json();
-          const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
+          const currentSeries = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId);
 
           if (json && Array.isArray(json.data) && json.data.length > 0) {
             const formatted = json.data.map((c: any) => ({
@@ -624,7 +627,7 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
-          const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
+          const currentSeries = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
           if (!response.ok) { setCards([]); setLoading(false); return; }
@@ -656,7 +659,7 @@ export default function PokedexPage() {
   const extractFilters = (cardList: Card[]) => {
     const illsets = new Set<string>();
     const raritiesSet = new Set<string>();
-    cardList.forEach(c => {
+    cardList.forEach((c) => {
       if (c.illustrator && c.illustrator !== "Inconnu") illsets.add(c.illustrator);
       if (c.rarity && c.rarity !== "Inconnue") raritiesSet.add(c.rarity);
     });
@@ -664,12 +667,12 @@ export default function PokedexPage() {
     setRaritiesList(Array.from(raritiesSet).sort());
   };
 
-  const toggleCardOwnership = async (id: string, type: 'normal' | 'foil', cardDefaultLang: string) => {
+  const toggleCardOwnership = async (id: string, type: "normal" | "foil", cardDefaultLang: string) => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
     const newCollection = { ...userCollection };
     if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, langs: [cardDefaultLang] };
     
-    if (type === 'normal') newCollection[id].normalOwned = !newCollection[id].normalOwned;
+    if (type === "normal") newCollection[id].normalOwned = !newCollection[id].normalOwned;
     else newCollection[id].foilOwned = !newCollection[id].foilOwned;
     
     if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
@@ -684,7 +687,7 @@ export default function PokedexPage() {
 
     let currentLangs = newCollection[id].langs || [defaultLang];
     if (currentLangs.includes(langToToggle)) {
-      currentLangs = currentLangs.filter(l => l !== langToToggle);
+      currentLangs = currentLangs.filter((l) => l !== langToToggle);
       if (currentLangs.length === 0) currentLangs = [defaultLang];
     } else {
       currentLangs.push(langToToggle);
@@ -707,11 +710,12 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // CALCUL PRÉCIS DU FULL SET AVEC FALLBACK INTELLIGENT PAR NUMÉRO
+  // CALCUL STRICT VIA L'API GRATUITE TCGDEX (AUCUN CALCUL APPROXIMATIF INVENTÉ)
+  // Full Set : possède au moins 1 version (normale OU foil). Seules les cartes à 0 exemplaire sont interrogées.
   const calculateRealMissingCost = async () => {
     if (cards.length === 0 || isCalculatingCost) return;
 
-    const missingCards = cards.filter(c => {
+    const missingCards = cards.filter((c) => {
       const cData = userCollection[c.id];
       return !cData?.normalOwned && !cData?.foilOwned;
     });
@@ -722,71 +726,62 @@ export default function PokedexPage() {
     }
 
     setIsCalculatingCost(true);
-    setCostProgress("Interrogation des cotes TCGplayer...");
+    let totalCost = 0;
+    const currentSeries = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId);
+    const lang = currentSeries?.lang || "fr";
 
-    try {
-      const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-      const res = await fetch(`/api/tcg-prices?set=${selectedSeriesId}&name=${encodeURIComponent(currentSeries?.name || "")}`);
-      let tcgPrices: Record<string, number> = {};
-      if (res.ok) {
-        const data = await res.json();
-        tcgPrices = data?.prices || {};
-      }
+    const BATCH_SIZE = 6;
+    for (let i = 0; i < missingCards.length; i += BATCH_SIZE) {
+      const chunk = missingCards.slice(i, i + BATCH_SIZE);
+      setCostProgress(`Interrogation de l'API (${Math.min(i + BATCH_SIZE, missingCards.length)}/${missingCards.length})...`);
 
-      let totalCost = 0;
-
-      for (const card of missingCards) {
-        const localNum = card.localId?.toString() || "";
-        const cleanNum = localNum.replace(/^0+/, "");
-        const cardName = card.name?.toLowerCase() || "";
-        const cleanId = card.id?.toLowerCase() || "";
-        const numInt = parseInt(cleanNum, 10);
-
-        // 1. Recherche du prix direct TCGplayer
-        let price = tcgPrices[localNum] || tcgPrices[cleanNum] || tcgPrices[cardName];
-
-        // 2. Barème si non coté sur TCGplayer
-        if (!price || price <= 0) {
-          // --- NUIT NOIRE (ME05) ---
-          if (cleanId.startsWith("me05")) {
-            const isSecretNumber = !isNaN(numInt) && numInt > 84;
-
-            if (cardName.includes("darkrai")) {
-              price = isSecretNumber ? 300.0 : 4.0;
-            } else if (isSecretNumber) {
-              price = numInt >= 114 ? 35.0 : 8.0;
-            } else {
-              price = 0.30;
-            }
-          } 
-          // --- SÉRIES POP ---
-          else if (cleanId.startsWith("pop")) {
-            const isPopRare = cardName.includes("star") || cardName.includes("ex") || (card.rarity && card.rarity.toLowerCase().includes("rare"));
-            price = isPopRare ? 35.0 : 2.50;
-          } 
-          // --- AUTRES SÉRIES (EV, SWSH...) ---
-          else {
-            if (!isNaN(numInt) && numInt > 160) {
-              price = 15.0;
-            } else {
-              price = 0.25;
-            }
+      const prices = await Promise.all(
+        chunk.map(async (card) => {
+          const cacheKey = `tcgdex_real_price_${card.id}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached !== null) {
+            return parseFloat(cached);
           }
-        }
 
-        totalCost += price;
-      }
+          try {
+            const res = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${card.id}`);
+            if (!res.ok) return 0;
+            
+            const data = await res.json();
+            const cm = data?.pricing?.cardmarket;
+            const tcg = data?.pricing?.tcgplayer;
 
-      setCalculatedCost(totalCost);
-    } catch (err) {
-      alert("Erreur lors de la récupération des prix TCGplayer.");
-    } finally {
-      setIsCalculatingCost(false);
-      setCostProgress("");
+            let cardPrice = 0;
+
+            // 1. Vrai prix Cardmarket officiel en Euros
+            if (cm) {
+              cardPrice = cm.avg || cm.trend || cm.avg30 || cm.low || cm["avg-holo"] || 0;
+            }
+
+            // 2. Conversion TCGplayer officielle si pas de cotation Cardmarket
+            if (cardPrice <= 0 && tcg) {
+              const usd = tcg.normal?.marketPrice || tcg.normal?.midPrice || tcg.reverse?.marketPrice || tcg.holofoil?.marketPrice || 0;
+              cardPrice = (usd || 0) * 0.92;
+            }
+
+            const finalPrice = Math.max(0, parseFloat(cardPrice.toFixed(2)));
+            sessionStorage.setItem(cacheKey, finalPrice.toString());
+            return finalPrice;
+          } catch (e) {
+            return 0;
+          }
+        })
+      );
+
+      totalCost += prices.reduce((acc, p) => acc + p, 0);
     }
+
+    setCalculatedCost(totalCost);
+    setIsCalculatingCost(false);
+    setCostProgress("");
   };
 
-  const filteredCards = cards.filter(card => {
+  const filteredCards = cards.filter((card) => {
     const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
     const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
     const cardData = userCollection[card.id];
@@ -812,9 +807,9 @@ export default function PokedexPage() {
   });
 
   const totalCards = cards.length;
-  const normalCollected = cards.filter(c => userCollection[c.id]?.normalOwned).length;
-  const foilCollected = cards.filter(c => userCollection[c.id]?.foilOwned).length;
-  const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
+  const normalCollected = cards.filter((c) => userCollection[c.id]?.normalOwned).length;
+  const foilCollected = cards.filter((c) => userCollection[c.id]?.foilOwned).length;
+  const isMasterSet = totalCards > 0 && cards.every((c) => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
   const itemsPerGlobalPage = 9;
@@ -932,7 +927,7 @@ export default function PokedexPage() {
                     {block.sets.map((set) => (
                       <div key={set.id} className="flex justify-between items-center text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
                         <span className="font-medium text-slate-300">{set.name}</span>
-                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex(b => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer">
+                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex((b) => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer">
                           Ouvrir ➔
                         </button>
                       </div>
@@ -1027,7 +1022,7 @@ export default function PokedexPage() {
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une extension :</label>
               <select value={selectedSeriesId} onChange={(e) => setSelectedSeriesId(e.target.value)} className="w-full bg-slate-950 text-sm border border-slate-700 text-white px-4 py-3 rounded-xl outline-none focus:border-yellow-500 cursor-pointer shadow-inner">
-                {currentBlock.sets.map(series => <option key={series.id} value={series.id}>{series.name}</option>)}
+                {currentBlock.sets.map((series) => <option key={series.id} value={series.id}>{series.name}</option>)}
               </select>
             </div>
           </div>
@@ -1058,7 +1053,7 @@ export default function PokedexPage() {
                 <span className="text-xs text-slate-400 font-semibold shrink-0">🎨 Artiste :</span>
                 <select value={selectedIllustrator} onChange={(e) => setSelectedIllustrator(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
                   <option value="ALL">Tous ({cards.length})</option>
-                  {illustratorsList.map(ill => <option key={ill} value={ill}>{ill}</option>)}
+                  {illustratorsList.map((ill) => <option key={ill} value={ill}>{ill}</option>)}
                 </select>
               </div>
             )}
@@ -1067,7 +1062,7 @@ export default function PokedexPage() {
                 <span className="text-xs text-slate-400 font-semibold shrink-0">💎 Rareté :</span>
                 <select value={selectedRarity} onChange={(e) => setSelectedRarity(e.target.value)} className="bg-slate-950 text-xs border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-yellow-500 cursor-pointer">
                   <option value="ALL">Toutes</option>
-                  {raritiesList.map(rarity => <option key={rarity} value={rarity}>{rarity}</option>)}
+                  {raritiesList.map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
                 </select>
               </div>
             )}
@@ -1097,7 +1092,7 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Barre d'estimation Full Set (avec secrètes) à la demande */}
+            {/* Estimation du coût Full Set sans aucun arbitraire */}
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 {calculatedCost !== null ? (
@@ -1146,7 +1141,7 @@ export default function PokedexPage() {
               <div className="space-y-6">
                 <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-md">
                   <button 
-                    onClick={() => setCurrentGlobalBinderPage(p => Math.max(1, p - 1))} 
+                    onClick={() => setCurrentGlobalBinderPage((p) => Math.max(1, p - 1))} 
                     disabled={currentGlobalBinderPage === 1}
                     className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
@@ -1156,7 +1151,7 @@ export default function PokedexPage() {
                     Classeur Global • Page <span className="text-purple-400">{currentGlobalBinderPage}</span> sur <span className="text-yellow-400">{totalGlobalPages}</span> ({filteredCards.length} cartes au total)
                   </div>
                   <button 
-                    onClick={() => setCurrentGlobalBinderPage(p => Math.min(totalGlobalPages, p + 1))} 
+                    onClick={() => setCurrentGlobalBinderPage((p) => Math.min(totalGlobalPages, p + 1))} 
                     disabled={currentGlobalBinderPage === totalGlobalPages}
                     className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
@@ -1169,13 +1164,13 @@ export default function PokedexPage() {
                     Classeur Dragon Shield • Page {currentGlobalBinderPage} / {totalGlobalPages}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mt-4">
-                    {paginatedGlobalCards.map(card => renderCardItem(card))}
+                    {paginatedGlobalCards.map((card) => renderCardItem(card))}
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-md">
                   <button 
-                    onClick={() => setCurrentGlobalBinderPage(p => Math.max(1, p - 1))} 
+                    onClick={() => setCurrentGlobalBinderPage((p) => Math.max(1, p - 1))} 
                     disabled={currentGlobalBinderPage === 1}
                     className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
@@ -1185,7 +1180,7 @@ export default function PokedexPage() {
                     Feuillette ton classeur sans interruption
                   </div>
                   <button 
-                    onClick={() => setCurrentGlobalBinderPage(p => Math.min(totalGlobalPages, p + 1))} 
+                    onClick={() => setCurrentGlobalBinderPage((p) => Math.min(totalGlobalPages, p + 1))} 
                     disabled={currentGlobalBinderPage === totalGlobalPages}
                     className="bg-slate-950 border border-slate-700 hover:bg-slate-800 text-yellow-400 px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
@@ -1195,7 +1190,7 @@ export default function PokedexPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                {filteredCards.map(card => renderCardItem(card))}
+                {filteredCards.map((card) => renderCardItem(card))}
               </div>
             )}
           </div>
@@ -1222,7 +1217,7 @@ export default function PokedexPage() {
     const isWishlisted = cardData?.isWishlist || false;
     const hasError = failedImages[card.id];
 
-    const cardSeries = ALL_FLAT_SERIES.find(s => s.id === (isGlobalBinder ? card.id.split('-')[0] : selectedSeriesId));
+    const cardSeries = ALL_FLAT_SERIES.find((s) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
     const cardDefaultLang = cardSeries?.lang || "fr";
     const showLanguageFlags = cardDefaultLang !== "en";
 
@@ -1267,29 +1262,29 @@ export default function PokedexPage() {
         </div>
         
         <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
-          <button onClick={() => toggleCardOwnership(card.id, 'normal', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-900 text-slate-400"}`}>
+          <button onClick={() => toggleCardOwnership(card.id, "normal", cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-900 text-slate-400"}`}>
             {isNormalOwned ? "✓ Normale" : "Normale"}
           </button>
-          <button onClick={() => toggleCardOwnership(card.id, 'foil', cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-900 text-slate-400"}`}>
+          <button onClick={() => toggleCardOwnership(card.id, "foil", cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-900 text-slate-400"}`}>
             {isFoilOwned ? "✨ Foil" : "Foil"}
           </button>
         </div>
 
         {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
           <div className="flex justify-center gap-4 mt-2 pt-2 border-t border-slate-800/50">
-            {['fr', 'en', 'jp'].map(l => {
+            {["fr", "en", "jp"].map((l) => {
                const isActive = (cardData?.langs || [cardDefaultLang]).includes(l);
-               const flagEmoji = l === 'fr' ? '🇫🇷' : l === 'en' ? '🇬🇧' : '🇯🇵';
+               const flagEmoji = l === "fr" ? "🇫🇷" : l === "en" ? "🇬🇧" : "🇯🇵";
                return (
                  <button 
                    key={l}
                    onClick={() => toggleCardLanguage(card.id, l, cardDefaultLang)}
-                   className={`text-base transition-all duration-200 cursor-pointer ${isActive ? 'grayscale-0 opacity-100 scale-110 drop-shadow-md' : 'grayscale opacity-30 hover:opacity-70'}`}
+                   className={`text-base transition-all duration-200 cursor-pointer ${isActive ? "grayscale-0 opacity-100 scale-110 drop-shadow-md" : "grayscale opacity-30 hover:opacity-70"}`}
                    title={`Marquer comme possédée en ${l.toUpperCase()}`}
                  >
                    {flagEmoji}
                  </button>
-               )
+               );
             })}
           </div>
         )}
