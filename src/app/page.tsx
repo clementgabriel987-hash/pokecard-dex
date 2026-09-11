@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation complète des blocs et extensions
+// Blocs organisés avec boutons dédiés pour McDonald's et Kits du Dresseur
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -40,11 +40,25 @@ const POKEMON_BLOCKS = [
     ]
   },
   {
-    blockName: "📦 Hors-Séries, Kits & Spéciales",
+    blockName: "🍔 Collections McDonald's",
     sets: [
-      { id: "det1", name: "Détective Pikachu", lang: "fr" },
-      { id: "pgo", name: "Pokémon GO", lang: "en" },
-      { id: "rumble", name: "Pokémon Rumble", lang: "en" },
+      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
+      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
+      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
+      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
+      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
+      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
+      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
+      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
+      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
+      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
+      { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
+      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" }
+    ]
+  },
+  {
+    blockName: "🎒 Kits du Dresseur",
+    sets: [
       { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
       { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
       { id: "tk2a", name: "EX Trainer Kit 2 - Plusle", lang: "en" },
@@ -58,20 +72,15 @@ const POKEMON_BLOCKS = [
       { id: "tk6a", name: "XY Trainer Kit - Sylveon", lang: "en" },
       { id: "tk6b", name: "XY Trainer Kit - Noivern", lang: "en" },
       { id: "tk10a", name: "SM Trainer Kit - Lycanroc", lang: "en" },
-      { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" },
-      { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" },
-      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
-      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
-      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
-      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
-      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
-      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
-      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
-      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
-      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
-      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
-      { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
-      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" },
+      { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" }
+    ]
+  },
+  {
+    blockName: "📦 Hors-Séries & Spéciales",
+    sets: [
+      { id: "det1", name: "Détective Pikachu", lang: "en" },
+      { id: "pgo", name: "Pokémon GO", lang: "en" },
+      { id: "rumble", name: "Pokémon Rumble", lang: "en" },
       { id: "pop1", name: "POP Series 1", lang: "fr" },
       { id: "pop2", name: "POP Series 2", lang: "fr" },
       { id: "pop3", name: "POP Series 3", lang: "fr" },
@@ -364,7 +373,7 @@ export default function PokedexPage() {
 
         setUserCollection(mergedCollection);
         await supabase.from("user_data").upsert({ id: currentUser.id, collection: mergedCollection });
-        alert("Fusion et importation réussies ! Tes cartes ont été combinées sans perte. 🎉");
+        alert("Fusion et importation réussies !");
       } catch (err) {
         alert("Fichier JSON invalide.");
       }
@@ -422,7 +431,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes optimisé avec sessionStorage (persistant après F5) ⚡
+  // Chargement avec sessionStorage et routage direct vers l'API pokemontcg.io
   useEffect(() => {
     async function fetchCards() {
       setSelectedIllustrator("ALL");
@@ -434,7 +443,7 @@ export default function PokedexPage() {
       
       const cacheKey = `pokedex_series_${selectedSeriesId}`;
 
-      // 1. Vérification dans le sessionStorage
+      // Lecture du sessionStorage
       if (!activeSearch && !isGlobalBinder) {
         const cachedData = sessionStorage.getItem(cacheKey);
         if (cachedData) {
@@ -444,16 +453,15 @@ export default function PokedexPage() {
             extractFilters(parsedCards);
             setLoading(false);
             return;
-          } catch (e) {
-            // Si le cache est corrompu, on continue vers le fetch normal
-          }
+          } catch (e) {}
         }
       }
 
       setLoading(true);
 
+      // Séries passant par pokemontcg.io : DP1, PGO, Rumble, Détective Pikachu, tous les Kits et tous les McDo
       const tcgIoOnlySets = [
-        'dp1', 'pgo', 'rumble', 
+        'dp1', 'pgo', 'rumble', 'det1',
         'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
         'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 
         'tk10a', 'tk10b',
@@ -508,11 +516,18 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
+          // Mappage des IDs de set vers pokemontcg.io
           const setMapCode: Record<string, string> = {
-            'dp1': 'dp1', 'pgo': 'pgo', 'rumble': 'ru1',
-            'tk1a': 'tk1', 'tk1b': 'tk1', 'tk2a': 'tk2', 'tk2b': 'tk2',
-            'tk3a': 'tk3', 'tk3b': 'tk3', 'tk4a': 'tk4', 'tk4b': 'tk4',
-            'tk5a': 'tk5', 'tk5b': 'tk5', 'tk6a': 'tk6', 'tk6b': 'tk6',
+            'dp1': 'dp1',
+            'pgo': 'pgo',
+            'rumble': 'ru1',
+            'det1': 'det1',
+            'tk1a': 'tk1', 'tk1b': 'tk1',
+            'tk2a': 'tk2', 'tk2b': 'tk2',
+            'tk3a': 'tk3', 'tk3b': 'tk3',
+            'tk4a': 'tk4', 'tk4b': 'tk4',
+            'tk5a': 'tk5', 'tk5b': 'tk5',
+            'tk6a': 'tk6', 'tk6b': 'tk6',
             'tk10a': 'sm35tk', 'tk10b': 'sm35tk',
             'mcd11': 'mcd11', 'mcd12': 'mcd12', 'mcd14': 'mcd14', 'mcd15': 'mcd15',
             'mcd16': 'mcd16', 'mcd17': 'mcd17', 'mcd18': 'mcd18', 'mcd19': 'mcd19',
@@ -528,12 +543,12 @@ export default function PokedexPage() {
               id: `${selectedSeriesId}-${c.number}`,
               name: c.name,
               localId: c.number,
-              image: c.images.large || c.images.small,
+              image: c.images?.large || c.images?.small,
               illustrator: c.artist || "Inconnu",
               rarity: c.rarity || "Commune",
               seriesName: currentSeries?.name
             }));
-            sessionStorage.setItem(cacheKey, JSON.stringify(formatted)); // 💾 Sauvegarde dans le sessionStorage
+            sessionStorage.setItem(cacheKey, JSON.stringify(formatted));
             setCards(formatted);
             extractFilters(formatted);
           } else {
@@ -560,7 +575,7 @@ export default function PokedexPage() {
               } catch {}
               return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName: currentSeries?.name };
             }));
-            sessionStorage.setItem(cacheKey, JSON.stringify(formattedCards)); // 💾 Sauvegarde dans le sessionStorage
+            sessionStorage.setItem(cacheKey, JSON.stringify(formattedCards));
             setCards(formattedCards);
             extractFilters(formattedCards);
           } else setCards([]);
