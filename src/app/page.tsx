@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Organisation avec blocs et boutons dédiés
+// Blocs organisés avec HGSS Promos pris en charge
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -51,7 +51,7 @@ const POKEMON_BLOCKS = [
       { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
       { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
       { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
-      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
+      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" }
     ]
   },
   {
@@ -247,14 +247,11 @@ const POKEMON_BLOCKS = [
 
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
-// Séries assignées exclusivement à pokemontcg.io (aucune requête vers tcgdex)
+// Séries assignées exclusivement à pokemontcg.io (avec HGSS Black Star Promos)
 const TCG_IO_ONLY_SETS = [
-  'dp1', 'pgo', 'rumble', 'det1',
-  'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
-  'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 
-  'tk10a', 'tk10b', 'swshtk',
+  'dp1', 'pgo', 'rumble', 'det1', 'hgss.p',
   'mcd11', 'mcd12', 'mcd14', 'mcd15', 'mcd16', 'mcd17', 
-  'mcd18', 'mcd19', 'mcd21', 'mcd22', 'mcd23', 'mcd24'
+  'mcd18', 'mcd19', 'mcd21', 'mcd22'
 ];
 
 export default function PokedexPage() {
@@ -409,7 +406,6 @@ export default function PokedexPage() {
 
     const targetSeriesId = isGlobalBinder ? cardId.split('-')[0] : selectedSeriesId;
 
-    // Pas de fallback TCGdex si c'est une série exclusive pokemontcg.io
     if (TCG_IO_ONLY_SETS.includes(targetSeriesId)) {
       setFailedImages(prev => ({ ...prev, [cardId]: true }));
       return;
@@ -435,7 +431,7 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
-      const cacheKey = `pokedex_series_v2_${selectedSeriesId}`;
+      const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
 
       // Lecture du sessionStorage
       if (!activeSearch && !isGlobalBinder) {
@@ -484,8 +480,7 @@ export default function PokedexPage() {
           for (const series of ALL_FLAT_SERIES) {
             try {
               if (TCG_IO_ONLY_SETS.includes(series.id)) {
-                // Chargement via route proxy pour les cartes de ces sets
-                const res = await fetch(`/api/pokemon?set=${series.id}`);
+                const res = await fetch(`/api/pokemon?set=${series.id === 'hgss.p' ? 'hsp' : series.id}`);
                 if (!res.ok) continue;
                 const json = await res.json();
                 if (json && json.data) {
@@ -529,27 +524,13 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (TCG_IO_ONLY_SETS.includes(selectedSeriesId)) {
-          // ROUTAGE EXCLUSIF POKEMONTCG.IO - AUCUN APPEL TCGDEX
+          // ROUTAGE EXCLUSIF POKEMONTCG.IO
           const setMapCode: Record<string, string> = {
             'dp1': 'dp1',
             'pgo': 'pgo',
             'rumble': 'ru1',
             'det1': 'det1',
-            'tk1a': 'tk1',
-            'tk1b': 'tk1',
-            'tk2a': 'tk2',
-            'tk2b': 'tk2',
-            'tk3a': 'tk3',
-            'tk3b': 'tk3',
-            'tk4a': 'tk4',
-            'tk4b': 'tk4',
-            'tk5a': 'tk5',
-            'tk5b': 'tk5',
-            'tk6a': 'tk6',
-            'tk6b': 'tk6',
-            'tk10a': 'sm35tk',
-            'tk10b': 'sm35tk',
-            'swshtk': 'swsh35',
+            'hgss.p': 'hsp', // Code officiel sur pokemontcg.io
             'mcd11': 'mcd11',
             'mcd12': 'mcd12',
             'mcd14': 'mcd14',
@@ -559,9 +540,7 @@ export default function PokedexPage() {
             'mcd18': 'mcd18',
             'mcd19': 'mcd19',
             'mcd21': 'mcd21',
-            'mcd22': 'mcd22',
-            'mcd23': 'mcd23',
-            'mcd24': 'mcd24'
+            'mcd22': 'mcd22'
           };
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
