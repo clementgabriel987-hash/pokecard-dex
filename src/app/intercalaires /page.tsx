@@ -457,7 +457,7 @@ export default function IntercalairePage() {
 
             <div className="space-y-1">
               <div className="text-3xl font-extrabold tracking-tight">
-                {setData?.cardCount?.official || "—"} Cartes Officielles
+                {setData?.cardCount?.official || "—"} Cartes 
               </div>
               {setData?.cardCount?.total && setData.cardCount.total !== setData.cardCount.official && (
                 <div className="text-xs opacity-60 font-semibold">
