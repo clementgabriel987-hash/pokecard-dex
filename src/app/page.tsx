@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -19,7 +19,15 @@ interface Card {
     };
   };
   pricing?: {
-    cardmarketAvg?: number;
+    cardmarket?: {
+      avg?: number;
+      trend?: number;
+      low?: number;
+    };
+    tcgplayer?: {
+      marketPrice?: number;
+      midPrice?: number;
+    };
   };
 }
 
@@ -103,7 +111,7 @@ const POKEMON_BLOCKS = [
       { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
       { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
       { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team标志 Rocket Returns (EN)", lang: "en" },
+      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
       { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
       { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
       { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
@@ -263,25 +271,6 @@ const TCG_IO_ONLY_SETS = [
   'mcd18', 'mcd19', 'mcd21', 'mcd22'
 ];
 
-function getCardEstimatedPrice(card: any): number {
-  const cmPrice =
-    card?.cardmarket?.prices?.averageSellPrice ||
-    card?.cardmarket?.prices?.trendPrice ||
-    card?.pricing?.cardmarketAvg;
-
-  if (cmPrice && !isNaN(Number(cmPrice))) {
-    return Number(cmPrice);
-  }
-
-  const r = (card?.rarity || "").toLowerCase();
-  if (r.includes("special art") || r.includes("sar") || r.includes("hyper rare") || r.includes("secrète")) return 28.0;
-  if (r.includes("illustration rare") || r.includes("ar")) return 7.5;
-  if (r.includes("ultra rare") || r.includes("ex") || r.includes("vmax") || r.includes("v")) return 3.0;
-  if (r.includes("holo rare") || r.includes("rare")) return 0.8;
-  if (r.includes("uncommon") || r.includes("peu commune")) return 0.25;
-  return 0.15;
-}
-
 export default function PokedexPage() {
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
@@ -313,6 +302,11 @@ export default function PokedexPage() {
   
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+
+  // État du calculateur de coût à la demande
+  const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
+  const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
+  const [costProgress, setCostProgress] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -347,6 +341,12 @@ export default function PokedexPage() {
     }
     loadCollection();
   }, [currentUser]);
+
+  // Réinitialiser le coût calculé quand on change d'extension
+  useEffect(() => {
+    setCalculatedCost(null);
+    setCostProgress("");
+  }, [selectedSeriesId]);
 
   const exportCollectionJSON = () => {
     if (!currentUser) return alert("Connecte-toi d'abord !");
@@ -505,7 +505,8 @@ export default function PokedexPage() {
                       image: c.images?.large || c.images?.small || "",
                       illustrator: c.artist || "Inconnu",
                       rarity: c.rarity || "Commune",
-                      seriesName: series.name
+                      seriesName: series.name,
+                      cardmarket: c.cardmarket
                     }));
                     sessionStorage.setItem(cacheKey, JSON.stringify(seriesCards));
                   }
@@ -629,19 +630,14 @@ export default function PokedexPage() {
           if (!response.ok) { setCards([]); setLoading(false); return; }
           const data = await response.json();
           if (data && data.cards) {
-            const formattedCards = await Promise.all(data.cards.map(async (c: any) => {
-              let imageUrl = c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`;
-              let illustrator = "Inconnu", rarity = "Inconnue";
-              try {
-                const cardRes = await fetch(`https://api.tcgdex.net/${lang}/cards/${c.id}`);
-                if (cardRes.ok) {
-                  const cardData = await cardRes.json();
-                  illustrator = cardData.illustrator || "Inconnu";
-                  rarity = cardData.rarity || "Inconnue";
-                  if (cardData.image) imageUrl = `${cardData.image}/high.png`;
-                }
-              } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName: currentSeries?.name };
+            const formattedCards = data.cards.map((c: any) => ({
+              id: c.id,
+              name: c.name || "Inconnue",
+              localId: c.localId || "?",
+              image: c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`,
+              illustrator: "Inconnu",
+              rarity: "Inconnue",
+              seriesName: currentSeries?.name
             }));
             sessionStorage.setItem(cacheKey, JSON.stringify(formattedCards));
             setCards(formattedCards);
@@ -711,6 +707,95 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
+  // CALCULATEUR DE COÛT PRÉCIS À LA DEMANDE
+  const calculateRealMissingCost = async () => {
+    if (cards.length === 0 || isCalculatingCost) return;
+
+    const missingCards = cards.filter(c => {
+      const cData = userCollection[c.id];
+      return !cData?.normalOwned && !cData?.foilOwned;
+    });
+
+    if (missingCards.length === 0) {
+      setCalculatedCost(0);
+      return;
+    }
+
+    setIsCalculatingCost(true);
+    let totalCost = 0;
+    const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
+    const lang = currentSeries?.lang || "fr";
+
+    // Pour ne pas saturer le réseau, traitement par lots avec cache
+    const CHUNK_SIZE = 8;
+    for (let i = 0; i < missingCards.length; i += CHUNK_SIZE) {
+      const chunk = missingCards.slice(i, i + CHUNK_SIZE);
+      setCostProgress(`Analyse des cotes : ${Math.min(i + CHUNK_SIZE, missingCards.length)} / ${missingCards.length} cartes...`);
+
+      const promises = chunk.map(async (card) => {
+        // 1. Si prix déjà dans l'objet carte
+        const directPrice =
+          card.pricing?.cardmarket?.avg ||
+          card.pricing?.cardmarket?.trend ||
+          card.cardmarket?.prices?.averageSellPrice ||
+          card.cardmarket?.prices?.trendPrice;
+
+        if (directPrice && directPrice > 0) return Number(directPrice);
+
+        // 2. Vérification dans le cache local
+        const cachePriceKey = `tcg_card_price_${card.id}`;
+        const cachedPrice = sessionStorage.getItem(cachePriceKey);
+        if (cachedPrice !== null) return Number(cachedPrice);
+
+        // 3. Appel à l'API individuelle TCGdex pour récupérer le pricing exact Cardmarket
+        try {
+          const res = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${card.id}`);
+          if (res.ok) {
+            const cardDetail = await res.json();
+            const cm = cardDetail.pricing?.cardmarket;
+            const price = cm?.avg || cm?.trend || cm?.low || cardDetail.pricing?.tcgplayer?.marketPrice;
+            if (price && Number(price) > 0) {
+              sessionStorage.setItem(cachePriceKey, price.toString());
+              return Number(price);
+            }
+
+            // Fallback intelligent selon la rareté réelle obtenue de l'API détaillée
+            const r = (cardDetail.rarity || "").toLowerCase();
+            const isPop = card.id.startsWith("pop");
+            let fallback = 0.50;
+
+            if (isPop) {
+              if (r.includes("rare") || cardDetail.name?.toLowerCase().includes("gold star") || cardDetail.name?.toLowerCase().includes("ex")) fallback = 45.0;
+              else fallback = 3.50;
+            } else if (r.includes("special art") || r.includes("sar") || r.includes("hyper") || r.includes("gold")) {
+              fallback = 55.0;
+            } else if (r.includes("illustration") || r.includes("ar")) {
+              fallback = 8.5;
+            } else if (r.includes("ultra") || r.includes("ex") || r.includes("vmax") || r.includes("v")) {
+              fallback = 3.5;
+            } else if (r.includes("holo") || r.includes("rare")) {
+              fallback = 1.2;
+            }
+            sessionStorage.setItem(cachePriceKey, fallback.toString());
+            return fallback;
+          }
+        } catch (e) {}
+
+        // 4. Fallback si l'API est injoignable
+        const isPopSeries = card.id.startsWith("pop");
+        const fallbackDefault = isPopSeries ? 4.0 : 0.40;
+        return fallbackDefault;
+      });
+
+      const chunkResults = await Promise.all(promises);
+      totalCost += chunkResults.reduce((a, b) => a + b, 0);
+    }
+
+    setCalculatedCost(totalCost);
+    setIsCalculatingCost(false);
+    setCostProgress("");
+  };
+
   const filteredCards = cards.filter(card => {
     const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
     const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
@@ -741,21 +826,6 @@ export default function PokedexPage() {
   const foilCollected = cards.filter(c => userCollection[c.id]?.foilOwned).length;
   const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
-
-  // Calcul automatique du coût restant pour compléter la série
-  const estimatedRemainingCost = useMemo(() => {
-    if (!cards || cards.length === 0 || isGlobalBinder || activeSearch) return 0;
-
-    return cards.reduce((sum, card) => {
-      const cardData = userCollection[card.id];
-      const isOwned = cardData?.normalOwned || cardData?.foilOwned;
-
-      if (!isOwned) {
-        return sum + getCardEstimatedPrice(card);
-      }
-      return sum;
-    }, 0);
-  }, [cards, userCollection, isGlobalBinder, activeSearch]);
 
   const itemsPerGlobalPage = 9;
   const totalGlobalPages = Math.ceil(filteredCards.length / itemsPerGlobalPage) || 1;
@@ -1037,13 +1107,33 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Estimation du coût restant et infos de rangement */}
-            <div className="pt-4 border-t border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-              <div className="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-400">
-                <span>💰 Reste pour terminer le Master Set :</span>
-                <span className="text-white bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
-                  ~{estimatedRemainingCost.toFixed(2)} €
-                </span>
+            {/* Barre d'estimation précise avec bouton à la demande */}
+            <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {calculatedCost !== null ? (
+                  <div className="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-400">
+                    <span>💰 Reste pour terminer le Master Set :</span>
+                    <span className="text-white bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-sm">
+                      ~{calculatedCost.toFixed(2)} €
+                    </span>
+                    <button 
+                      onClick={calculateRealMissingCost} 
+                      disabled={isCalculatingCost}
+                      className="text-[11px] text-slate-400 hover:text-white underline ml-2 cursor-pointer"
+                    >
+                      Recalculer
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={calculateRealMissingCost}
+                    disabled={isCalculatingCost || totalCards === 0}
+                    className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <span>💰</span>
+                    {isCalculatingCost ? costProgress : "Estimer le coût restant Cardmarket"}
+                  </button>
+                )}
               </div>
 
               {totalCards > 0 && (
