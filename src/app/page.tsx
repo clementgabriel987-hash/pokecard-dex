@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -12,6 +12,15 @@ interface Card {
   illustrator?: string;
   rarity?: string;
   seriesName?: string;
+  cardmarket?: {
+    prices?: {
+      averageSellPrice?: number;
+      trendPrice?: number;
+    };
+  };
+  pricing?: {
+    cardmarketAvg?: number;
+  };
 }
 
 interface CardDetails {
@@ -94,7 +103,7 @@ const POKEMON_BLOCKS = [
       { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
       { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
       { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
+      { id: "ex7", name: "EX Team标志 Rocket Returns (EN)", lang: "en" },
       { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
       { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
       { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
@@ -253,6 +262,25 @@ const TCG_IO_ONLY_SETS = [
   'mcd11', 'mcd12', 'mcd14', 'mcd15', 'mcd16', 'mcd17', 
   'mcd18', 'mcd19', 'mcd21', 'mcd22'
 ];
+
+function getCardEstimatedPrice(card: any): number {
+  const cmPrice =
+    card?.cardmarket?.prices?.averageSellPrice ||
+    card?.cardmarket?.prices?.trendPrice ||
+    card?.pricing?.cardmarketAvg;
+
+  if (cmPrice && !isNaN(Number(cmPrice))) {
+    return Number(cmPrice);
+  }
+
+  const r = (card?.rarity || "").toLowerCase();
+  if (r.includes("special art") || r.includes("sar") || r.includes("hyper rare") || r.includes("secrète")) return 28.0;
+  if (r.includes("illustration rare") || r.includes("ar")) return 7.5;
+  if (r.includes("ultra rare") || r.includes("ex") || r.includes("vmax") || r.includes("v")) return 3.0;
+  if (r.includes("holo rare") || r.includes("rare")) return 0.8;
+  if (r.includes("uncommon") || r.includes("peu commune")) return 0.25;
+  return 0.15;
+}
 
 export default function PokedexPage() {
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
@@ -585,7 +613,8 @@ export default function PokedexPage() {
               image: c.images?.large || c.images?.small || "",
               illustrator: c.artist || "Inconnu",
               rarity: c.rarity || "Commune",
-              seriesName: currentSeries?.name
+              seriesName: currentSeries?.name,
+              cardmarket: c.cardmarket
             }));
             sessionStorage.setItem(cacheKey, JSON.stringify(formatted));
             setCards(formatted);
@@ -713,6 +742,21 @@ export default function PokedexPage() {
   const isMasterSet = totalCards > 0 && cards.every(c => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
+  // Calcul automatique du coût restant pour compléter la série
+  const estimatedRemainingCost = useMemo(() => {
+    if (!cards || cards.length === 0 || isGlobalBinder || activeSearch) return 0;
+
+    return cards.reduce((sum, card) => {
+      const cardData = userCollection[card.id];
+      const isOwned = cardData?.normalOwned || cardData?.foilOwned;
+
+      if (!isOwned) {
+        return sum + getCardEstimatedPrice(card);
+      }
+      return sum;
+    }, 0);
+  }, [cards, userCollection, isGlobalBinder, activeSearch]);
+
   const itemsPerGlobalPage = 9;
   const totalGlobalPages = Math.ceil(filteredCards.length / itemsPerGlobalPage) || 1;
   const paginatedGlobalCards = isGlobalBinder && binderViewStyle === "pages"
@@ -769,14 +813,8 @@ export default function PokedexPage() {
                   <Link href="/achats" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-emerald-300">
                     <span>🛒</span> Historique des Achats
                   </Link>
-                  <Link href="/analyse-sets" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-amber-300">
-                    <span>📊</span> Analyse des Coûts (Full Sets)
-                  </Link>
                   <Link href="/statistiques" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-indigo-300">
                     <span>📈</span> Tableau de Bord & Stats
-                  </Link>
-                  <Link href="/budget" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-emerald-400">
-                    <span>💰</span> Simulateur de Budget
                   </Link>
                 </div>
               </div>
@@ -999,14 +1037,24 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {totalCards > 0 && (
-              <div className="pt-4 border-t border-slate-800 flex items-center gap-3 text-xs text-purple-300">
-                <span className="text-lg shrink-0">🛡️</span>
-                <div>
-                  <span className="font-bold text-white">Info :</span> Pour ranger cette extension complète de <strong className="text-yellow-400">{totalCards}</strong> cartes (en pages standard 18 poches), il te faut environ <strong className="text-yellow-400">{Math.ceil(totalCards / 18)}</strong> pages Dragon Shield.
-                </div>
+            {/* Estimation du coût restant et infos de rangement */}
+            <div className="pt-4 border-t border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+              <div className="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-400">
+                <span>💰 Reste pour terminer le Master Set :</span>
+                <span className="text-white bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
+                  ~{estimatedRemainingCost.toFixed(2)} €
+                </span>
               </div>
-            )}
+
+              {totalCards > 0 && (
+                <div className="flex items-center gap-2 text-xs text-purple-300">
+                  <span className="text-base shrink-0">🛡️</span>
+                  <span>
+                    Rangement : <strong className="text-yellow-400">{Math.ceil(totalCards / 18)}</strong> pages Dragon Shield (18 poches).
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
