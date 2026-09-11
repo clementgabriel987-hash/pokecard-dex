@@ -251,14 +251,17 @@ export default function IntercalairePage() {
   const [customNote, setCustomNote] = useState<string>("Classeur Principal #1");
 
   const [setData, setSetData] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [logoFailed, setLogoFailed] = useState<boolean>(false);
+  const [symbolFailed, setSymbolFailed] = useState<boolean>(false);
   const [collectionCount, setCollectionCount] = useState<{ normal: number; foil: number }>({ normal: 0, foil: 0 });
 
   const currentSet = ALL_SETS_FLAT.find((s) => s.id === selectedSetId) || ALL_SETS_FLAT[0];
 
   useEffect(() => {
+    setLogoFailed(false);
+    setSymbolFailed(false);
+
     async function loadDetails() {
-      setLoading(true);
       try {
         if (TCG_IO_SETS.includes(currentSet.id)) {
           const setMapCode: Record<string, string> = {
@@ -295,11 +298,8 @@ export default function IntercalairePage() {
         }
       } catch {
         setSetData(null);
-      } finally {
-        setLoading(false);
       }
 
-      // Récupération de la progression réelle
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
       if (user) {
@@ -326,6 +326,18 @@ export default function IntercalairePage() {
     ? `${window.location.origin}/?set=${currentSet.id}`
     : `https://pokecardgabriel12.vercel.app/?set=${currentSet.id}`;
 
+  // Gestion des extensions d'URL sans duplication
+  const getImageUrl = (url: string | null | undefined) => {
+    if (!url) return null;
+    if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".webp") || url.endsWith(".svg")) {
+      return url;
+    }
+    return `${url}.png`;
+  };
+
+  const logoUrl = getImageUrl(setData?.logo);
+  const symbolUrl = getImageUrl(setData?.symbol);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 print:bg-white print:text-black">
       {/* Panneau de configuration (masqué à l'impression) */}
@@ -333,7 +345,7 @@ export default function IntercalairePage() {
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div>
             <h1 className="text-2xl font-black text-yellow-400">📑 Générateur d&apos;Intercalaires A4</h1>
-            <p className="text-xs text-slate-400">Toutes les extensions sont disponibles, prêtes pour l&apos;impression A4.</p>
+            <p className="text-xs text-slate-400">Crée tes pages de séparation de séries pour tes classeurs.</p>
           </div>
           <Link href="/" className="px-4 py-2 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl text-xs font-bold transition">
             ⬅️ Retour au Classeur
@@ -343,7 +355,7 @@ export default function IntercalairePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Choisir l&apos;extension ({ALL_SETS_FLAT.length} séries) :
+              Choisir l&apos;extension :
             </label>
             <select
               value={selectedSetId}
@@ -411,7 +423,7 @@ export default function IntercalairePage() {
           }`}
           style={{ boxSizing: "border-box" }}
         >
-          {/* En-tête de l'intercalaire */}
+          {/* En-tête */}
           <div className="text-center border-b-2 pb-6 border-current">
             <span className="text-xs font-bold tracking-[0.3em] uppercase opacity-70 block mb-2">
               {currentSet.block}
@@ -421,27 +433,27 @@ export default function IntercalairePage() {
             </h2>
           </div>
 
-          {/* Corps central avec logo & symboles */}
+          {/* Corps central */}
           <div className="flex-1 flex flex-col items-center justify-center py-8 space-y-6 text-center">
-            {setData?.logo ? (
+            {logoUrl && !logoFailed ? (
               <img
-                src={`${setData.logo}.png`}
+                src={logoUrl}
                 alt={currentSet.name}
                 className="max-h-36 max-w-sm object-contain drop-shadow-md"
+                onError={() => setLogoFailed(true)}
               />
-            ) : (
-              <div className="text-5xl">🃏</div>
-            )}
+            ) : null}
 
-            {setData?.symbol && (
+            {symbolUrl && !symbolFailed ? (
               <div className="p-4 border-2 border-dashed border-current/20 rounded-full">
                 <img
-                  src={`${setData.symbol}.png`}
+                  src={symbolUrl}
                   alt="Symbole de l'extension"
                   className="w-14 h-14 object-contain"
+                  onError={() => setSymbolFailed(true)}
                 />
               </div>
-            )}
+            ) : null}
 
             <div className="space-y-1">
               <div className="text-3xl font-extrabold tracking-tight">
