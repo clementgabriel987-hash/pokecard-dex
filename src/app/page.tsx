@@ -52,28 +52,6 @@ const POKEMON_BLOCKS = [
       { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
       { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
       { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" },
-      { id: "mcd23", name: "McDonald's Collection 2023", lang: "en" },
-      { id: "mcd24", name: "McDonald's Collection 2024", lang: "en" }
-    ]
-  },
-  {
-    blockName: "🎒 Kits du Dresseur",
-    sets: [
-      { id: "tk1a", name: "EX Trainer Kit - Latias", lang: "en" },
-      { id: "tk1b", name: "EX Trainer Kit - Latios", lang: "en" },
-      { id: "tk2a", name: "EX Trainer Kit 2 - Plusle", lang: "en" },
-      { id: "tk2b", name: "EX Trainer Kit 2 - Minun", lang: "en" },
-      { id: "tk3a", name: "DP Trainer Kit - Manaphy", lang: "en" },
-      { id: "tk3b", name: "DP Trainer Kit - Lucario", lang: "en" },
-      { id: "tk4a", name: "HGSS Trainer Kit - Raichu", lang: "en" },
-      { id: "tk4b", name: "HGSS Trainer Kit - Gyarados", lang: "en" },
-      { id: "tk5a", name: "BW Trainer Kit - Zoroark", lang: "en" },
-      { id: "tk5b", name: "BW Trainer Kit - Excadrill", lang: "en" },
-      { id: "tk6a", name: "XY Trainer Kit - Sylveon", lang: "en" },
-      { id: "tk6b", name: "XY Trainer Kit - Noivern", lang: "en" },
-      { id: "tk10a", name: "SM Trainer Kit - Lycanroc", lang: "en" },
-      { id: "tk10b", name: "SM Trainer Kit - Alolan Raichu", lang: "en" },
-      { id: "swshtk", name: "Kit du Dresseur Épée & Bouclier", lang: "en" }
     ]
   },
   {
