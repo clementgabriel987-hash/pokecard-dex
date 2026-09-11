@@ -326,7 +326,6 @@ export default function IntercalairePage() {
     ? `${window.location.origin}/?set=${currentSet.id}`
     : `https://pokecardgabriel12.vercel.app/?set=${currentSet.id}`;
 
-  // Gestion des extensions d'URL sans duplication
   const getImageUrl = (url: string | null | undefined) => {
     if (!url) return null;
     if (url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".webp") || url.endsWith(".svg")) {
@@ -340,12 +339,12 @@ export default function IntercalairePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 print:bg-white print:text-black">
-      {/* Panneau de configuration (masqué à l'impression) */}
+      {/* Configuration hors-impression */}
       <div className="print:hidden max-w-5xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div>
             <h1 className="text-2xl font-black text-yellow-400">📑 Générateur d&apos;Intercalaires A4</h1>
-            <p className="text-xs text-slate-400">Crée tes pages de séparation de séries pour tes classeurs.</p>
+            <p className="text-xs text-slate-400">{ALL_SETS_FLAT.length} extensions disponibles pour tes classeurs.</p>
           </div>
           <Link href="/" className="px-4 py-2 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl text-xs font-bold transition">
             ⬅️ Retour au Classeur
@@ -457,11 +456,11 @@ export default function IntercalairePage() {
 
             <div className="space-y-1">
               <div className="text-3xl font-extrabold tracking-tight">
-                {setData?.cardCount?.official || "—"} Cartes 
+                {setData?.cardCount?.official || "—"} Cartes
               </div>
               {setData?.cardCount?.total && setData.cardCount.total !== setData.cardCount.official && (
                 <div className="text-xs opacity-60 font-semibold">
-                  {setData.cardCount.total} cartes au total (secrètes incluses)
+                  {setData.cardCount.total} cartes avec les secrètes
                 </div>
               )}
             </div>
