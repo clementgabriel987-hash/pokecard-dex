@@ -124,7 +124,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "Bloc Diamant & Perle",
     sets: [
-      { id: "dp1", name: "Diamant & Perle (FR)", lang: "en" }, // ✨ DP1 basculé sur TCG.io pour les images
+      { id: "dp1", name: "Diamant & Perle (FR)", lang: "en" },
       { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
       { id: "dp3", name: "Merveilles Secrètes (FR)", lang: "fr" },
       { id: "dp4", name: "Aube Majestueuse (FR)", lang: "fr" },
@@ -425,7 +425,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes avec DP1 inclus dans les sets exclusifs TCG.io
+  // Chargement des cartes avec routage TCG.io et Lazy Loading des images
   useEffect(() => {
     async function fetchCards() {
       setLoading(true);
@@ -437,8 +437,7 @@ export default function PokedexPage() {
       setFailedImages({});
       
       const tcgIoOnlySets = [
-        'dp1', // ✨ DP1 ajouté ici
-        'pgo', 'rumble', 
+        'dp1', 'pgo', 'rumble', 
         'tk1a', 'tk1b', 'tk2a', 'tk2b', 'tk3a', 'tk3b', 
         'tk4a', 'tk4b', 'tk5a', 'tk5b', 'tk6a', 'tk6b', 
         'tk10a', 'tk10b',
@@ -493,9 +492,8 @@ export default function PokedexPage() {
           setCards(globalCards);
           extractFilters(globalCards);
         } else if (tcgIoOnlySets.includes(selectedSeriesId)) {
-          // Routage vers pokemontcg.io via la route proxy pour DP1, McDo, Kits, etc.
           const setMapCode: Record<string, string> = {
-            'dp1': 'dp1', // ✨ Code exact DP1 sur pokemontcg.io
+            'dp1': 'dp1',
             'pgo': 'pgo',
             'rumble': 'ru1',
             'tk1a': 'tk1', 'tk1b': 'tk1',
@@ -530,7 +528,6 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
-          // Pour les autres séries classiques
           const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
@@ -789,7 +786,7 @@ export default function PokedexPage() {
               <button onClick={() => setIsMysteryOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-center min-h-[220px] items-center">
-              <img src={mysteryCard.image} alt={mysteryCard.name} className="h-56 object-contain drop-shadow-lg" />
+              <img src={mysteryCard.image} alt={mysteryCard.name} className="h-56 object-contain drop-shadow-lg" loading="lazy" decoding="async" />
             </div>
             <h3 className="text-base font-bold text-white mb-1">{mysteryCard.name}</h3>
             <p className="text-xs text-slate-400 mb-4">#{mysteryCard.localId} {mysteryCard.rarity ? `• ${mysteryCard.rarity}` : ""}</p>
@@ -1053,6 +1050,8 @@ export default function PokedexPage() {
                 src={card.image} 
                 alt={card.name} 
                 className="h-32 md:h-42 object-contain drop-shadow-md" 
+                loading="lazy" // 🚀 Lazy loading natif activé ici !
+                decoding="async" // 🚀 Décodage asynchrone pour fluidifier le scroll
                 onError={() => handleImageError(card.id, card.image)} 
               />
             ) : (
