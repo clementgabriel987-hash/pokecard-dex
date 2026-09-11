@@ -303,7 +303,7 @@ export default function PokedexPage() {
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
-  // État du calculateur de coût pour le Full Set (à la demande)
+  // État du calculateur de coût pour le Full Set (via TCGCSV / TCGplayer)
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
@@ -707,11 +707,11 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // CALCULATEUR DU FULL SET (AVEC SECRÈTES, SANS LES FOILS)
-  // Toute carte possédée en simple OU en foil est validée. On ne chiffre que les cartes avec 0 exemplaire.
+  // CALCUL RAPIDE DU FULL SET VIA NOTRE ROUTE API /api/tcg-prices (TCGplayer / TCGCSV)
   const calculateRealMissingCost = async () => {
     if (cards.length === 0 || isCalculatingCost) return;
 
+    // Cartes manquantes : 0 exemplaire (ni normale ni foil)
     const missingCards = cards.filter(c => {
       const cData = userCollection[c.id];
       return !cData?.normalOwned && !cData?.foilOwned;
@@ -723,83 +723,59 @@ export default function PokedexPage() {
     }
 
     setIsCalculatingCost(true);
-    let totalCost = 0;
-    const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-    const lang = currentSeries?.lang || "fr";
+    setCostProgress("Interrogation des cotes TCGplayer...");
 
-    const CHUNK_SIZE = 8;
-    for (let i = 0; i < missingCards.length; i += CHUNK_SIZE) {
-      const chunk = missingCards.slice(i, i + CHUNK_SIZE);
-      setCostProgress(`Analyse des cotes : ${Math.min(i + CHUNK_SIZE, missingCards.length)} / ${missingCards.length} cartes...`);
+    try {
+      const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
+      const res = await fetch(`/api/tcg-prices?set=${selectedSeriesId}&name=${encodeURIComponent(currentSeries?.name || "")}`);
+      const data = await res.json();
+      const tcgPrices: Record<string, number> = data?.prices || {};
 
-      const promises = chunk.map(async (card) => {
-        // 1. Détection prioritaire des cartes emblématiques / "chase cards"
-        const cleanId = (card.id || "").toLowerCase();
-        const cardName = (card.name || "").toLowerCase();
-        if (cleanId.startsWith("me05") && cardName.includes("darkrai")) return 300.0;
-        if (cleanId.includes("sv08-238") || (cleanId.startsWith("sv08") && cardName.includes("pikachu") && (card.rarity?.toLowerCase().includes("sar") || card.rarity?.toLowerCase().includes("special")))) return 180.0;
+      let totalCost = 0;
 
-        // 2. Si prix déjà présent dans l'objet carte
-        const directPrice =
-          card.pricing?.cardmarket?.avg ||
-          card.pricing?.cardmarket?.trend ||
-          card.cardmarket?.prices?.averageSellPrice ||
-          card.cardmarket?.prices?.trendPrice;
+      for (const card of missingCards) {
+        const localNum = card.localId?.toString() || "";
+        const cleanNum = localNum.replace(/^0+/, "");
+        const cardName = card.name?.toLowerCase() || "";
+        const cleanId = card.id?.toLowerCase() || "";
+        const rarity = (card.rarity || "").toLowerCase();
 
-        if (directPrice && directPrice > 0) return Number(directPrice);
+        // 1. Recherche du prix direct TCGplayer
+        let price = tcgPrices[localNum] || tcgPrices[cleanNum] || tcgPrices[cardName];
 
-        // 3. Vérification dans le cache local
-        const cachePriceKey = `tcg_card_price_${card.id}`;
-        const cachedPrice = sessionStorage.getItem(cachePriceKey);
-        if (cachedPrice !== null) return Number(cachedPrice);
-
-        // 4. Appel individuel TCGdex pour récupérer le pricing exact Cardmarket
-        try {
-          const res = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${card.id}`);
-          if (res.ok) {
-            const cardDetail = await res.json();
-            const cm = cardDetail.pricing?.cardmarket;
-            const price = cm?.avg || cm?.trend || cm?.low || cardDetail.pricing?.tcgplayer?.marketPrice;
-            if (price && Number(price) > 0) {
-              sessionStorage.setItem(cachePriceKey, price.toString());
-              return Number(price);
-            }
-
-            // Fallback réaliste par rareté
-            const r = (cardDetail.rarity || "").toLowerCase();
-            const isPop = card.id.startsWith("pop");
-            let fallback = 0.50;
-
-            if (isPop) {
-              if (r.includes("rare") || cardDetail.name?.toLowerCase().includes("gold star") || cardDetail.name?.toLowerCase().includes("ex")) fallback = 45.0;
-              else fallback = 3.50;
-            } else if (r.includes("special art") || r.includes("sar") || r.includes("hyper") || r.includes("gold") || r.includes("couronne")) {
-              fallback = 55.0;
-            } else if (r.includes("illustration") || r.includes("ar") || r.includes("shiny")) {
-              fallback = 8.5;
-            } else if (r.includes("ultra") || r.includes("ex") || r.includes("vmax") || r.includes("v")) {
-              fallback = 3.5;
-            } else if (r.includes("holo") || r.includes("rare")) {
-              fallback = 1.2;
-            }
-
-            sessionStorage.setItem(cachePriceKey, fallback.toString());
-            return fallback;
+        // 2. Si non trouvé dans l'export TCGplayer, fallback intelligent
+        if (!price || price <= 0) {
+          // Cas spécifique Nuit Noire : Darkrai SAR
+          if (cleanId.startsWith("me05") && cardName.includes("darkrai")) {
+            const isSecret = rarity.includes("sar") || rarity.includes("special") || rarity.includes("hyper") || rarity.includes("gold");
+            price = isSecret ? 300.0 : 4.0;
+          } else if (cleanId.startsWith("pop")) {
+            price = rarity.includes("rare") ? 25.0 : 3.0;
+          } else if (rarity.includes("special art") || rarity.includes("sar") || rarity.includes("hyper") || rarity.includes("gold")) {
+            price = 28.0;
+          } else if (rarity.includes("illustration") || rarity.includes("ar")) {
+            price = 6.0;
+          } else if (rarity.includes("ultra") || rarity.includes("ex") || rarity.includes("v")) {
+            price = 2.5;
+          } else if (rarity.includes("holo") || rarity.includes("rare")) {
+            price = 0.8;
+          } else if (rarity.includes("uncommon") || rarity.includes("peu commune")) {
+            price = 0.35;
+          } else {
+            price = 0.20;
           }
-        } catch (e) {}
+        }
 
-        const isPopSeries = card.id.startsWith("pop");
-        const fallbackDefault = isPopSeries ? 4.0 : 0.40;
-        return fallbackDefault;
-      });
+        totalCost += price;
+      }
 
-      const chunkResults = await Promise.all(promises);
-      totalCost += chunkResults.reduce((a, b) => a + b, 0);
+      setCalculatedCost(totalCost);
+    } catch (err) {
+      alert("Erreur lors de la récupération des prix TCGplayer.");
+    } finally {
+      setIsCalculatingCost(false);
+      setCostProgress("");
     }
-
-    setCalculatedCost(totalCost);
-    setIsCalculatingCost(false);
-    setCostProgress("");
   };
 
   const filteredCards = cards.filter(card => {
@@ -1113,7 +1089,7 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Barre d'estimation précise avec bouton à la demande pour le Full Set */}
+            {/* Barre d'estimation Full Set (avec secrètes) à la demande */}
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 {calculatedCost !== null ? (
