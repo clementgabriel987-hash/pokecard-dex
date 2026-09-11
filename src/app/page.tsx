@@ -259,9 +259,6 @@ const POKEMON_BLOCKS = [
 
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
-// 🚀 Objet cache global en mémoire pour stocker les séries déjà téléchargées
-const seriesCache: Record<string, Card[]> = {};
-
 export default function PokedexPage() {
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
@@ -425,7 +422,7 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement des cartes optimisé avec le CACHE LOCAL ⚡
+  // Chargement des cartes optimisé avec sessionStorage (persistant après F5) ⚡
   useEffect(() => {
     async function fetchCards() {
       setSelectedIllustrator("ALL");
@@ -435,12 +432,22 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
       
-      // 1. Si la série est déjà dans le cache, on l'affiche instantanément !
-      if (!activeSearch && !isGlobalBinder && seriesCache[selectedSeriesId]) {
-        setCards(seriesCache[selectedSeriesId]);
-        extractFilters(seriesCache[selectedSeriesId]);
-        setLoading(false);
-        return;
+      const cacheKey = `pokedex_series_${selectedSeriesId}`;
+
+      // 1. Vérification dans le sessionStorage
+      if (!activeSearch && !isGlobalBinder) {
+        const cachedData = sessionStorage.getItem(cacheKey);
+        if (cachedData) {
+          try {
+            const parsedCards = JSON.parse(cachedData);
+            setCards(parsedCards);
+            extractFilters(parsedCards);
+            setLoading(false);
+            return;
+          } catch (e) {
+            // Si le cache est corrompu, on continue vers le fetch normal
+          }
+        }
       }
 
       setLoading(true);
@@ -526,7 +533,7 @@ export default function PokedexPage() {
               rarity: c.rarity || "Commune",
               seriesName: currentSeries?.name
             }));
-            seriesCache[selectedSeriesId] = formatted; // 💾 Sauvegarde dans le cache
+            sessionStorage.setItem(cacheKey, JSON.stringify(formatted)); // 💾 Sauvegarde dans le sessionStorage
             setCards(formatted);
             extractFilters(formatted);
           } else {
@@ -553,7 +560,7 @@ export default function PokedexPage() {
               } catch {}
               return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName: currentSeries?.name };
             }));
-            seriesCache[selectedSeriesId] = formattedCards; // 💾 Sauvegarde dans le cache
+            sessionStorage.setItem(cacheKey, JSON.stringify(formattedCards)); // 💾 Sauvegarde dans le sessionStorage
             setCards(formattedCards);
             extractFilters(formattedCards);
           } else setCards([]);
