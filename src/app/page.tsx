@@ -303,7 +303,7 @@ export default function PokedexPage() {
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
-  // État du calculateur de coût à la demande
+  // État du calculateur de coût pour le Full Set (à la demande)
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
@@ -342,7 +342,7 @@ export default function PokedexPage() {
     loadCollection();
   }, [currentUser]);
 
-  // Réinitialiser le coût calculé quand on change d'extension
+  // Réinitialiser le coût calculé lors d'un changement de série
   useEffect(() => {
     setCalculatedCost(null);
     setCostProgress("");
@@ -707,7 +707,8 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // CALCULATEUR DE COÛT PRÉCIS À LA DEMANDE
+  // CALCULATEUR DU FULL SET (AVEC SECRÈTES, SANS LES FOILS)
+  // Toute carte possédée en simple OU en foil est validée. On ne chiffre que les cartes avec 0 exemplaire.
   const calculateRealMissingCost = async () => {
     if (cards.length === 0 || isCalculatingCost) return;
 
@@ -726,14 +727,19 @@ export default function PokedexPage() {
     const currentSeries = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
     const lang = currentSeries?.lang || "fr";
 
-    // Pour ne pas saturer le réseau, traitement par lots avec cache
     const CHUNK_SIZE = 8;
     for (let i = 0; i < missingCards.length; i += CHUNK_SIZE) {
       const chunk = missingCards.slice(i, i + CHUNK_SIZE);
       setCostProgress(`Analyse des cotes : ${Math.min(i + CHUNK_SIZE, missingCards.length)} / ${missingCards.length} cartes...`);
 
       const promises = chunk.map(async (card) => {
-        // 1. Si prix déjà dans l'objet carte
+        // 1. Détection prioritaire des cartes emblématiques / "chase cards"
+        const cleanId = (card.id || "").toLowerCase();
+        const cardName = (card.name || "").toLowerCase();
+        if (cleanId.startsWith("me05") && cardName.includes("darkrai")) return 300.0;
+        if (cleanId.includes("sv08-238") || (cleanId.startsWith("sv08") && cardName.includes("pikachu") && (card.rarity?.toLowerCase().includes("sar") || card.rarity?.toLowerCase().includes("special")))) return 180.0;
+
+        // 2. Si prix déjà présent dans l'objet carte
         const directPrice =
           card.pricing?.cardmarket?.avg ||
           card.pricing?.cardmarket?.trend ||
@@ -742,12 +748,12 @@ export default function PokedexPage() {
 
         if (directPrice && directPrice > 0) return Number(directPrice);
 
-        // 2. Vérification dans le cache local
+        // 3. Vérification dans le cache local
         const cachePriceKey = `tcg_card_price_${card.id}`;
         const cachedPrice = sessionStorage.getItem(cachePriceKey);
         if (cachedPrice !== null) return Number(cachedPrice);
 
-        // 3. Appel à l'API individuelle TCGdex pour récupérer le pricing exact Cardmarket
+        // 4. Appel individuel TCGdex pour récupérer le pricing exact Cardmarket
         try {
           const res = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${card.id}`);
           if (res.ok) {
@@ -759,7 +765,7 @@ export default function PokedexPage() {
               return Number(price);
             }
 
-            // Fallback intelligent selon la rareté réelle obtenue de l'API détaillée
+            // Fallback réaliste par rareté
             const r = (cardDetail.rarity || "").toLowerCase();
             const isPop = card.id.startsWith("pop");
             let fallback = 0.50;
@@ -767,21 +773,21 @@ export default function PokedexPage() {
             if (isPop) {
               if (r.includes("rare") || cardDetail.name?.toLowerCase().includes("gold star") || cardDetail.name?.toLowerCase().includes("ex")) fallback = 45.0;
               else fallback = 3.50;
-            } else if (r.includes("special art") || r.includes("sar") || r.includes("hyper") || r.includes("gold")) {
+            } else if (r.includes("special art") || r.includes("sar") || r.includes("hyper") || r.includes("gold") || r.includes("couronne")) {
               fallback = 55.0;
-            } else if (r.includes("illustration") || r.includes("ar")) {
+            } else if (r.includes("illustration") || r.includes("ar") || r.includes("shiny")) {
               fallback = 8.5;
             } else if (r.includes("ultra") || r.includes("ex") || r.includes("vmax") || r.includes("v")) {
               fallback = 3.5;
             } else if (r.includes("holo") || r.includes("rare")) {
               fallback = 1.2;
             }
+
             sessionStorage.setItem(cachePriceKey, fallback.toString());
             return fallback;
           }
         } catch (e) {}
 
-        // 4. Fallback si l'API est injoignable
         const isPopSeries = card.id.startsWith("pop");
         const fallbackDefault = isPopSeries ? 4.0 : 0.40;
         return fallbackDefault;
@@ -1107,12 +1113,12 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Barre d'estimation précise avec bouton à la demande */}
+            {/* Barre d'estimation précise avec bouton à la demande pour le Full Set */}
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 {calculatedCost !== null ? (
                   <div className="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-400">
-                    <span>💰 Reste pour terminer le Master Set :</span>
+                    <span>💰 Reste pour terminer le Full Set (secrètes incluses) :</span>
                     <span className="text-white bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-sm">
                       ~{calculatedCost.toFixed(2)} €
                     </span>
@@ -1131,7 +1137,7 @@ export default function PokedexPage() {
                     className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <span>💰</span>
-                    {isCalculatingCost ? costProgress : "Estimer le coût restant Cardmarket"}
+                    {isCalculatingCost ? costProgress : "Estimer le coût du Full Set (avec secrètes)"}
                   </button>
                 )}
               </div>
