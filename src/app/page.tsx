@@ -23,7 +23,7 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Blocs organisés
+// Blocs organisés sans kits et sans McDo 23/24
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -247,6 +247,7 @@ const POKEMON_BLOCKS = [
 
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap(b => b.sets);
 
+// Séries assignées exclusivement à pokemontcg.io
 const TCG_IO_ONLY_SETS = [
   'dp1', 'pgo', 'rumble', 'det1', 'hgss.p',
   'mcd11', 'mcd12', 'mcd14', 'mcd15', 'mcd16', 'mcd17', 
@@ -421,7 +422,6 @@ export default function PokedexPage() {
     setFailedImages(prev => ({ ...prev, [cardId]: true }));
   };
 
-  // Chargement ultra-optimisé ⚡
   useEffect(() => {
     async function fetchCards() {
       setSelectedIllustrator("ALL");
@@ -431,7 +431,7 @@ export default function PokedexPage() {
       setCurrentGlobalBinderPage(1);
       setFailedImages({});
 
-      // 🚀 1. MODE CLASSEUR GLOBAL : ULTRA RAPIDE
+      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -447,17 +447,14 @@ export default function PokedexPage() {
 
         setLoading(true);
 
-        // On identifie uniquement les séries dont l'utilisateur possède au moins une carte
         const relevantSeries = ALL_FLAT_SERIES.filter(series => {
           return ownedCardIds.some(cardId => cardId.startsWith(`${series.id}-`));
         });
 
-        // Téléchargement / Extraction des cartes en parallèle
         const seriesPromises = relevantSeries.map(async (series) => {
           const cacheKey = `pokedex_series_v4_${series.id}`;
           let seriesCards: Card[] = [];
 
-          // Vérification dans le cache sessionStorage d'abord (0ms)
           const cached = sessionStorage.getItem(cacheKey);
           if (cached) {
             try {
@@ -465,7 +462,6 @@ export default function PokedexPage() {
             } catch (e) {}
           }
 
-          // Si non présent dans le cache, requête ciblée
           if (!seriesCards || seriesCards.length === 0) {
             try {
               if (TCG_IO_ONLY_SETS.includes(series.id)) {
@@ -507,7 +503,6 @@ export default function PokedexPage() {
             } catch (err) {}
           }
 
-          // On filtre uniquement les cartes possédées
           return (seriesCards || []).filter(c => ownedCardIds.includes(c.id));
         });
 
@@ -520,7 +515,7 @@ export default function PokedexPage() {
         return;
       }
 
-      // 🚀 2. MODE RECHERCHE
+      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -552,7 +547,7 @@ export default function PokedexPage() {
         return;
       }
 
-      // 🚀 3. MODE AFFICHAGE D'UNE SÉRIE SIMPLE
+      // 3. MODE SÉRIE SIMPLE
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       if (cachedData) {
@@ -759,6 +754,9 @@ export default function PokedexPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">OUTILS POUR LES DRESSEURS</span>
                 <div className="space-y-2">
+                  <Link href="/intercalaires" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
+                    <span>📑</span> Générateur d&apos;Intercalaires A4
+                  </Link>
                   <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
                     <span>🎨</span> Recherche par Artiste
                   </Link>
