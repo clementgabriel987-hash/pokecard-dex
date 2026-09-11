@@ -224,7 +224,7 @@ const POKEMON_BLOCKS = [
       { id: "sv06", name: "Mascarade Crépusculaire (FR)", lang: "fr" },
       { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
-      { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" },
+      { id: "sv08", name: "Étincelles Déferlantes (FR)", lang: "fr" },
       { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" },
       { id: "sv09", name: "Aventures Ensemble (FR)", lang: "fr" },
       { id: "sv10", name: "Rivalités Destinées (FR)", lang: "fr" },

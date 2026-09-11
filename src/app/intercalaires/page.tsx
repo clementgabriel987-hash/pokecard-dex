@@ -212,7 +212,7 @@ const POKEMON_BLOCKS = [
       { id: "sv06", name: "Mascarade Crépusculaire (FR)", lang: "fr" },
       { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
       { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
-      { id: "sv08", name: "Étincelles Survoltées (FR)", lang: "fr" },
+      { id: "sv08", name: "Étincelles Déferlantes (FR)", lang: "fr" },
       { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" },
       { id: "sv09", name: "Aventures Ensemble (FR)", lang: "fr" },
       { id: "sv10", name: "Rivalités Destinées (FR)", lang: "fr" },
@@ -275,9 +275,11 @@ export default function IntercalairePage() {
           if (res.ok) {
             const json = await res.json();
             const totalCards = Array.isArray(json.data) ? json.data.length : 0;
+            const releaseDate = json.data?.[0]?.set?.releaseDate || "—";
             setSetData({
               name: currentSet.name,
               cardCount: { official: totalCards, total: totalCards },
+              releaseDate: releaseDate,
               logo: null,
               symbol: null
             });
@@ -291,6 +293,7 @@ export default function IntercalairePage() {
             setSetData({
               name: currentSet.name,
               cardCount: { official: "—", total: "—" },
+              releaseDate: null,
               logo: null,
               symbol: null
             });
@@ -336,10 +339,11 @@ export default function IntercalairePage() {
 
   const logoUrl = getImageUrl(setData?.logo);
   const symbolUrl = getImageUrl(setData?.symbol);
+  const displayYear = setData?.releaseDate ? setData.releaseDate.slice(0, 4) : null;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 print:bg-white print:text-black">
-      {/* Configuration hors-impression */}
+      {/* Panneau de configuration (masqué à l'impression) */}
       <div className="print:hidden max-w-5xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div>
@@ -389,7 +393,7 @@ export default function IntercalairePage() {
           <div className="flex gap-4 items-center flex-wrap">
             <button
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-700 transition"
+              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-700 transition cursor-pointer"
             >
               {theme === "light" ? "☀️ Clair (Éco d'encre)" : "🌙 Sombre (Collector)"}
             </button>
@@ -414,92 +418,99 @@ export default function IntercalairePage() {
         </div>
       </div>
 
-      {/* Rendu feuille A4 */}
-      <div className="flex justify-center p-0 md:p-8 print:p-0">
+      {/* Rendu feuille A4 (Calibré 1 seule page) */}
+      <div className="flex justify-center p-0 md:p-6 print:p-0 print:m-0">
         <div
-          className={`w-[210mm] min-h-[297mm] p-[15mm] flex flex-col justify-between border print:border-none shadow-2xl print:shadow-none transition-colors duration-200 ${
+          id="intercalaire-page"
+          className={`w-[210mm] h-[297mm] max-h-[297mm] p-[10mm] flex flex-col justify-between border print:border-none shadow-2xl print:shadow-none transition-colors duration-200 overflow-hidden box-border ${
             theme === "dark" ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-300 text-slate-900"
           }`}
-          style={{ boxSizing: "border-box" }}
         >
           {/* En-tête */}
-          <div className="text-center border-b-2 pb-6 border-current">
-            <span className="text-xs font-bold tracking-[0.3em] uppercase opacity-70 block mb-2">
+          <div className="text-center border-b-2 pb-3 border-current shrink-0">
+            <span className="text-[11px] font-bold tracking-[0.25em] uppercase opacity-70 block mb-1">
               {currentSet.block}
             </span>
-            <h2 className="text-4xl font-black uppercase tracking-tight mb-2">
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-1">
               {currentSet.name}
             </h2>
+            {displayYear && (
+              <span className="text-xs font-semibold opacity-65">
+                Année de parution : {displayYear}
+              </span>
+            )}
           </div>
 
           {/* Corps central */}
-          <div className="flex-1 flex flex-col items-center justify-center py-8 space-y-6 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center py-4 space-y-4 text-center">
             {logoUrl && !logoFailed ? (
               <img
                 src={logoUrl}
                 alt={currentSet.name}
-                className="max-h-36 max-w-sm object-contain drop-shadow-md"
+                className="max-h-28 md:max-h-32 max-w-xs md:max-w-sm object-contain drop-shadow-md"
                 onError={() => setLogoFailed(true)}
               />
-            ) : null}
+            ) : (
+              <div className="text-4xl">🃏</div>
+            )}
 
             {symbolUrl && !symbolFailed ? (
-              <div className="p-4 border-2 border-dashed border-current/20 rounded-full">
+              <div className="p-2.5 border-2 border-dashed border-current/20 rounded-full">
                 <img
                   src={symbolUrl}
                   alt="Symbole de l'extension"
-                  className="w-14 h-14 object-contain"
+                  className="w-10 h-10 object-contain"
                   onError={() => setSymbolFailed(true)}
                 />
               </div>
             ) : null}
 
-            <div className="space-y-1">
-              <div className="text-3xl font-extrabold tracking-tight">
+            <div className="space-y-0.5">
+              <div className="text-2xl md:text-3xl font-extrabold tracking-tight">
                 {setData?.cardCount?.official || "—"} Cartes
               </div>
               {setData?.cardCount?.total && setData.cardCount.total !== setData.cardCount.official && (
-                <div className="text-xs opacity-60 font-semibold">
+                <div className="text-[11px] opacity-60 font-semibold">
                   {setData.cardCount.total} cartes avec les secrètes
                 </div>
               )}
             </div>
 
             {customNote && (
-              <div className="inline-block px-4 py-1.5 border border-current/30 rounded-full text-xs font-bold tracking-wider uppercase">
+              <div className="inline-block px-3.5 py-1 border border-current/30 rounded-full text-[11px] font-bold tracking-wider uppercase">
                 🏷️ {customNote}
               </div>
             )}
 
             {showStats && (
-              <div className="w-full max-w-md border border-current/20 rounded-2xl p-4 space-y-2 bg-current/5">
-                <div className="text-xs font-extrabold uppercase tracking-wider opacity-70">
+              <div className="w-full max-w-sm border border-current/20 rounded-xl p-3 space-y-1.5 bg-current/5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-70">
                   Progression du Classeur
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-left pt-2 border-t border-current/10">
+                <div className="grid grid-cols-2 gap-3 text-left pt-1.5 border-t border-current/10">
                   <div>
-                    <span className="text-[10px] block opacity-60 font-bold uppercase">Cartes Normales</span>
-                    <span className="text-lg font-black">{collectionCount.normal} possédées</span>
+                    <span className="text-[9px] block opacity-60 font-bold uppercase">Cartes Normales</span>
+                    <span className="text-base font-black">{collectionCount.normal} possédées</span>
                   </div>
                   <div>
-                    <span className="text-[10px] block opacity-60 font-bold uppercase">Cartes Foils</span>
-                    <span className="text-lg font-black">{collectionCount.foil} possédées</span>
+                    <span className="text-[9px] block opacity-60 font-bold uppercase">Cartes Foils</span>
+                    <span className="text-base font-black">{collectionCount.foil} possédées</span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Pied de page avec QR Code */}
-          <div className="border-t-2 pt-6 border-current flex items-center justify-between">
-            <div className="space-y-1 text-left">
-              <span className="text-xs font-bold uppercase tracking-wider block">Inventaire Numérique</span>
-              <span className="text-[11px] opacity-60 block">Scanne pour ouvrir l&apos;extension dans l&apos;application</span>
+          {/* Pied de page avec QR Code remonté */}
+          <div className="border-t-2 pt-3 pb-1 border-current flex items-center justify-between shrink-0">
+            <div className="space-y-0.5 text-left">
+              <span className="text-[11px] font-bold uppercase tracking-wider block">Inventaire Numérique</span>
+              <span className="text-[10px] opacity-60 block">Scanne pour ouvrir l&apos;extension dans l&apos;application</span>
             </div>
 
             {showQRCode && (
-              <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-sm">
-                <QRCodeSVG value={appSetUrl} size={70} />
+              <div className="p-1.5 bg-white rounded-lg border border-slate-200 shadow-sm shrink-0">
+                <QRCodeSVG value={appSetUrl} size={58} />
               </div>
             )}
           </div>
@@ -512,10 +523,22 @@ export default function IntercalairePage() {
             size: A4 portrait;
             margin: 0;
           }
-          body {
-            background: white !important;
+          html, body {
             margin: 0 !important;
             padding: 0 !important;
+            background: white !important;
+            height: 100% !important;
+            overflow: hidden !important;
+          }
+          #intercalaire-page {
+            width: 210mm !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            box-shadow: none !important;
+            border: none !important;
           }
         }
       `}</style>
