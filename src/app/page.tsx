@@ -712,8 +712,7 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // CALCUL STRICT VIA L'API GRATUITE TCGDEX (AUCUN CALCUL APPROXIMATIF INVENTÉ)
-  // Full Set : possède au moins 1 version (normale OU foil). Seules les cartes à 0 exemplaire sont interrogées.
+  // CALCUL DU COÛT FULL SET VIA L'API TCGDEX
   const calculateRealMissingCost = async () => {
     if (cards.length === 0 || isCalculatingCost) return;
 
@@ -755,12 +754,10 @@ export default function PokedexPage() {
 
             let cardPrice = 0;
 
-            // 1. Vrai prix Cardmarket officiel en Euros
             if (cm) {
               cardPrice = cm.avg || cm.trend || cm.avg30 || cm.low || cm["avg-holo"] || 0;
             }
 
-            // 2. Conversion TCGplayer officielle si pas de cotation Cardmarket
             if (cardPrice <= 0 && tcg) {
               const usd = tcg.normal?.marketPrice || tcg.normal?.midPrice || tcg.reverse?.marketPrice || tcg.holofoil?.marketPrice || 0;
               cardPrice = (usd || 0) * 0.92;
@@ -783,7 +780,6 @@ export default function PokedexPage() {
     setCostProgress("");
   };
 
-  // Liste unique des séries possédées dans "Ma Collection"
   const ownedSeriesList = useMemo(() => {
     if (!isGlobalBinder || cards.length === 0) return [];
     
@@ -797,7 +793,6 @@ export default function PokedexPage() {
   }, [isGlobalBinder, cards]);
 
   const filteredCards = cards.filter((card) => {
-    // Filtre de série spécifique en mode "Ma Collection"
     if (isGlobalBinder && binderSelectedSeries !== "ALL") {
       const cardSeriesId = card.id.split("-")[0];
       if (cardSeriesId !== binderSelectedSeries) return false;
@@ -874,9 +869,6 @@ export default function PokedexPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">OUTILS POUR LES DRESSEURS</span>
                 <div className="space-y-2">
-                  <Link href="/mini-tins" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-amber-300">
-                    <span>🥫</span> Frises de Mini Tins
-                  </Link>
                   <Link href="/intercalaires" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
                     <span>📑</span> Générateur d&apos;Intercalaires A4
                   </Link>
@@ -1015,7 +1007,6 @@ export default function PokedexPage() {
 
           {isGlobalBinder && (
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-center">
-              {/* Filtre par série dans Ma Collection */}
               <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
                 <span className="text-xs text-purple-300 font-semibold shrink-0">📦 Extension :</span>
                 <select
@@ -1038,7 +1029,6 @@ export default function PokedexPage() {
                 </select>
               </div>
 
-              {/* Bascule du mode de vue */}
               <div className="flex bg-slate-900 p-1 rounded-full border border-slate-800">
                 <button 
                   onClick={() => setBinderViewStyle("pages")} 
@@ -1142,7 +1132,6 @@ export default function PokedexPage() {
               </div>
             </div>
 
-            {/* Estimation du coût Full Set sans aucun arbitraire */}
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 {calculatedCost !== null ? (
