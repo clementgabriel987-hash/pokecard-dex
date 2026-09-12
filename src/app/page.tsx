@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -281,6 +281,7 @@ export default function PokedexPage() {
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
   const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("pages");
   const [currentGlobalBinderPage, setCurrentGlobalBinderPage] = useState<number>(1);
+  const [binderSelectedSeries, setBinderSelectedSeries] = useState<string>("ALL");
 
   const [searchInput, setSearchInput] = useState<string>("");
   const [activeSearch, setActiveSearch] = useState<string>("");
@@ -460,6 +461,7 @@ export default function PokedexPage() {
       setSelectedStatus("ALL");
       setSelectedLanguage("ALL");
       setCurrentGlobalBinderPage(1);
+      setBinderSelectedSeries("ALL");
       setFailedImages({});
 
       // 1. MODE CLASSEUR GLOBAL
@@ -781,7 +783,26 @@ export default function PokedexPage() {
     setCostProgress("");
   };
 
+  // Liste unique des séries possédées dans "Ma Collection"
+  const ownedSeriesList = useMemo(() => {
+    if (!isGlobalBinder || cards.length === 0) return [];
+    
+    const setIds = new Set<string>();
+    cards.forEach((c) => {
+      const sId = c.id.split("-")[0];
+      if (sId) setIds.add(sId);
+    });
+
+    return ALL_FLAT_SERIES.filter((s) => setIds.has(s.id));
+  }, [isGlobalBinder, cards]);
+
   const filteredCards = cards.filter((card) => {
+    // Filtre de série spécifique en mode "Ma Collection"
+    if (isGlobalBinder && binderSelectedSeries !== "ALL") {
+      const cardSeriesId = card.id.split("-")[0];
+      if (cardSeriesId !== binderSelectedSeries) return false;
+    }
+
     const matchIllustrator = selectedIllustrator === "ALL" || card.illustrator === selectedIllustrator;
     const matchRarity = selectedRarity === "ALL" || card.rarity === selectedRarity;
     const cardData = userCollection[card.id];
@@ -990,19 +1011,45 @@ export default function PokedexPage() {
           )}
 
           {isGlobalBinder && (
-            <div className="flex bg-slate-900 p-1 rounded-full border border-slate-800">
-              <button 
-                onClick={() => setBinderViewStyle("pages")} 
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "pages" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-              >
-                📖 Page par Page (3x3)
-              </button>
-              <button 
-                onClick={() => setBinderViewStyle("standard")} 
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "standard" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-              >
-                🖥️ Grille Standard
-              </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-center">
+              {/* Filtre par série dans Ma Collection */}
+              <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
+                <span className="text-xs text-purple-300 font-semibold shrink-0">📦 Extension :</span>
+                <select
+                  value={binderSelectedSeries}
+                  onChange={(e) => {
+                    setBinderSelectedSeries(e.target.value);
+                    setCurrentGlobalBinderPage(1);
+                  }}
+                  className="bg-slate-950 text-xs border border-slate-700 text-white px-2.5 py-1 rounded-lg outline-none focus:border-purple-500 cursor-pointer max-w-[200px] truncate"
+                >
+                  <option value="ALL">Toutes mes séries ({cards.length} cartes)</option>
+                  {ownedSeriesList.map((s) => {
+                    const countInSet = cards.filter((c) => c.id.startsWith(`${s.id}-`)).length;
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({countInSet})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Bascule du mode de vue */}
+              <div className="flex bg-slate-900 p-1 rounded-full border border-slate-800">
+                <button 
+                  onClick={() => setBinderViewStyle("pages")} 
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "pages" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
+                >
+                  📖 Page par Page (3x3)
+                </button>
+                <button 
+                  onClick={() => setBinderViewStyle("standard")} 
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${binderViewStyle === "standard" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
+                >
+                  🖥️ Grille Standard
+                </button>
+              </div>
             </div>
           )}
         </div>
