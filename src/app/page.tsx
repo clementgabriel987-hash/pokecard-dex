@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -302,6 +302,14 @@ export default function PokedexPage() {
   // État de la carte sélectionnée pour le Zoom HD
   const [zoomedCard, setZoomedCard] = useState<Card | null>(null);
 
+  // États du zoom interactif (souris & tactile)
+  const [zoomScale, setZoomScale] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialPinchScaleRef = useRef<number>(1);
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
   
@@ -311,6 +319,88 @@ export default function PokedexPage() {
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
+
+  // Réinitialiser l'échelle et la position à chaque nouvelle carte ouverte
+  useEffect(() => {
+    if (zoomedCard) {
+      setZoomScale(1);
+      setPanOffset({ x: 0, y: 0 });
+    }
+  }, [zoomedCard]);
+
+  // Gestion du zoom à la molette de souris
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    setZoomScale((prev) => {
+      const next = Math.min(Math.max(0.8, prev + delta), 4.5);
+      if (next <= 1) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  // Gestion du déplacement à la souris (drag)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomScale <= 1) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPanOffset({
+      x: e.clientX - dragStartRef.current.x,
+      y: e.clientY - dragStartRef.current.y
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  // Gestion du toucher sur smartphone / tablette (Pinch-to-zoom + Drag)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialPinchDistRef.current = dist;
+      initialPinchScaleRef.current = zoomScale;
+    } else if (e.touches.length === 1 && zoomScale > 1) {
+      setIsDragging(true);
+      dragStartRef.current = {
+        x: e.touches[0].clientX - panOffset.x,
+        y: e.touches[0].clientY - panOffset.y
+      };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / initialPinchDistRef.current;
+      const nextScale = Math.min(Math.max(0.8, initialPinchScaleRef.current * ratio), 4.5);
+      setZoomScale(nextScale);
+      if (nextScale <= 1) setPanOffset({ x: 0, y: 0 });
+    } else if (e.touches.length === 1 && isDragging) {
+      setPanOffset({
+        x: e.touches[0].clientX - dragStartRef.current.x,
+        y: e.touches[0].clientY - dragStartRef.current.y
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    initialPinchDistRef.current = null;
+    setIsDragging(false);
+  };
+
+  const resetZoom = () => {
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -837,29 +927,80 @@ export default function PokedexPage() {
         </button>
       </div>
 
-      {/* MODALE DE ZOOM SUR LA CARTE (HD + DÉTAILS) */}
+      {/* MODALE DE ZOOM SUR LA CARTE (HD + ZOOM SOURIS & MAIN) */}
       {zoomedCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity" onClick={() => setZoomedCard(null)}></div>
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl z-10 overflow-hidden flex flex-col md:flex-row gap-6 items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 select-none">
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md transition-opacity" onClick={() => setZoomedCard(null)}></div>
+          
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-5 md:p-7 shadow-2xl z-10 overflow-hidden flex flex-col md:flex-row gap-6 items-center">
             
             <button 
               onClick={() => setZoomedCard(null)} 
-              className="absolute top-4 right-4 bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center font-bold text-sm transition cursor-pointer z-20"
+              className="absolute top-4 right-4 bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center font-bold text-sm transition cursor-pointer z-30"
             >
               ✕
             </button>
 
-            {/* Illustration HD en grand format */}
-            <div className="w-full md:w-1/2 flex justify-center bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 shadow-inner">
-              <img 
-                src={zoomedCard.image} 
-                alt={zoomedCard.name} 
-                className="max-h-[380px] md:max-h-[440px] object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
-              />
+            {/* Cadre de visualisation interactif avec molette, drag et touch */}
+            <div className="w-full md:w-1/2 flex flex-col items-center">
+              <div 
+                onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className={`relative w-full h-[360px] md:h-[440px] flex items-center justify-center bg-slate-950/70 p-2 rounded-2xl border border-slate-800/80 overflow-hidden ${zoomScale > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in"}`}
+              >
+                <img 
+                  src={zoomedCard.image} 
+                  alt={zoomedCard.name} 
+                  draggable={false}
+                  style={{
+                    transform: `scale(${zoomScale}) translate(${panOffset.x / zoomScale}px, ${panOffset.y / zoomScale}px)`,
+                    transition: isDragging ? "none" : "transform 0.15s ease-out"
+                  }}
+                  className="max-h-full max-w-full object-contain pointer-events-none drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
+                />
+
+                {/* Petit rappel d'aide discret */}
+                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-[10px] px-2 py-0.5 rounded-full text-slate-400 pointer-events-none border border-white/5">
+                  Molette / Écarter pour zoomer
+                </div>
+              </div>
+
+              {/* Contrôles manuels du zoom */}
+              <div className="flex items-center gap-2 mt-3 bg-slate-950 px-3 py-1.5 rounded-full border border-slate-800 text-xs text-slate-400">
+                <button 
+                  onClick={() => setZoomScale((s) => Math.max(0.8, Number((s - 0.3).toFixed(1))))} 
+                  className="px-2 py-0.5 hover:text-white font-bold cursor-pointer transition"
+                  title="Dézoomer"
+                >
+                  −
+                </button>
+                <span className="font-mono text-yellow-400 font-bold min-w-[45px] text-center">
+                  {Math.round(zoomScale * 100)}%
+                </span>
+                <button 
+                  onClick={() => setZoomScale((s) => Math.min(4.5, Number((s + 0.3).toFixed(1))))} 
+                  className="px-2 py-0.5 hover:text-white font-bold cursor-pointer transition"
+                  title="Zoomer"
+                >
+                  +
+                </button>
+                <button 
+                  onClick={resetZoom} 
+                  className="ml-2 pl-2 border-l border-slate-800 text-[11px] text-slate-400 hover:text-white cursor-pointer transition"
+                  title="Réinitialiser à 100%"
+                >
+                  ↺ Reset
+                </button>
+              </div>
             </div>
 
-            {/* Fiche d'informations & boutons d'action */}
+            {/* Fiche d'action sans rareté ni illustrateur */}
             <div className="w-full md:w-1/2 flex flex-col justify-between self-stretch">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -871,39 +1012,29 @@ export default function PokedexPage() {
                   </span>
                 </div>
                 
-                <h2 className="text-2xl font-black text-white mb-3">{zoomedCard.name}</h2>
+                <h2 className="text-2xl font-black text-white mb-4">{zoomedCard.name}</h2>
 
-                <div className="space-y-2 bg-slate-950/50 p-4 rounded-xl border border-slate-800/60 text-xs mb-4">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">💎 Rareté :</span>
-                    <span className="text-slate-200 font-semibold">{zoomedCard.rarity || "Inconnue"}</span>
+                {sessionStorage.getItem(`tcgdex_real_price_${zoomedCard.id}`) && (
+                  <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 flex justify-between items-center mb-6">
+                    <span className="text-xs text-slate-400">💰 Cote constatée :</span>
+                    <span className="text-sm text-yellow-400 font-bold">
+                      ~{sessionStorage.getItem(`tcgdex_real_price_${zoomedCard.id}`)} €
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">🎨 Illustrateur :</span>
-                    <span className="text-slate-200 font-semibold">{zoomedCard.illustrator || "Inconnu"}</span>
-                  </div>
-                  {sessionStorage.getItem(`tcgdex_real_price_${zoomedCard.id}`) && (
-                    <div className="flex justify-between pt-2 border-t border-slate-800/80">
-                      <span className="text-slate-400">💰 Cote constatée :</span>
-                      <span className="text-yellow-400 font-bold">
-                        ~{sessionStorage.getItem(`tcgdex_real_price_${zoomedCard.id}`)} €
-                      </span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* Boutons d'état (Normale / Foil) et lien Cardmarket */}
+              {/* Boutons de possession & lien Cardmarket */}
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <button 
-                    onClick={() => toggleCardOwnership(zoomedCard.id, 'normal', ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId)?.lang || "fr")} 
+                    onClick={() => toggleCardOwnership(zoomedCard.id, 'normal', ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId)?.lang || "fr")} 
                     className={`py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${userCollection[zoomedCard.id]?.normalOwned ? "bg-yellow-500 text-slate-950 shadow-md" : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"}`}
                   >
                     {userCollection[zoomedCard.id]?.normalOwned ? "✓ Normale acquise" : "+ Normale"}
                   </button>
                   <button 
-                    onClick={() => toggleCardOwnership(zoomedCard.id, 'foil', ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId)?.lang || "fr")} 
+                    onClick={() => toggleCardOwnership(zoomedCard.id, 'foil', ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId)?.lang || "fr")} 
                     className={`py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${userCollection[zoomedCard.id]?.foilOwned ? "bg-purple-600 text-white shadow-md" : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"}`}
                   >
                     {userCollection[zoomedCard.id]?.foilOwned ? "✨ Foil acquise" : "+ Foil"}
@@ -1359,7 +1490,6 @@ export default function PokedexPage() {
             </div>
           )}
           
-          {/* Zone de l'image cliquable pour ouvrir la modale HD */}
           <div 
             onClick={() => setZoomedCard(card)}
             className="mb-3 flex justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[190px] items-center relative overflow-hidden cursor-pointer hover:border-yellow-500/50 transition duration-200"
@@ -1382,7 +1512,6 @@ export default function PokedexPage() {
               </div>
             )}
             
-            {/* Petit badge d'indication de zoom au survol */}
             <div className="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100 transition">
               🔍 Zoom
             </div>
