@@ -43,7 +43,6 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-// Blocs organisés sans kits et sans McDo 23/24
 const POKEMON_BLOCKS = [
   {
     blockName: "⭐ Cartes Promotionnelles",
@@ -267,7 +266,6 @@ const POKEMON_BLOCKS = [
 
 const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap((b) => b.sets);
 
-// Séries assignées exclusivement à pokemontcg.io
 const TCG_IO_ONLY_SETS = [
   "dp1", "pgo", "rumble", "det1", "hgss.p",
   "mcd11", "mcd12", "mcd14", "mcd15", "mcd16", "mcd17", 
@@ -301,13 +299,15 @@ export default function PokedexPage() {
   const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
+  // État de la carte sélectionnée pour le Zoom HD
+  const [zoomedCard, setZoomedCard] = useState<Card | null>(null);
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
   
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
 
-  // Calcul du Full Set via l'API officielle TCGdex (à la demande)
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
@@ -346,7 +346,6 @@ export default function PokedexPage() {
     loadCollection();
   }, [currentUser]);
 
-  // Réinitialiser le coût calculé lors d'un changement de série
   useEffect(() => {
     setCalculatedCost(null);
     setCostProgress("");
@@ -464,7 +463,6 @@ export default function PokedexPage() {
       setBinderSelectedSeries("ALL");
       setFailedImages({});
 
-      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -549,7 +547,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -581,7 +578,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 3. MODE SÉRIE SIMPLE
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       if (cachedData) {
@@ -712,7 +708,6 @@ export default function PokedexPage() {
     await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
   };
 
-  // CALCUL DU COÛT FULL SET VIA L'API TCGDEX
   const calculateRealMissingCost = async () => {
     if (cards.length === 0 || isCalculatingCost) return;
 
@@ -841,6 +836,93 @@ export default function PokedexPage() {
           <span className="text-lg">☰</span> Menu
         </button>
       </div>
+
+      {/* MODALE DE ZOOM SUR LA CARTE (HD + DÉTAILS) */}
+      {zoomedCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity" onClick={() => setZoomedCard(null)}></div>
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl z-10 overflow-hidden flex flex-col md:flex-row gap-6 items-center">
+            
+            <button 
+              onClick={() => setZoomedCard(null)} 
+              className="absolute top-4 right-4 bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center font-bold text-sm transition cursor-pointer z-20"
+            >
+              ✕
+            </button>
+
+            {/* Illustration HD en grand format */}
+            <div className="w-full md:w-1/2 flex justify-center bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 shadow-inner">
+              <img 
+                src={zoomedCard.image} 
+                alt={zoomedCard.name} 
+                className="max-h-[380px] md:max-h-[440px] object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
+              />
+            </div>
+
+            {/* Fiche d'informations & boutons d'action */}
+            <div className="w-full md:w-1/2 flex flex-col justify-between self-stretch">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2.5 py-0.5 rounded-md font-extrabold">
+                    #{zoomedCard.localId}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {zoomedCard.seriesName || selectedSeriesId.toUpperCase()}
+                  </span>
+                </div>
+                
+                <h2 className="text-2xl font-black text-white mb-3">{zoomedCard.name}</h2>
+
+                <div className="space-y-2 bg-slate-950/50 p-4 rounded-xl border border-slate-800/60 text-xs mb-4">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">💎 Rareté :</span>
+                    <span className="text-slate-200 font-semibold">{zoomedCard.rarity || "Inconnue"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">🎨 Illustrateur :</span>
+                    <span className="text-slate-200 font-semibold">{zoomedCard.illustrator || "Inconnu"}</span>
+                  </div>
+                  {sessionStorage.getItem(`tcgdex_real_price_${zoomedCard.id}`) && (
+                    <div className="flex justify-between pt-2 border-t border-slate-800/80">
+                      <span className="text-slate-400">💰 Cote constatée :</span>
+                      <span className="text-yellow-400 font-bold">
+                        ~{sessionStorage.getItem(`tcgdex_real_price_${zoomedCard.id}`)} €
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Boutons d'état (Normale / Foil) et lien Cardmarket */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    onClick={() => toggleCardOwnership(zoomedCard.id, 'normal', ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId)?.lang || "fr")} 
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${userCollection[zoomedCard.id]?.normalOwned ? "bg-yellow-500 text-slate-950 shadow-md" : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"}`}
+                  >
+                    {userCollection[zoomedCard.id]?.normalOwned ? "✓ Normale acquise" : "+ Normale"}
+                  </button>
+                  <button 
+                    onClick={() => toggleCardOwnership(zoomedCard.id, 'foil', ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId)?.lang || "fr")} 
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${userCollection[zoomedCard.id]?.foilOwned ? "bg-purple-600 text-white shadow-md" : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"}`}
+                  >
+                    {userCollection[zoomedCard.id]?.foilOwned ? "✨ Foil acquise" : "+ Foil"}
+                  </button>
+                </div>
+
+                <a 
+                  href={`https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(zoomedCard.name)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/40 text-blue-300 text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2"
+                >
+                  <span>🛒</span> Voir les offres sur Cardmarket
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
@@ -1261,7 +1343,7 @@ export default function PokedexPage() {
     const showLanguageFlags = cardDefaultLang !== "en";
 
     return (
-      <div key={card.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 md:p-4 flex flex-col justify-between shadow-lg relative">
+      <div key={card.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 md:p-4 flex flex-col justify-between shadow-lg relative group">
         <button 
           onClick={() => toggleWishlist(card.id)} 
           className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
@@ -1276,12 +1358,18 @@ export default function PokedexPage() {
               {card.seriesName}
             </div>
           )}
-          <div className="mb-3 flex justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[190px] items-center relative overflow-hidden">
+          
+          {/* Zone de l'image cliquable pour ouvrir la modale HD */}
+          <div 
+            onClick={() => setZoomedCard(card)}
+            className="mb-3 flex justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[190px] items-center relative overflow-hidden cursor-pointer hover:border-yellow-500/50 transition duration-200"
+            title="Cliquer pour zoomer en HD"
+          >
             {card.image && !hasError ? (
               <img 
                 src={card.image} 
                 alt={card.name} 
-                className="h-32 md:h-42 object-contain drop-shadow-md" 
+                className="h-32 md:h-42 object-contain drop-shadow-md group-hover:scale-105 transition duration-300" 
                 loading="lazy" 
                 decoding="async" 
                 onError={() => handleImageError(card.id, card.image)} 
@@ -1293,9 +1381,17 @@ export default function PokedexPage() {
                 <span className="text-[9px] text-slate-500">#{card.localId}</span>
               </div>
             )}
+            
+            {/* Petit badge d'indication de zoom au survol */}
+            <div className="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100 transition">
+              🔍 Zoom
+            </div>
           </div>
+
           <div className="flex justify-between items-start mb-1 gap-1">
-            <h3 className="text-xs md:text-sm font-bold truncate">{card.name}</h3>
+            <h3 className="text-xs md:text-sm font-bold truncate cursor-pointer" onClick={() => setZoomedCard(card)}>
+              {card.name}
+            </h3>
             <span className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
           </div>
         </div>
