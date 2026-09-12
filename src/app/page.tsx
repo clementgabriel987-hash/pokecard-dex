@@ -874,6 +874,9 @@ export default function PokedexPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 px-1">OUTILS POUR LES DRESSEURS</span>
                 <div className="space-y-2">
+                  <Link href="/mini-tins" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-amber-300">
+                    <span>🥫</span> Frises de Mini Tins
+                  </Link>
                   <Link href="/intercalaires" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
                     <span>📑</span> Générateur d&apos;Intercalaires A4
                   </Link>
