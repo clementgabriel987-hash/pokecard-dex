@@ -687,7 +687,7 @@ export default function PokedexPage() {
             dp1: "dp1", pgo: "pgo", rumble: "ru1", det1: "det1", "hgss.p": "hsp",
             mcd11: "mcd11", mcd12: "mcd12", mcd14: "mcd14", mcd15: "mcd15",
             mcd16: "mcd16", mcd17: "mcd17", mcd18: "mcd18", mcd19: "mcd19",
-            mcd21: "mcd21", mcd22: "mcd22", me05.5: "me055"
+            mcd21: "mcd21", mcd22: "mcd22",
           };
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
