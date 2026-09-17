@@ -260,7 +260,7 @@ const POKEMON_BLOCKS = [
       { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
       { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
       { id: "me05", name: "Nuit Noire (FR)", lang: "fr" },
-      { id: "me055", name: "30th Anniversary", lang: "en" }
+      { id: "me05.5", name: "30th Anniversary", lang: "en" }
     ]
   }
 ];
