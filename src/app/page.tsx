@@ -259,7 +259,7 @@ const POKEMON_BLOCKS = [
       { id: "me02.5", name: "Héros Transcendants (FR)", lang: "fr" },
       { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
       { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
-      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" }
+      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" },
       { id: "meo55", name: "Pokémon 30 ans", lang: "en" }
     ]
   }
