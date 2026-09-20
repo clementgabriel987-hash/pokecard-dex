@@ -130,8 +130,8 @@ const POKEMON_BLOCKS = [
     sets: [
       { id: "dp1", name: "Diamant & Perle (FR)", lang: "en" },
       { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
-      { id: "dp3", name: "Merveilles Secrètes (FR)", lang: "fr" },
-      { id: "dp4", name: "Aube Majestueuse (FR)", lang: "fr" },
+      { id: "dp3", name: "Merveilles Secrètes / Duels au Sommet (FR/EN)", lang: "en" },
+      { id: "dp4", name: "Secret Wonders / Duels au Sommet (EN)", lang: "en" },
       { id: "dp5", name: "Éveil des Légendes (FR)", lang: "fr" },
       { id: "dp6", name: "Tempête (FR)", lang: "fr" }
     ]
