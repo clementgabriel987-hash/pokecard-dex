@@ -76,6 +76,7 @@ const POKEMON_BLOCKS = [
   {
     blockName: "📦 Hors-Séries & Spéciales",
     sets: [
+      { id: "30c", name: "30th Celebration / 30 Ans (FR/EN)", lang: "en" },
       { id: "det1", name: "Détective Pikachu", lang: "en" },
       { id: "pgo", name: "Pokémon GO", lang: "en" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
@@ -260,7 +261,6 @@ const POKEMON_BLOCKS = [
       { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
       { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
       { id: "me05", name: "Nuit Noire (FR)", lang: "fr" },
-      { id: "me05.5", name: "30th Anniversary", lang: "en" }
     ]
   }
 ];
