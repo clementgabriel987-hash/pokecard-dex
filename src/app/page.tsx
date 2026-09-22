@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "../lib/supabase";
 import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS, PokemonSet, PokemonBlock } from "../constants/pokemonSets";
 import CardZoomModal from "../components/CardZoomModal";
@@ -239,6 +240,7 @@ export default function PokedexPage() {
       setBinderSelectedSeries("ALL");
       setFailedImages({});
 
+      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -323,6 +325,7 @@ export default function PokedexPage() {
         return;
       }
 
+      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -354,6 +357,7 @@ export default function PokedexPage() {
         return;
       }
 
+      // 3. MODE SÉRIE SIMPLE
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       if (cachedData) {
@@ -441,21 +445,18 @@ export default function PokedexPage() {
     setRaritiesList(Array.from(raritiesSet).sort());
   };
 
-  // --- Fonction de DEBOUNCE pour sauvegarder intelligemment dans Supabase ---
+  // Sauvegarde différée (Debounce)
   const debouncedSupabaseSave = (newCollection: UserCollectionJSON) => {
     if (!currentUser) return;
     
-    // Annule la requête en attente si on clique à nouveau rapidement
     if (supabaseSaveTimeoutRef.current) clearTimeout(supabaseSaveTimeoutRef.current);
     
-    // Programme la nouvelle sauvegarde après 800ms d'inactivité
     supabaseSaveTimeoutRef.current = setTimeout(async () => {
       await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
       console.log("💾 Collection sauvegardée dans Supabase avec succès !");
     }, 800);
   };
 
-  // --- Toggles de possession (utilisent désormais le debounce) ---
   const toggleCardOwnership = (id: string, type: "normal" | "foil", cardDefaultLang: string) => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
     
@@ -467,8 +468,8 @@ export default function PokedexPage() {
     
     if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
     
-    setUserCollection(newCollection); // Mise à jour instantanée de l'écran
-    debouncedSupabaseSave(newCollection); // Sauvegarde différée
+    setUserCollection(newCollection);
+    debouncedSupabaseSave(newCollection);
   };
 
   const toggleCardLanguage = (id: string, langToToggle: string, defaultLang: string) => {
@@ -673,7 +674,7 @@ export default function PokedexPage() {
                   <Link href="/intercalaires" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
                     <span>📑</span> Générateur d&apos;Intercalaires A4
                   </Link>
-                  <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer">
+                  <Link href="/artistes" className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-yellow-300">
                     <span>🎨</span> Recherche par Artiste
                   </Link>
                   <button onClick={openMysteryCard} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-xl font-semibold text-sm transition flex items-center gap-3 cursor-pointer text-blue-300">
@@ -765,8 +766,14 @@ export default function PokedexPage() {
               <h2 className="text-lg font-bold text-blue-400">🎲 Carte Mystère du Jour</h2>
               <button onClick={() => setIsMysteryOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
-            <div className="mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-center min-h-[220px] items-center">
-              <img src={mysteryCard.image} alt={mysteryCard.name} className="h-56 object-contain drop-shadow-lg" loading="lazy" decoding="async" />
+            <div className="mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-center min-h-[220px] items-center relative overflow-hidden">
+              <Image 
+                src={mysteryCard.image} 
+                alt={mysteryCard.name} 
+                fill
+                sizes="250px"
+                className="object-contain drop-shadow-lg" 
+              />
             </div>
             <h3 className="text-base font-bold text-white mb-1">{mysteryCard.name}</h3>
             <p className="text-xs text-slate-400 mb-4">#{mysteryCard.localId} {mysteryCard.rarity ? `• ${mysteryCard.rarity}` : ""}</p>
@@ -1084,12 +1091,12 @@ export default function PokedexPage() {
             title="Cliquer pour zoomer en HD"
           >
             {card.image && !hasError ? (
-              <img 
+              <Image 
                 src={card.image} 
                 alt={card.name} 
-                className="h-32 md:h-42 object-contain drop-shadow-md group-hover:scale-105 transition duration-300" 
-                loading="lazy" 
-                decoding="async" 
+                fill
+                sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
+                className="object-contain drop-shadow-md group-hover:scale-105 transition duration-300 p-2" 
                 onError={() => handleImageError(card.id, card.image)} 
               />
             ) : (
@@ -1100,7 +1107,7 @@ export default function PokedexPage() {
               </div>
             )}
             
-            <div className="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100 transition">
+            <div className="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100 transition z-10">
               🔍 Zoom
             </div>
           </div>
