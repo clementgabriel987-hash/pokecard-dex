@@ -224,6 +224,7 @@ const POKEMON_BLOCKS = [
       { id: "swsh6", name: "Règne de Glace (FR)", lang: "fr" },
       { id: "swsh7", name: "Évolution Céleste (FR)", lang: "fr" },
       { id: "cel25", name: "Célébrations (FR)", lang: "fr" },
+      { id: "cel25c", name: "Célébrations Reprint", lang: "en" },
       { id: "swsh8", name: "Poing de Fusion (FR)", lang: "fr" },
       { id: "swsh9", name: "Stars Étincelantes (FR)", lang: "fr" },
       { id: "swsh10", name: "Astres Radieux (FR)", lang: "fr" },
@@ -271,7 +272,7 @@ const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap((b) => b.sets);
 const TCG_IO_ONLY_SETS = [
   "dp1", "pgo", "rumble", "det1", "hgss.p",
   "mcd11", "mcd12", "mcd14", "mcd15", "mcd16", "mcd17", 
-  "mcd18", "mcd19", "mcd21", "mcd22", "me55", "me55c"
+  "mcd18", "mcd19", "mcd21", "mcd22", "me55", "me55c", "cel25c"
 ];
 
 export default function PokedexPage() {
