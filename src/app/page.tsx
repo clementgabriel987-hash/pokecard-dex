@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS } from "../constants/pokemonSets";
+import CardZoomModal from "../components/CardZoomModal";
 
 interface Card {
   id: string;
@@ -43,238 +45,6 @@ interface CardDetails {
 
 type UserCollectionJSON = Record<string, CardDetails>;
 
-const POKEMON_BLOCKS = [
-  {
-    blockName: "⭐ Cartes Promotionnelles",
-    sets: [
-      { id: "svp", name: "Scarlet & Violet Promos", lang: "fr" },
-      { id: "swshp", name: "SWSH Black Star Promos", lang: "fr" },
-      { id: "smp", name: "SM Black Star Promos", lang: "fr" },
-      { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
-      { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
-      { id: "hgss.p", name: "HGSS Black Star Promos", lang: "en" },
-      { id: "dpp", name: "DP Black Star Promos", lang: "en" },
-      { id: "basep", name: "Wizards Black Star Promos", lang: "en" },
-      { id: "mep", name: "Mega-Evolution Black Star Promos", lang: "en" }
-    ]
-  },
-  {
-    blockName: "🍔 Collections McDonald's",
-    sets: [
-      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
-      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
-      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
-      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
-      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
-      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
-      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
-      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
-      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
-      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" }
-    ]
-  },
-  {
-    blockName: "📦 Hors-Séries & Spéciales",
-    sets: [
-      { id: "me55", name: "30th Celebration / 30 Ans (FR/EN)", lang: "en" },
-      { id: "me55c", name: "Reprint 30 ans (FR/EN)", lang: "en" },
-      { id: "det1", name: "Détective Pikachu", lang: "en" },
-      { id: "pgo", name: "Pokémon GO", lang: "en" },
-      { id: "rumble", name: "Pokémon Rumble", lang: "en" },
-      { id: "pop1", name: "POP Series 1", lang: "fr" },
-      { id: "pop2", name: "POP Series 2", lang: "fr" },
-      { id: "pop3", name: "POP Series 3", lang: "fr" },
-      { id: "pop4", name: "POP Series 4", lang: "fr" },
-      { id: "pop5", name: "POP Series 5", lang: "fr" },
-      { id: "pop6", name: "POP Series 6", lang: "fr" },
-      { id: "pop7", name: "POP Series 7", lang: "fr" },
-      { id: "pop8", name: "POP Series 8", lang: "fr" },
-      { id: "pop9", name: "POP Series 9", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Wizards (Classic)",
-    sets: [
-      { id: "base1", name: "Base Set (FR)", lang: "fr" },
-      { id: "base2", name: "Jungle (FR)", lang: "fr" },
-      { id: "base3", name: "Fossile (FR)", lang: "fr" },
-      { id: "base4", name: "Base Set 2 (EN)", lang: "en" },
-      { id: "gym1", name: "Gym Heroes (EN)", lang: "en" },
-      { id: "neo1", name: "Neo Genesis (FR)", lang: "fr" },
-      { id: "neo2", name: "Neo Discovery (FR)", lang: "fr" },
-      { id: "neo3", name: "Neo Revelation (EN)", lang: "en" },
-      { id: "neo4", name: "Neo Destiny (EN)", lang: "en" }
-    ]
-  },
-  {
-    blockName: "Bloc EX (Ruby & Sapphire)",
-    sets: [
-      { id: "ex1", name: "EX Rubis & Saphir (FR)", lang: "fr" },
-      { id: "ex2", name: "EX Tempête de Sable (FR)", lang: "fr" },
-      { id: "ex3", name: "EX Dragon (FR)", lang: "fr" },
-      { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
-      { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
-      { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
-      { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
-      { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
-      { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
-      { id: "ex11", name: "EX Espèces Delta (FR)", lang: "fr" },
-      { id: "ex12", name: "EX Créateurs de Légendes (FR)", lang: "fr" },
-      { id: "ex13", name: "EX Fantômes Holon (FR)", lang: "fr" },
-      { id: "ex14", name: "EX Gardiens de Cristal (FR)", lang: "fr" },
-      { id: "ex15", name: "EX Île des Dragons (FR)", lang: "fr" },
-      { id: "ex16", name: "EX Gardiens du Pouvoir (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Diamant & Perle",
-    sets: [
-      { id: "dp1", name: "Diamant & Perle (FR)", lang: "en" },
-      { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
-      { id: "dp3", name: "Merveilles Secrètes / Duels au Sommet (FR/EN)", lang: "en" },
-      { id: "dp4", name: "Secret Wonders / Duels au Sommet (EN)", lang: "en" },
-      { id: "dp5", name: "Éveil des Légendes (FR)", lang: "fr" },
-      { id: "dp6", name: "Tempête (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Platine",
-    sets: [
-      { id: "pl1", name: "Platine de base (FR)", lang: "fr" },
-      { id: "pl2", name: "Rivaux Émergents (FR)", lang: "fr" },
-      { id: "pl3", name: "Vainqueurs Suprêmes (FR)", lang: "fr" },
-      { id: "pl4", name: "Arceus (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc HeartGold & SoulSilver (HGSS)",
-    sets: [
-      { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
-      { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
-      { id: "hgss3", name: "HS - Indomptable (FR)", lang: "fr" },
-      { id: "hgss4", name: "HS - Triomphant (FR)", lang: "fr" },
-      { id: "col1", name: "L'Appel des Légendes (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Noir & Blanc",
-    sets: [
-      { id: "bw1", name: "Noir & Blanc (FR)", lang: "fr" },
-      { id: "bw2", name: "Pouvoirs Émergents (FR)", lang: "fr" },
-      { id: "bw3", name: "Nobles Victoires (FR)", lang: "fr" },
-      { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
-      { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
-      { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
-      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" },
-      { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
-      { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
-      { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
-      { id: "bw10", name: "Explosion Plasma (FR)", lang: "fr" },
-      { id: "bw11", name: "Trésors Légendaires (EN)", lang: "en" }
-    ]
-  },
-  {
-    blockName: "Bloc XY",
-    sets: [
-      { id: "xy1", name: "XY de base (FR)", lang: "fr" },
-      { id: "xy2", name: "Étincelles (FR)", lang: "fr" },
-      { id: "xy3", name: "Poings Furieux (FR)", lang: "fr" },
-      { id: "xy4", name: "Vigueur Spectrale (FR)", lang: "fr" },
-      { id: "xy5", name: "Primo-Choc (FR)", lang: "fr" },
-      { id: "xy6", name: "Ciel Rugissant (FR)", lang: "fr" },
-      { id: "xy7", name: "Origines Antiques (FR)", lang: "fr" },
-      { id: "xy8", name: "Impulsion Turbo (FR)", lang: "fr" },
-      { id: "xy9", name: "Rupture Turbo (FR)", lang: "fr" },
-      { id: "xy10", name: "Impact des Destins (FR)", lang: "fr" },
-      { id: "xy11", name: "Offensive Vapeur (FR)", lang: "fr" },
-      { id: "xy12", name: "Évolutions (FR)", lang: "fr" },
-      { id: "g1", name: "Générations (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Soleil & Lune",
-    sets: [
-      { id: "sm1", name: "Soleil et Lune (FR)", lang: "fr" },
-      { id: "sm2", name: "Gardiens Ascendants (FR)", lang: "fr" },
-      { id: "sm3", name: "Ombres Ardentes (FR)", lang: "fr" },
-      { id: "sm3.5", name: "Légendes Brillantes (FR)", lang: "fr" },
-      { id: "sm4", name: "Invasion Carmin (FR)", lang: "fr" },
-      { id: "sm5", name: "Ultra-Prisme (FR)", lang: "fr" },
-      { id: "sm6", name: "Lumière Interdite (FR)", lang: "fr" },
-      { id: "sm7", name: "Tempête Céleste (FR)", lang: "fr" },
-      { id: "sm8", name: "Tonnerre Perdu (FR)", lang: "fr" },
-      { id: "sm9", name: "Duo de Choc (FR)", lang: "fr" },
-      { id: "sm10", name: "Alliance Infaillible (FR)", lang: "fr" },
-      { id: "sm11", name: "Harmonie des Esprits (FR)", lang: "fr" },
-      { id: "sm11.5", name: "Destinées Occultes (FR)", lang: "fr" },
-      { id: "sm12", name: "Éclipse Cosmique (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Épée & Bouclier",
-    sets: [
-      { id: "swsh1", name: "Épée et Bouclier (FR)", lang: "fr" },
-      { id: "swsh2", name: "Clash des Rebelles (FR)", lang: "fr" },
-      { id: "swsh3", name: "Ténèbres Embrasées (FR)", lang: "fr" },
-      { id: "swsh3.5", name: "La Voie du Maître (FR)", lang: "fr" },
-      { id: "swsh4", name: "Voltage Éclatant (FR)", lang: "fr" },
-      { id: "swsh4.5", name: "Destinées Radieuses (FR)", lang: "fr" },
-      { id: "swsh5", name: "Styles de Combat (FR)", lang: "fr" },
-      { id: "swsh6", name: "Règne de Glace (FR)", lang: "fr" },
-      { id: "swsh7", name: "Évolution Céleste (FR)", lang: "fr" },
-      { id: "cel25", name: "Célébrations (FR)", lang: "fr" },
-      { id: "cel25c", name: "Célébrations Reprinta", lang: "en" },
-      { id: "swsh8", name: "Poing de Fusion (FR)", lang: "fr" },
-      { id: "swsh9", name: "Stars Étincelantes (FR)", lang: "fr" },
-      { id: "swsh10", name: "Astres Radieux (FR)", lang: "fr" },
-      { id: "swsh11", name: "Origine Perdue (FR)", lang: "fr" },
-      { id: "swsh12", name: "Tempête Argentée (FR)", lang: "fr" },
-      { id: "swsh12.5", name: "Zénith Suprême (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Écarlate & Violet (EV)",
-    sets: [
-      { id: "sv01", name: "Écarlate et Violet (FR)", lang: "fr" },
-      { id: "sv02", name: "Évolutions à Paldea (FR)", lang: "fr" },
-      { id: "sv03", name: "Flammes Obsidiennes (FR)", lang: "fr" },
-      { id: "sv03.5", name: "151 (FR)", lang: "fr" },
-      { id: "sv04", name: "Faille Paradoxe (FR)", lang: "fr" },
-      { id: "sv04.5", name: "Destinées de Paldea (FR)", lang: "fr" },
-      { id: "sv05", name: "Forces Temporelles (FR)", lang: "fr" },
-      { id: "sv06", name: "Mascarade Crépusculaire (FR)", lang: "fr" },
-      { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
-      { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
-      { id: "sv08", name: "Étincelles Déferlantes (FR)", lang: "fr" },
-      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" },
-      { id: "sv09", name: "Aventures Ensemble (FR)", lang: "fr" },
-      { id: "sv10", name: "Rivalités Destinées (FR)", lang: "fr" },
-      { id: "blk", name: "Foudre Noire (FR)", lang: "fr" },
-      { id: "wht", name: "Flamme Blanche (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Méga-Évolution (ME)",
-    sets: [
-      { id: "me01", name: "Méga-Évolution (FR)", lang: "fr" },
-      { id: "me02", name: "Flammes Fantasmagoriques (FR)", lang: "fr" },
-      { id: "me02.5", name: "Héros Transcendants (FR)", lang: "fr" },
-      { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
-      { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
-      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" },
-    ]
-  }
-];
-
-const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap((b) => b.sets);
-
-const TCG_IO_ONLY_SETS = [
-  "dp1", "pgo", "rumble", "det1", "hgss.p",
-  "mcd11", "mcd12", "mcd14", "mcd15", "mcd16", "mcd17", 
-  "mcd18", "mcd19", "mcd21", "mcd22", "me55", "me55c", "cel25c"
-];
-
 export default function PokedexPage() {
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
@@ -302,16 +72,8 @@ export default function PokedexPage() {
   const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
-  // État de la carte sélectionnée pour le Zoom HD
+  // Carte active dans le zoom HD
   const [zoomedCard, setZoomedCard] = useState<Card | null>(null);
-
-  // États du zoom interactif
-  const [zoomScale, setZoomScale] = useState<number>(1);
-  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialPinchDistRef = useRef<number | null>(null);
-  const initialPinchScaleRef = useRef<number>(1);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
@@ -322,84 +84,6 @@ export default function PokedexPage() {
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
-
-  useEffect(() => {
-    if (zoomedCard) {
-      setZoomScale(1);
-      setPanOffset({ x: 0, y: 0 });
-    }
-  }, [zoomedCard]);
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.2 : 0.2;
-    setZoomScale((prev) => {
-      const next = Math.min(Math.max(0.8, prev + delta), 4.5);
-      if (next <= 1) setPanOffset({ x: 0, y: 0 });
-      return next;
-    });
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoomScale <= 1) return;
-    setIsDragging(true);
-    dragStartRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPanOffset({
-      x: e.clientX - dragStartRef.current.x,
-      y: e.clientY - dragStartRef.current.y
-    });
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      initialPinchDistRef.current = dist;
-      initialPinchScaleRef.current = zoomScale;
-    } else if (e.touches.length === 1 && zoomScale > 1) {
-      setIsDragging(true);
-      dragStartRef.current = {
-        x: e.touches[0].clientX - panOffset.x,
-        y: e.touches[0].clientY - panOffset.y
-      };
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const ratio = dist / initialPinchDistRef.current;
-      const nextScale = Math.min(Math.max(0.8, initialPinchScaleRef.current * ratio), 4.5);
-      setZoomScale(nextScale);
-      if (nextScale <= 1) setPanOffset({ x: 0, y: 0 });
-    } else if (e.touches.length === 1 && isDragging) {
-      setPanOffset({
-        x: e.touches[0].clientX - dragStartRef.current.x,
-        y: e.touches[0].clientY - dragStartRef.current.y
-      });
-    }
-  };
-
-  const handleTouchEnd = () => {
-    initialPinchDistRef.current = null;
-    setIsDragging(false);
-  };
-
-  const resetZoom = () => {
-    setZoomScale(1);
-    setPanOffset({ x: 0, y: 0 });
-  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -552,6 +236,7 @@ export default function PokedexPage() {
       setBinderSelectedSeries("ALL");
       setFailedImages({});
 
+      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -595,7 +280,7 @@ export default function PokedexPage() {
                       name: c.name,
                       localId: c.number,
                       image: c.images?.large || c.images?.small || "",
-                      illustrator: c.artist || "pas encore disponible",
+                      illustrator: c.artist || "Inconnu",
                       rarity: c.rarity || "Commune",
                       seriesName: series.name,
                       cardmarket: c.cardmarket
@@ -636,6 +321,7 @@ export default function PokedexPage() {
         return;
       }
 
+      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -667,6 +353,7 @@ export default function PokedexPage() {
         return;
       }
 
+      // 3. MODE SÉRIE SIMPLE
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       if (cachedData) {
@@ -689,7 +376,7 @@ export default function PokedexPage() {
             dp1: "dp1", pgo: "pgo", rumble: "ru1", det1: "det1", "hgss.p": "hsp",
             mcd11: "mcd11", mcd12: "mcd12", mcd14: "mcd14", mcd15: "mcd15",
             mcd16: "mcd16", mcd17: "mcd17", mcd18: "mcd18", mcd19: "mcd19",
-            mcd21: "mcd21", mcd22: "mcd22",
+            mcd21: "mcd21", mcd22: "mcd22", "30c": "30c"
           };
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
@@ -926,126 +613,20 @@ export default function PokedexPage() {
         </button>
       </div>
 
-      {/* MODALE DE ZOOM SUR LA CARTE (HD + ZOOM SOURIS / MAIN + CARTE MARKET SOUS L'IMAGE) */}
-      {zoomedCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 select-none">
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-md transition-opacity" onClick={() => setZoomedCard(null)}></div>
-          
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-5 md:p-7 shadow-2xl z-10 overflow-hidden flex flex-col md:flex-row gap-6 items-center">
-            
-            <button 
-              onClick={() => setZoomedCard(null)} 
-              className="absolute top-4 right-4 bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center font-bold text-sm transition cursor-pointer z-30"
-            >
-              ✕
-            </button>
+      {/* MODALE DE ZOOM SUR LA CARTE (Composant dédié propre) */}
+      <CardZoomModal
+        card={zoomedCard}
+        onClose={() => setZoomedCard(null)}
+        isNormalOwned={Boolean(zoomedCard && userCollection[zoomedCard.id]?.normalOwned)}
+        isFoilOwned={Boolean(zoomedCard && userCollection[zoomedCard.id]?.foilOwned)}
+        onToggleOwnership={(id, type) => {
+          const sLang = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId)?.lang || "fr";
+          toggleCardOwnership(id, type, sLang);
+        }}
+        seriesId={selectedSeriesId}
+      />
 
-            {/* Côté Gauche : Image zoomable + Contrôles + Rectangle Cardmarket */}
-            <div className="w-full md:w-1/2 flex flex-col items-center">
-              <div 
-                onWheel={handleWheel}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                className={`relative w-full h-[340px] md:h-[400px] flex items-center justify-center bg-slate-950/70 p-2 rounded-2xl border border-slate-800/80 overflow-hidden ${zoomScale > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in"}`}
-              >
-                <img 
-                  src={zoomedCard.image} 
-                  alt={zoomedCard.name} 
-                  draggable={false}
-                  style={{
-                    transform: `scale(${zoomScale}) translate(${panOffset.x / zoomScale}px, ${panOffset.y / zoomScale}px)`,
-                    transition: isDragging ? "none" : "transform 0.15s ease-out"
-                  }}
-                  className="max-h-full max-w-full object-contain pointer-events-none drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
-                />
-
-                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-[10px] px-2 py-0.5 rounded-full text-slate-400 pointer-events-none border border-white/5">
-                  Molette / Écarter pour zoomer
-                </div>
-              </div>
-
-              {/* Contrôles manuels du zoom */}
-              <div className="flex items-center gap-2 mt-2.5 bg-slate-950 px-3 py-1 rounded-full border border-slate-800 text-xs text-slate-400">
-                <button 
-                  onClick={() => setZoomScale((s) => Math.max(0.8, Number((s - 0.3).toFixed(1))))} 
-                  className="px-2 py-0.5 hover:text-white font-bold cursor-pointer transition"
-                  title="Dézoomer"
-                >
-                  −
-                </button>
-                <span className="font-mono text-yellow-400 font-bold min-w-[45px] text-center">
-                  {Math.round(zoomScale * 100)}%
-                </span>
-                <button 
-                  onClick={() => setZoomScale((s) => Math.min(4.5, Number((s + 0.3).toFixed(1))))} 
-                  className="px-2 py-0.5 hover:text-white font-bold cursor-pointer transition"
-                  title="Zoomer"
-                >
-                  +
-                </button>
-                <button 
-                  onClick={resetZoom} 
-                  className="ml-2 pl-2 border-l border-slate-800 text-[11px] text-slate-400 hover:text-white cursor-pointer transition"
-                  title="Réinitialiser à 100%"
-                >
-                  ↺ Reset
-                </button>
-              </div>
-
-              {/* Rectangle Cardmarket directement sous l'image */}
-              <a 
-                href={`https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(zoomedCard.name)}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full mt-3 bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/40 text-blue-300 text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
-              >
-                <span>🛒</span> Rechercher sur Cardmarket
-              </a>
-            </div>
-
-            {/* Côté Droit : Titre & Boutons de possession */}
-            <div className="w-full md:w-1/2 flex flex-col justify-between self-stretch">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2.5 py-0.5 rounded-md font-extrabold">
-                    #{zoomedCard.localId}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {zoomedCard.seriesName || selectedSeriesId.toUpperCase()}
-                  </span>
-                </div>
-                
-                <h2 className="text-2xl font-black text-white mb-4">{zoomedCard.name}</h2>
-              </div>
-
-              {/* Boutons de possession */}
-              <div className="space-y-2 mt-4">
-                <span className="text-xs text-slate-400 font-semibold block mb-1">Dans ma collection :</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button 
-                    onClick={() => toggleCardOwnership(zoomedCard.id, 'normal', ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId)?.lang || "fr")} 
-                    className={`py-2.5 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${userCollection[zoomedCard.id]?.normalOwned ? "bg-yellow-500 text-slate-950 shadow-md" : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"}`}
-                  >
-                    {userCollection[zoomedCard.id]?.normalOwned ? "✓ Normale acquise" : "+ Normale"}
-                  </button>
-                  <button 
-                    onClick={() => toggleCardOwnership(zoomedCard.id, 'foil', ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId)?.lang || "fr")} 
-                    className={`py-2.5 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${userCollection[zoomedCard.id]?.foilOwned ? "bg-purple-600 text-white shadow-md" : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"}`}
-                  >
-                    {userCollection[zoomedCard.id]?.foilOwned ? "✨ Foil acquise" : "+ Foil"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* MENU LATÉRAL */}
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
