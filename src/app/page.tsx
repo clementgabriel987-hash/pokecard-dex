@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS, PokemonSet, PokemonBlock } from "../constants/pokemonSets";
 import CardZoomModal from "../components/CardZoomModal";
 import CardSkeleton from "../components/CardSkeleton";
+import CardItem from "../components/CardItem";
 
 interface Card {
   id: string;
@@ -240,7 +241,6 @@ export default function PokedexPage() {
       setBinderSelectedSeries("ALL");
       setFailedImages({});
 
-      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -318,7 +318,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -350,7 +349,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 3. MODE SÉRIE SIMPLE (IndexedDB)
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = await get<Card[]>(cacheKey);
       if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
@@ -998,7 +996,26 @@ export default function PokedexPage() {
                     Classeur Dragon Shield • Page {currentGlobalBinderPage} / {totalGlobalPages}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mt-4">
-                    {paginatedGlobalCards.map((card) => renderCardItem(card))}
+                    {paginatedGlobalCards.map((card) => {
+                      const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
+                      const cardDefaultLang = cardSeries?.lang || "fr";
+
+                      return (
+                        <CardItem
+                          key={card.id}
+                          card={card}
+                          cardData={userCollection[card.id]}
+                          isGlobalBinder={isGlobalBinder}
+                          cardDefaultLang={cardDefaultLang}
+                          hasImageError={Boolean(failedImages[card.id])}
+                          onImageError={handleImageError}
+                          onZoom={(c) => setZoomedCard(c as Card)}
+                          onToggleWishlist={toggleWishlist}
+                          onToggleOwnership={toggleCardOwnership}
+                          onToggleLanguage={toggleCardLanguage}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1024,7 +1041,26 @@ export default function PokedexPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                {filteredCards.map((card) => renderCardItem(card))}
+                {filteredCards.map((card) => {
+                  const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
+                  const cardDefaultLang = cardSeries?.lang || "fr";
+
+                  return (
+                    <CardItem
+                      key={card.id}
+                      card={card}
+                      cardData={userCollection[card.id]}
+                      isGlobalBinder={isGlobalBinder}
+                      cardDefaultLang={cardDefaultLang}
+                      hasImageError={Boolean(failedImages[card.id])}
+                      onImageError={handleImageError}
+                      onZoom={(c) => setZoomedCard(c as Card)}
+                      onToggleWishlist={toggleWishlist}
+                      onToggleOwnership={toggleCardOwnership}
+                      onToggleLanguage={toggleCardLanguage}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1043,98 +1079,4 @@ export default function PokedexPage() {
       </div>
     </main>
   );
-
-  function renderCardItem(card: Card) {
-    const cardData = userCollection[card.id];
-    const isNormalOwned = cardData?.normalOwned || false;
-    const isFoilOwned = cardData?.foilOwned || false;
-    const isWishlisted = cardData?.isWishlist || false;
-    const hasError = failedImages[card.id];
-
-    const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
-    const cardDefaultLang = cardSeries?.lang || "fr";
-    const showLanguageFlags = cardDefaultLang !== "en";
-
-    return (
-      <div key={card.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 md:p-4 flex flex-col justify-between shadow-lg relative group">
-        <button 
-          onClick={() => toggleWishlist(card.id)} 
-          className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isWishlisted ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110" : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"}`}
-          title="Ajouter à la Wishlist"
-        >
-          {isWishlisted ? "❤️" : "🤍"}
-        </button>
-
-        <div>
-          {isGlobalBinder && card.seriesName && (
-            <div className="text-[10px] text-purple-400 font-semibold mb-2 truncate bg-purple-950/30 px-2 py-0.5 rounded border border-purple-900/30">
-              {card.seriesName}
-            </div>
-          )}
-          
-          <div 
-            onClick={() => setZoomedCard(card)}
-            className="mb-3 flex justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[190px] items-center relative overflow-hidden cursor-pointer hover:border-yellow-500/50 transition duration-200"
-            title="Cliquer pour zoomer en HD"
-          >
-            {card.image && !hasError ? (
-              <Image 
-                src={card.image} 
-                alt={card.name} 
-                fill
-                sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
-                className="object-contain drop-shadow-md group-hover:scale-105 transition duration-300 p-2" 
-                onError={() => handleImageError(card.id, card.image)} 
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center p-2">
-                <span className="text-2xl mb-1">🃏</span>
-                <span className="text-[11px] text-slate-400 font-medium">Image non disponible</span>
-                <span className="text-[9px] text-slate-500">#{card.localId}</span>
-              </div>
-            )}
-            
-            <div className="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100 transition z-10">
-              🔍 Zoom
-            </div>
-          </div>
-
-          <div className="flex justify-between items-start mb-1 gap-1">
-            <h3 className="text-xs md:text-sm font-bold truncate cursor-pointer" onClick={() => setZoomedCard(card)}>
-              {card.name}
-            </h3>
-            <span className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">#{card.localId}</span>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
-          <button onClick={() => toggleCardOwnership(card.id, "normal", cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isNormalOwned ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-slate-900 text-slate-400"}`}>
-            {isNormalOwned ? "✓ Normale" : "Normale"}
-          </button>
-          <button onClick={() => toggleCardOwnership(card.id, "foil", cardDefaultLang)} className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${isFoilOwned ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-slate-900 text-slate-400"}`}>
-            {isFoilOwned ? "✨ Foil" : "Foil"}
-          </button>
-        </div>
-
-        {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
-          <div className="flex justify-center gap-4 mt-2 pt-2 border-t border-slate-800/50">
-            {["fr", "en", "jp"].map((l) => {
-               const isActive = (cardData?.langs || [cardDefaultLang]).includes(l);
-               const flagEmoji = l === "fr" ? "🇫🇷" : l === "en" ? "🇬🇧" : "🇯🇵";
-               return (
-                 <button 
-                   key={l}
-                   onClick={() => toggleCardLanguage(card.id, l, cardDefaultLang)}
-                   className={`text-base transition-all duration-200 cursor-pointer ${isActive ? "grayscale-0 opacity-100 scale-110 drop-shadow-md" : "grayscale opacity-30 hover:opacity-70"}`}
-                   title={`Marquer comme possédée en ${l.toUpperCase()}`}
-                 >
-                   {flagEmoji}
-                 </button>
-               );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
 }
