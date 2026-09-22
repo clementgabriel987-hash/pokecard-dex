@@ -64,6 +64,10 @@ export default function PokedexPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
+  // Limite progressive d'affichage (Infinite Scroll)
+  const [visibleCount, setVisibleCount] = useState<number>(40);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   const [selectedIllustrator, setSelectedIllustrator] = useState<string>("ALL");
   const [illustratorsList, setIllustratorsList] = useState<string[]>([]);
   const [selectedRarity, setSelectedRarity] = useState<string>("ALL");
@@ -233,6 +237,7 @@ export default function PokedexPage() {
 
   useEffect(() => {
     async function fetchCards() {
+      setVisibleCount(40); // Reset le compteur lors d'un changement de série/recherche
       setSelectedIllustrator("ALL");
       setSelectedRarity("ALL");
       setSelectedStatus("ALL");
@@ -241,6 +246,7 @@ export default function PokedexPage() {
       setBinderSelectedSeries("ALL");
       setFailedImages({});
 
+      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -318,6 +324,7 @@ export default function PokedexPage() {
         return;
       }
 
+      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -349,6 +356,7 @@ export default function PokedexPage() {
         return;
       }
 
+      // 3. MODE SÉRIE SIMPLE (IndexedDB)
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = await get<Card[]>(cacheKey);
       if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
@@ -603,11 +611,44 @@ export default function PokedexPage() {
   const isMasterSet = totalCards > 0 && cards.every((c) => userCollection[c.id]?.normalOwned && userCollection[c.id]?.foilOwned);
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
 
+  // Gestion des pages du Classeur Global 3x3
   const itemsPerGlobalPage = 9;
   const totalGlobalPages = Math.ceil(filteredCards.length / itemsPerGlobalPage) || 1;
-  const paginatedGlobalCards = isGlobalBinder && binderViewStyle === "pages"
-    ? filteredCards.slice((currentGlobalBinderPage - 1) * itemsPerGlobalPage, currentGlobalBinderPage * itemsPerGlobalPage)
-    : filteredCards;
+
+  // Découpage automatique des cartes à afficher
+  const displayedCards = useMemo(() => {
+    if (isGlobalBinder && binderViewStyle === "pages") {
+      return filteredCards.slice(
+        (currentGlobalBinderPage - 1) * itemsPerGlobalPage,
+        currentGlobalBinderPage * itemsPerGlobalPage
+      );
+    }
+    return filteredCards.slice(0, visibleCount);
+  }, [filteredCards, isGlobalBinder, binderViewStyle, currentGlobalBinderPage, visibleCount]);
+
+  // Observer automatique pour déclencher le chargement au scroll
+  useEffect(() => {
+    if (isGlobalBinder && binderViewStyle === "pages") return;
+    if (visibleCount >= filteredCards.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 40, filteredCards.length));
+        }
+      },
+      { rootMargin: "250px" } // Déclenche 250px avant d'atteindre le fond pour que ce soit invisible
+    );
+
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      observer.observe(currentSentinel);
+    }
+
+    return () => {
+      if (currentSentinel) observer.unobserve(currentSentinel);
+    };
+  }, [visibleCount, filteredCards.length, isGlobalBinder, binderViewStyle]);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 md:p-10 relative">
@@ -996,7 +1037,7 @@ export default function PokedexPage() {
                     Classeur Dragon Shield • Page {currentGlobalBinderPage} / {totalGlobalPages}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mt-4">
-                    {paginatedGlobalCards.map((card) => {
+                    {displayedCards.map((card) => {
                       const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
                       const cardDefaultLang = cardSeries?.lang || "fr";
 
@@ -1040,27 +1081,39 @@ export default function PokedexPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                {filteredCards.map((card) => {
-                  const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
-                  const cardDefaultLang = cardSeries?.lang || "fr";
+              <div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                  {displayedCards.map((card) => {
+                    const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
+                    const cardDefaultLang = cardSeries?.lang || "fr";
 
-                  return (
-                    <CardItem
-                      key={card.id}
-                      card={card}
-                      cardData={userCollection[card.id]}
-                      isGlobalBinder={isGlobalBinder}
-                      cardDefaultLang={cardDefaultLang}
-                      hasImageError={Boolean(failedImages[card.id])}
-                      onImageError={handleImageError}
-                      onZoom={(c) => setZoomedCard(c as Card)}
-                      onToggleWishlist={toggleWishlist}
-                      onToggleOwnership={toggleCardOwnership}
-                      onToggleLanguage={toggleCardLanguage}
-                    />
-                  );
-                })}
+                    return (
+                      <CardItem
+                        key={card.id}
+                        card={card}
+                        cardData={userCollection[card.id]}
+                        isGlobalBinder={isGlobalBinder}
+                        cardDefaultLang={cardDefaultLang}
+                        hasImageError={Boolean(failedImages[card.id])}
+                        onImageError={handleImageError}
+                        onZoom={(c) => setZoomedCard(c as Card)}
+                        onToggleWishlist={toggleWishlist}
+                        onToggleOwnership={toggleCardOwnership}
+                        onToggleLanguage={toggleCardLanguage}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Sentinelle invisible déclenchant le chargement automatique */}
+                {visibleCount < filteredCards.length && (
+                  <div ref={sentinelRef} className="py-8 flex justify-center items-center">
+                    <div className="text-xs text-slate-500 animate-pulse flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block animate-ping"></span>
+                      Chargement automatique de la suite... ({visibleCount} / {filteredCards.length})
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
