@@ -7,6 +7,7 @@ import { get, set } from "idb-keyval";
 import { supabase } from "../lib/supabase";
 import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS, PokemonSet, PokemonBlock } from "../constants/pokemonSets";
 import CardZoomModal from "../components/CardZoomModal";
+import CardSkeleton from "../components/CardSkeleton";
 
 interface Card {
   id: string;
@@ -967,7 +968,7 @@ export default function PokedexPage() {
         )}
 
         {loading ? (
-          <div className="text-center py-20 text-slate-400 animate-pulse font-medium text-lg">Chargement de la collection... ⚡</div>
+          <CardSkeleton count={8} />
         ) : filteredCards.length > 0 ? (
           <div>
             {isGlobalBinder && binderViewStyle === "pages" ? (
