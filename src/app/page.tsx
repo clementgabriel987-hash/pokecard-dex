@@ -76,7 +76,8 @@ const POKEMON_BLOCKS = [
   {
     blockName: "📦 Hors-Séries & Spéciales",
     sets: [
-      { id: "30c", name: "30th Celebration / 30 Ans (FR/EN)", lang: "en" },
+      { id: "me55", name: "30th Celebration / 30 Ans (FR/EN)", lang: "en" },
+      { id: "me55c", name: "Reprint 30 ans (FR/EN)", lang: "en" },
       { id: "det1", name: "Détective Pikachu", lang: "en" },
       { id: "pgo", name: "Pokémon GO", lang: "en" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
@@ -270,7 +271,7 @@ const ALL_FLAT_SERIES = POKEMON_BLOCKS.flatMap((b) => b.sets);
 const TCG_IO_ONLY_SETS = [
   "dp1", "pgo", "rumble", "det1", "hgss.p",
   "mcd11", "mcd12", "mcd14", "mcd15", "mcd16", "mcd17", 
-  "mcd18", "mcd19", "mcd21", "mcd22"
+  "mcd18", "mcd19", "mcd21", "mcd22", "me55", "me55c"
 ];
 
 export default function PokedexPage() {
