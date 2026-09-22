@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
-import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS } from "../constants/pokemonSets";
+import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS, PokemonSet, PokemonBlock } from "../constants/pokemonSets";
 import CardZoomModal from "../components/CardZoomModal";
 
 interface Card {
@@ -84,6 +84,9 @@ export default function PokedexPage() {
   const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
+
+  // Référence pour le debounce des sauvegardes Supabase
+  const supabaseSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -236,7 +239,6 @@ export default function PokedexPage() {
       setBinderSelectedSeries("ALL");
       setFailedImages({});
 
-      // 1. MODE CLASSEUR GLOBAL
       if (isGlobalBinder) {
         if (!currentUser) { setCards([]); setLoading(false); return; }
 
@@ -252,11 +254,11 @@ export default function PokedexPage() {
 
         setLoading(true);
 
-        const relevantSeries = ALL_FLAT_SERIES.filter((series) => {
+        const relevantSeries = ALL_FLAT_SERIES.filter((series: PokemonSet) => {
           return ownedCardIds.some((cardId) => cardId.startsWith(`${series.id}-`));
         });
 
-        const seriesPromises = relevantSeries.map(async (series) => {
+        const seriesPromises = relevantSeries.map(async (series: PokemonSet) => {
           const cacheKey = `pokedex_series_v4_${series.id}`;
           let seriesCards: Card[] = [];
 
@@ -321,7 +323,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 2. MODE RECHERCHE
       if (activeSearch) {
         setLoading(true);
         try {
@@ -353,7 +354,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 3. MODE SÉRIE SIMPLE
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       if (cachedData) {
@@ -381,7 +381,7 @@ export default function PokedexPage() {
           const apiCode = setMapCode[selectedSeriesId] || selectedSeriesId;
           const res = await fetch(`/api/pokemon?set=${apiCode}`);
           const json = await res.json();
-          const currentSeries = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId);
+          const currentSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === selectedSeriesId);
 
           if (json && Array.isArray(json.data) && json.data.length > 0) {
             const formatted = json.data.map((c: any) => ({
@@ -401,7 +401,7 @@ export default function PokedexPage() {
             setCards([]);
           }
         } else {
-          const currentSeries = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId);
+          const currentSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === selectedSeriesId);
           const lang = currentSeries ? currentSeries.lang : "fr";
           const response = await fetch(`https://api.tcgdex.net/v2/${lang}/sets/${selectedSeriesId}`);
           if (!response.ok) { setCards([]); setLoading(false); return; }
@@ -441,8 +441,24 @@ export default function PokedexPage() {
     setRaritiesList(Array.from(raritiesSet).sort());
   };
 
-  const toggleCardOwnership = async (id: string, type: "normal" | "foil", cardDefaultLang: string) => {
+  // --- Fonction de DEBOUNCE pour sauvegarder intelligemment dans Supabase ---
+  const debouncedSupabaseSave = (newCollection: UserCollectionJSON) => {
+    if (!currentUser) return;
+    
+    // Annule la requête en attente si on clique à nouveau rapidement
+    if (supabaseSaveTimeoutRef.current) clearTimeout(supabaseSaveTimeoutRef.current);
+    
+    // Programme la nouvelle sauvegarde après 800ms d'inactivité
+    supabaseSaveTimeoutRef.current = setTimeout(async () => {
+      await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+      console.log("💾 Collection sauvegardée dans Supabase avec succès !");
+    }, 800);
+  };
+
+  // --- Toggles de possession (utilisent désormais le debounce) ---
+  const toggleCardOwnership = (id: string, type: "normal" | "foil", cardDefaultLang: string) => {
     if (!currentUser) return alert("Connecte-toi pour sauvegarder tes cartes !");
+    
     const newCollection = { ...userCollection };
     if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, langs: [cardDefaultLang] };
     
@@ -450,11 +466,12 @@ export default function PokedexPage() {
     else newCollection[id].foilOwned = !newCollection[id].foilOwned;
     
     if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
-    setUserCollection(newCollection);
-    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+    
+    setUserCollection(newCollection); // Mise à jour instantanée de l'écran
+    debouncedSupabaseSave(newCollection); // Sauvegarde différée
   };
 
-  const toggleCardLanguage = async (id: string, langToToggle: string, defaultLang: string) => {
+  const toggleCardLanguage = (id: string, langToToggle: string, defaultLang: string) => {
     if (!currentUser) return;
     const newCollection = { ...userCollection };
     if (!newCollection[id]) return;
@@ -469,11 +486,12 @@ export default function PokedexPage() {
 
     newCollection[id].langs = currentLangs;
     setUserCollection(newCollection);
-    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+    debouncedSupabaseSave(newCollection);
   };
 
-  const toggleWishlist = async (id: string) => {
+  const toggleWishlist = (id: string) => {
     if (!currentUser) return alert("Connecte-toi pour gérer ta wishlist !");
+    
     const newCollection = { ...userCollection };
     if (!newCollection[id]) newCollection[id] = { normalOwned: false, foilOwned: false, isWishlist: true };
     else newCollection[id].isWishlist = !newCollection[id].isWishlist;
@@ -481,7 +499,7 @@ export default function PokedexPage() {
     if (!newCollection[id].normalOwned && !newCollection[id].foilOwned && !newCollection[id].isWishlist) delete newCollection[id];
 
     setUserCollection(newCollection);
-    await supabase.from("user_data").upsert({ id: currentUser.id, collection: newCollection });
+    debouncedSupabaseSave(newCollection);
   };
 
   const calculateRealMissingCost = async () => {
@@ -499,7 +517,7 @@ export default function PokedexPage() {
 
     setIsCalculatingCost(true);
     let totalCost = 0;
-    const currentSeries = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId);
+    const currentSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === selectedSeriesId);
     const lang = currentSeries?.lang || "fr";
 
     const BATCH_SIZE = 6;
@@ -560,7 +578,7 @@ export default function PokedexPage() {
       if (sId) setIds.add(sId);
     });
 
-    return ALL_FLAT_SERIES.filter((s) => setIds.has(s.id));
+    return ALL_FLAT_SERIES.filter((s: PokemonSet) => setIds.has(s.id));
   }, [isGlobalBinder, cards]);
 
   const filteredCards = cards.filter((card) => {
@@ -613,20 +631,18 @@ export default function PokedexPage() {
         </button>
       </div>
 
-      {/* MODALE DE ZOOM SUR LA CARTE (Composant dédié propre) */}
       <CardZoomModal
         card={zoomedCard}
         onClose={() => setZoomedCard(null)}
         isNormalOwned={Boolean(zoomedCard && userCollection[zoomedCard.id]?.normalOwned)}
         isFoilOwned={Boolean(zoomedCard && userCollection[zoomedCard.id]?.foilOwned)}
         onToggleOwnership={(id, type) => {
-          const sLang = ALL_FLAT_SERIES.find((s) => s.id === selectedSeriesId)?.lang || "fr";
+          const sLang = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === selectedSeriesId)?.lang || "fr";
           toggleCardOwnership(id, type, sLang);
         }}
         seriesId={selectedSeriesId}
       />
 
-      {/* MENU LATÉRAL */}
       <div className={`fixed inset-0 z-50 flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
         <div className={`relative w-80 bg-slate-900 border-r border-slate-800 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
@@ -721,14 +737,14 @@ export default function PokedexPage() {
               <button onClick={() => setIsProgressionOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold cursor-pointer">✕</button>
             </div>
             <div className="space-y-4">
-              {POKEMON_BLOCKS.map((block) => (
+              {POKEMON_BLOCKS.map((block: PokemonBlock, index: number) => (
                 <div key={block.blockName} className="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-yellow-500 mb-3">{block.blockName}</h3>
                   <div className="space-y-2">
-                    {block.sets.map((set) => (
+                    {block.sets.map((set: PokemonSet) => (
                       <div key={set.id} className="flex justify-between items-center text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
                         <span className="font-medium text-slate-300">{set.name}</span>
-                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex((b) => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer">
+                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex((b: PokemonBlock) => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded font-semibold transition cursor-pointer">
                           Ouvrir ➔
                         </button>
                       </div>
@@ -803,7 +819,7 @@ export default function PokedexPage() {
                   className="bg-slate-950 text-xs border border-slate-700 text-white px-2.5 py-1 rounded-lg outline-none focus:border-purple-500 cursor-pointer max-w-[200px] truncate"
                 >
                   <option value="ALL">Toutes mes séries ({cards.length} cartes)</option>
-                  {ownedSeriesList.map((s) => {
+                  {ownedSeriesList.map((s: PokemonSet) => {
                     const countInSet = cards.filter((c) => c.id.startsWith(`${s.id}-`)).length;
                     return (
                       <option key={s.id} value={s.id}>
@@ -837,7 +853,7 @@ export default function PokedexPage() {
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Choisis un Bloc :</label>
               <div className="flex flex-wrap gap-2">
-                {POKEMON_BLOCKS.map((block, index) => (
+                {POKEMON_BLOCKS.map((block: PokemonBlock, index: number) => (
                   <button key={block.blockName} onClick={() => handleBlockChange(index)} className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${selectedBlockIndex === index ? "bg-yellow-500 text-slate-950 font-bold shadow-md" : "bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800"}`}>
                     {block.blockName}
                   </button>
@@ -847,7 +863,7 @@ export default function PokedexPage() {
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Choisis une extension :</label>
               <select value={selectedSeriesId} onChange={(e) => setSelectedSeriesId(e.target.value)} className="w-full bg-slate-950 text-sm border border-slate-700 text-white px-4 py-3 rounded-xl outline-none focus:border-yellow-500 cursor-pointer shadow-inner">
-                {currentBlock.sets.map((series) => <option key={series.id} value={series.id}>{series.name}</option>)}
+                {currentBlock.sets.map((series: PokemonSet) => <option key={series.id} value={series.id}>{series.name}</option>)}
               </select>
             </div>
           </div>
@@ -1041,7 +1057,7 @@ export default function PokedexPage() {
     const isWishlisted = cardData?.isWishlist || false;
     const hasError = failedImages[card.id];
 
-    const cardSeries = ALL_FLAT_SERIES.find((s) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
+    const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
     const cardDefaultLang = cardSeries?.lang || "fr";
     const showLanguageFlags = cardDefaultLang !== "en";
 
