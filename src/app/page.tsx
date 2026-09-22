@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { get, set } from "idb-keyval";
 import { supabase } from "../lib/supabase";
 import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS, PokemonSet, PokemonBlock } from "../constants/pokemonSets";
 import CardZoomModal from "../components/CardZoomModal";
@@ -73,7 +74,6 @@ export default function PokedexPage() {
   const [isMysteryOpen, setIsMysteryOpen] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
-  // Carte active dans le zoom HD
   const [zoomedCard, setZoomedCard] = useState<Card | null>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -86,7 +86,6 @@ export default function PokedexPage() {
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [costProgress, setCostProgress] = useState<string>("");
 
-  // Référence pour le debounce des sauvegardes Supabase
   const supabaseSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -262,14 +261,7 @@ export default function PokedexPage() {
 
         const seriesPromises = relevantSeries.map(async (series: PokemonSet) => {
           const cacheKey = `pokedex_series_v4_${series.id}`;
-          let seriesCards: Card[] = [];
-
-          const cached = sessionStorage.getItem(cacheKey);
-          if (cached) {
-            try {
-              seriesCards = JSON.parse(cached);
-            } catch (e) {}
-          }
+          let seriesCards: Card[] = (await get<Card[]>(cacheKey)) || [];
 
           if (!seriesCards || seriesCards.length === 0) {
             try {
@@ -289,7 +281,7 @@ export default function PokedexPage() {
                       seriesName: series.name,
                       cardmarket: c.cardmarket
                     }));
-                    sessionStorage.setItem(cacheKey, JSON.stringify(seriesCards));
+                    await set(cacheKey, seriesCards);
                   }
                 }
               } else {
@@ -306,7 +298,7 @@ export default function PokedexPage() {
                       rarity: "Inconnue",
                       seriesName: series.name
                     }));
-                    sessionStorage.setItem(cacheKey, JSON.stringify(seriesCards));
+                    await set(cacheKey, seriesCards);
                   }
                 }
               }
@@ -357,19 +349,14 @@ export default function PokedexPage() {
         return;
       }
 
-      // 3. MODE SÉRIE SIMPLE
+      // 3. MODE SÉRIE SIMPLE (IndexedDB)
       const cacheKey = `pokedex_series_v4_${selectedSeriesId}`;
-      const cachedData = sessionStorage.getItem(cacheKey);
-      if (cachedData) {
-        try {
-          const parsedCards = JSON.parse(cachedData);
-          if (Array.isArray(parsedCards) && parsedCards.length > 0) {
-            setCards(parsedCards);
-            extractFilters(parsedCards);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {}
+      const cachedData = await get<Card[]>(cacheKey);
+      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+        setCards(cachedData);
+        extractFilters(cachedData);
+        setLoading(false);
+        return;
       }
 
       setLoading(true);
@@ -398,7 +385,7 @@ export default function PokedexPage() {
               seriesName: currentSeries?.name,
               cardmarket: c.cardmarket
             }));
-            sessionStorage.setItem(cacheKey, JSON.stringify(formatted));
+            await set(cacheKey, formatted);
             setCards(formatted);
             extractFilters(formatted);
           } else {
@@ -420,7 +407,7 @@ export default function PokedexPage() {
               rarity: "Inconnue",
               seriesName: currentSeries?.name
             }));
-            sessionStorage.setItem(cacheKey, JSON.stringify(formattedCards));
+            await set(cacheKey, formattedCards);
             setCards(formattedCards);
             extractFilters(formattedCards);
           } else setCards([]);
@@ -445,7 +432,6 @@ export default function PokedexPage() {
     setRaritiesList(Array.from(raritiesSet).sort());
   };
 
-  // Sauvegarde différée (Debounce)
   const debouncedSupabaseSave = (newCollection: UserCollectionJSON) => {
     if (!currentUser) return;
     
@@ -529,9 +515,9 @@ export default function PokedexPage() {
       const prices = await Promise.all(
         chunk.map(async (card) => {
           const cacheKey = `tcgdex_real_price_${card.id}`;
-          const cached = sessionStorage.getItem(cacheKey);
-          if (cached !== null) {
-            return parseFloat(cached);
+          const cached = await get<number>(cacheKey);
+          if (cached !== undefined && cached !== null) {
+            return cached;
           }
 
           try {
@@ -554,7 +540,7 @@ export default function PokedexPage() {
             }
 
             const finalPrice = Math.max(0, parseFloat(cardPrice.toFixed(2)));
-            sessionStorage.setItem(cacheKey, finalPrice.toString());
+            await set(cacheKey, finalPrice);
             return finalPrice;
           } catch (e) {
             return 0;
