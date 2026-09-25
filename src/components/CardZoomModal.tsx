@@ -9,6 +9,7 @@ interface Card {
   localId: string;
   image: string;
   rarity?: string;
+  seriesName?: string;
   pricing?: any;
   cardmarket?: any;
 }
@@ -20,7 +21,6 @@ interface CardZoomModalProps {
   isFoilOwned: boolean;
   onToggleOwnership: (id: string, type: "normal" | "foil") => void;
   seriesId?: string;
-  seriesName?: string;
 }
 
 export default function CardZoomModal({
@@ -32,12 +32,10 @@ export default function CardZoomModal({
 }: CardZoomModalProps) {
   const [price, setPrice] = useState<string>("...");
 
-  // Calcul du prix au chargement de la modale
   useEffect(() => {
     if (!card) return;
 
     const fetchPrice = async () => {
-      // 1. On essaie de lire le prix déjà présent dans les props
       let p = card.pricing?.cardmarket?.avg || card.cardmarket?.prices?.averageSellPrice || 0;
       
       if (p > 0) {
@@ -45,7 +43,6 @@ export default function CardZoomModal({
         return;
       }
 
-      // 2. Sinon on interroge l'API
       try {
         const res = await fetch(`https://api.tcgdex.net/v2/fr/cards/${card.id}`);
         if (!res.ok) throw new Error();
@@ -66,7 +63,6 @@ export default function CardZoomModal({
     fetchPrice();
   }, [card]);
 
-  // Fermer la modale si on appuie sur Echap
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -82,13 +78,10 @@ export default function CardZoomModal({
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm bg-black/80 font-['Outfit'] animate-fade-in"
       onClick={onClose}
     >
-      {/* Conteneur principal de la modale */}
       <div 
         className="bg-[#09090B] rounded-[32px] max-w-4xl w-full flex flex-col md:flex-row p-4 md:p-6 gap-6 md:gap-8 border border-white/10 relative"
-        onClick={(e) => e.stopPropagation()} // Empêche le clic à l'intérieur de fermer la modale
+        onClick={(e) => e.stopPropagation()}
       >
-        
-        {/* Bouton Fermer (Croix) */}
         <button 
           onClick={onClose}
           className="absolute top-4 right-6 text-zinc-500 hover:text-white text-3xl transition-colors z-10"
@@ -96,7 +89,6 @@ export default function CardZoomModal({
           ×
         </button>
 
-        {/* COLONNE GAUCHE : L'Image */}
         <div className="flex-1 bg-[#18181B] rounded-[24px] border border-white/10 p-6 flex items-center justify-center min-h-[300px]">
           {card.image ? (
             <img 
@@ -109,10 +101,7 @@ export default function CardZoomModal({
           )}
         </div>
 
-        {/* COLONNE DROITE : Les Infos */}
         <div className="flex-1 flex flex-col gap-6 pt-4">
-          
-          {/* Tags : Numéro et Rareté */}
           <div className="flex items-center gap-3">
             <span className="bg-[#18181B] text-white border border-white/10 px-4 py-1.5 rounded-lg text-sm">
               #{card.localId}
@@ -124,12 +113,10 @@ export default function CardZoomModal({
             )}
           </div>
 
-          {/* Titre */}
           <h2 className="text-white text-3xl md:text-4xl font-normal">
-            {card.name} {card.seriesName ? card.seriesName: ""}
+            {card.name} {card.seriesName ? card.seriesName : ""}
           </h2>
 
-          {/* Bloc Prix et Wishlist */}
           <div className="flex flex-col gap-2 mt-2">
             <span className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">
               Cote du marché :
@@ -147,11 +134,9 @@ export default function CardZoomModal({
             </div>
           </div>
 
-          {/* Bloc Collection (Boutons Normal / Foil) */}
           <div className="flex flex-col gap-3 mt-4">
             <span className="text-white text-sm">Ma Collection :</span>
             
-            {/* Ligne NORMAL */}
             <div 
               className={`flex items-center justify-between px-5 py-3.5 rounded-xl cursor-pointer transition-all ${
                 isNormalOwned 
@@ -174,7 +159,6 @@ export default function CardZoomModal({
               </div>
             </div>
 
-            {/* Ligne FOIL */}
             <div 
               className={`flex items-center justify-between px-5 py-3.5 rounded-xl cursor-pointer transition-all ${
                 isFoilOwned 
@@ -198,7 +182,6 @@ export default function CardZoomModal({
             </div>
 
           </div>
-
         </div>
       </div>
     </div>
