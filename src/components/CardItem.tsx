@@ -42,124 +42,96 @@ export default function CardItem({
   onZoom,
   onToggleWishlist,
   onToggleOwnership,
-  onToggleLanguage,
 }: CardItemProps) {
   const isNormalOwned = cardData?.normalOwned || false;
   const isFoilOwned = cardData?.foilOwned || false;
   const isWishlisted = cardData?.isWishlist || false;
-  const showLanguageFlags = cardDefaultLang !== "en";
 
   return (
-    <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 md:p-4 flex flex-col justify-between shadow-lg relative group">
-      {/* Bouton Wishlist */}
-      <button
-        onClick={() => onToggleWishlist(card.id)}
-        className={`absolute top-3 right-3 z-10 p-2 rounded-full backdrop-blur-md transition cursor-pointer ${
-          isWishlisted
-            ? "bg-red-500/20 text-red-400 border border-red-500/40 scale-110"
-            : "bg-slate-950/60 text-slate-400 hover:text-red-400 border border-slate-800"
-        }`}
-        title="Ajouter à la Wishlist"
-      >
-        {isWishlisted ? "❤️" : "🤍"}
-      </button>
-
-      <div>
-        {isGlobalBinder && card.seriesName && (
-          <div className="text-[10px] text-purple-400 font-semibold mb-2 truncate bg-purple-950/30 px-2 py-0.5 rounded border border-purple-900/30">
-            {card.seriesName}
-          </div>
-        )}
-
-        {/* Visuel & Clic pour Zoom */}
-        <div
-          onClick={() => onZoom(card)}
-          className="mb-3 flex justify-center bg-slate-900/50 p-2 rounded-lg border border-slate-800/60 min-h-[160px] md:min-h-[190px] items-center relative overflow-hidden cursor-pointer hover:border-yellow-500/50 transition duration-200"
-          title="Cliquer pour zoomer en HD"
-        >
-          {card.image && !hasImageError ? (
-            <Image
-              src={card.image}
-              alt={card.name}
-              fill
-              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
-              className="object-contain drop-shadow-md group-hover:scale-105 transition duration-300 p-2"
-              onError={() => onImageError(card.id, card.image)}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center p-2">
-              <span className="text-2xl mb-1">🃏</span>
-              <span className="text-[11px] text-slate-400 font-medium">Image non disponible</span>
-              <span className="text-[9px] text-slate-500">#{card.localId}</span>
-            </div>
-          )}
-
-          <div className="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100 transition z-10">
-            🔍 Zoom
-          </div>
-        </div>
-
-        {/* Titre & Numéro */}
-        <div className="flex justify-between items-start mb-1 gap-1">
-          <h3
-            className="text-xs md:text-sm font-bold truncate cursor-pointer hover:text-yellow-400 transition"
+    <div className="bg-[#18181B] rounded-[20px] p-4 flex flex-col gap-3 font-['Outfit']">
+      
+      {/* 1. En-tête : Titre empilé et Coeur */}
+      <div className="flex justify-between items-start">
+        <div className="flex flex-col">
+          <h3 
+            className="text-white text-lg font-normal leading-tight cursor-pointer hover:text-rose-400 transition-colors" 
             onClick={() => onZoom(card)}
           >
             {card.name}
           </h3>
-          <span className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded-md shrink-0">
-            #{card.localId}
-          </span>
+          <span className="text-zinc-400 text-xs mt-0.5">#{card.localId}</span>
         </div>
-      </div>
-
-      {/* Boutons de possession */}
-      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 mt-1">
-        <button
-          onClick={() => onToggleOwnership(card.id, "normal", cardDefaultLang)}
-          className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${
-            isNormalOwned
-              ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-              : "bg-slate-900 text-slate-400 hover:bg-slate-800"
-          }`}
+        
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWishlist(card.id);
+          }}
+          className="p-1 cursor-pointer transition-transform hover:scale-110"
         >
-          {isNormalOwned ? "✓ Normale" : "Normale"}
-        </button>
-        <button
-          onClick={() => onToggleOwnership(card.id, "foil", cardDefaultLang)}
-          className={`py-1.5 px-1 rounded-lg text-[10px] md:text-xs font-semibold transition cursor-pointer text-center truncate ${
-            isFoilOwned
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-              : "bg-slate-900 text-slate-400 hover:bg-slate-800"
-          }`}
-        >
-          {isFoilOwned ? "✨ Foil" : "Foil"}
+          <svg 
+            className={`w-5 h-5 ${isWishlisted ? 'text-rose-500 fill-rose-500' : 'text-[#373436] fill-current hover:text-rose-400'}`} 
+            viewBox="0 0 24 24" 
+            stroke="currentColor" 
+            strokeWidth={isWishlisted ? "0" : "2"}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+          </svg>
         </button>
       </div>
 
-      {/* Drapeaux de langues */}
-      {showLanguageFlags && (isNormalOwned || isFoilOwned) && (
-        <div className="flex justify-center gap-4 mt-2 pt-2 border-t border-slate-800/50">
-          {(["fr", "en", "jp"] as const).map((lang) => {
-            const isActive = (cardData?.langs || [cardDefaultLang]).includes(lang);
-            const flagEmoji = lang === "fr" ? "🇫🇷" : lang === "en" ? "🇬🇧" : "🇯🇵";
-            return (
-              <button
-                key={lang}
-                onClick={() => onToggleLanguage(card.id, lang, cardDefaultLang)}
-                className={`text-base transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? "grayscale-0 opacity-100 scale-110 drop-shadow-md"
-                    : "grayscale opacity-30 hover:opacity-70"
-                }`}
-                title={`Marquer comme possédée en ${lang.toUpperCase()}`}
-              >
-                {flagEmoji}
-              </button>
-            );
-          })}
+      {/* Tag Série (uniquement pour le mode Classeur Global) */}
+      {isGlobalBinder && card.seriesName && (
+        <div className="text-[10px] text-rose-400 font-normal truncate">
+          {card.seriesName}
         </div>
       )}
+
+      {/* 2. L'image de la carte (Pleine largeur, coins légèrement arrondis) */}
+      <div 
+        onClick={() => onZoom(card)}
+        className="w-full aspect-[63/88] relative rounded-lg overflow-hidden cursor-pointer"
+      >
+        {card.image && !hasImageError ? (
+          <Image
+            src={card.image}
+            alt={card.name}
+            fill
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
+            className="object-cover"
+            onError={() => onImageError(card.id, card.image)}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-[#09090B]">
+            <span className="text-4xl opacity-20 mb-2">🃏</span>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Boutons de possession (Le bloc unifié Normal / Foil de Figma) */}
+      <div className="grid grid-cols-2 bg-neutral-900 rounded-md outline outline-1 outline-white/10 mt-1">
+        <button 
+          onClick={() => onToggleOwnership(card.id, "normal", cardDefaultLang)}
+          className={`py-1.5 text-[15px] font-normal transition-colors cursor-pointer ${
+            isNormalOwned 
+              ? "bg-rose-500 text-white rounded-md outline outline-1 outline-white/10 z-10" 
+              : "text-stone-500 hover:text-white"
+          }`}
+        >
+          Normal
+        </button>
+        <button 
+          onClick={() => onToggleOwnership(card.id, "foil", cardDefaultLang)}
+          className={`py-1.5 text-[15px] font-normal transition-colors cursor-pointer ${
+            isFoilOwned 
+              ? "bg-rose-500 text-white rounded-md outline outline-1 outline-white/10 z-10" 
+              : "text-stone-500 hover:text-white"
+          }`}
+        >
+          Foil
+        </button>
+      </div>
+
     </div>
   );
 }

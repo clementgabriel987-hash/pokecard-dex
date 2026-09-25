@@ -11,9 +11,9 @@ export interface PokemonBlock {
 
 export const POKEMON_BLOCKS: PokemonBlock[] = [
   {
-    blockName: "⭐ Cartes Promotionnelles",
+    blockName: "Cartes Promotionnelles",
     sets: [
-      { id: "svp", name: "Scarlet & Violet Promos", lang: "fr" },
+      { id: "svp", name: "écarlate & Violet Promos", lang: "fr" },
       { id: "swshp", name: "SWSH Black Star Promos", lang: "fr" },
       { id: "smp", name: "SM Black Star Promos", lang: "fr" },
       { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
@@ -25,27 +25,31 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
     ]
   },
   {
-    blockName: "🍔 Collections McDonald's",
-    sets: [
-      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
-      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
-      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
-      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
-      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
-      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
-      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
-      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
-      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
-      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" }
-    ]
-  },
-  {
-    blockName: "📦 Hors-Séries & Spéciales",
+    blockName: "Hors-Séries",
     sets: [
       { id: "30c", name: "30th Celebration / 30 Ans (FR/EN)", lang: "en" },
       { id: "det1", name: "Détective Pikachu", lang: "en" },
       { id: "pgo", name: "Pokémon GO", lang: "en" },
       { id: "rumble", name: "Pokémon Rumble", lang: "en" },
+    ]
+  },
+  {
+    blockName: "Bloc Wizards",
+    sets: [
+      { id: "base1", name: "Base Set (FR)", lang: "fr" },
+      { id: "base2", name: "Jungle (FR)", lang: "fr" },
+      { id: "base3", name: "Fossile (FR)", lang: "fr" },
+      { id: "base4", name: "Base Set 2 (EN)", lang: "en" },
+      { id: "gym1", name: "Gym Heroes (EN)", lang: "en" },
+      { id: "gym2", name: "Gym Challenge (EN)", lang: "en" },
+      { id: "neo1", name: "Neo Genesis (FR)", lang: "fr" },
+      { id: "neo2", name: "Neo Discovery (FR)", lang: "fr" },
+      { id: "neo3", name: "Neo Revelation (EN)", lang: "en" },
+      { id: "neo4", name: "Neo Destiny (EN)", lang: "en" }
+    ]
+  },{
+    blockName: "Séries POP",
+    sets: [
       { id: "pop1", name: "POP Series 1", lang: "fr" },
       { id: "pop2", name: "POP Series 2", lang: "fr" },
       { id: "pop3", name: "POP Series 3", lang: "fr" },
@@ -58,21 +62,7 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
     ]
   },
   {
-    blockName: "Bloc Wizards (Classic)",
-    sets: [
-      { id: "base1", name: "Base Set (FR)", lang: "fr" },
-      { id: "base2", name: "Jungle (FR)", lang: "fr" },
-      { id: "base3", name: "Fossile (FR)", lang: "fr" },
-      { id: "base4", name: "Base Set 2 (EN)", lang: "en" },
-      { id: "gym1", name: "Gym Heroes (EN)", lang: "en" },
-      { id: "neo1", name: "Neo Genesis (FR)", lang: "fr" },
-      { id: "neo2", name: "Neo Discovery (FR)", lang: "fr" },
-      { id: "neo3", name: "Neo Revelation (EN)", lang: "en" },
-      { id: "neo4", name: "Neo Destiny (EN)", lang: "en" }
-    ]
-  },
-  {
-    blockName: "Bloc EX (Ruby & Sapphire)",
+    blockName: "Bloc EX",
     sets: [
       { id: "ex1", name: "EX Rubis & Saphir (FR)", lang: "fr" },
       { id: "ex2", name: "EX Tempête de Sable (FR)", lang: "fr" },
@@ -113,12 +103,12 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
     ]
   },
   {
-    blockName: "Bloc HeartGold & SoulSilver (HGSS)",
+    blockName: "Bloc HeartGold & SoulSilver",
     sets: [
       { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
-      { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
+      { id: "hgss2", name: "HS - Déchaînement (FR)", lang: "fr" },
       { id: "hgss3", name: "HS - Indomptable (FR)", lang: "fr" },
-      { id: "hgss4", name: "HS - Triomphant (FR)", lang: "fr" },
+      { id: "hgss4", name: "HS - Triomphe (FR)", lang: "fr" },
       { id: "col1", name: "L'Appel des Légendes (FR)", lang: "fr" }
     ]
   },
@@ -142,6 +132,7 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
   {
     blockName: "Bloc XY",
     sets: [
+      { id: "xy0", name: "Bienvenue A Kalos(FR/EN)", lang: "en" },
       { id: "xy1", name: "XY de base (FR)", lang: "fr" },
       { id: "xy2", name: "Étincelles (FR)", lang: "fr" },
       { id: "xy3", name: "Poings Furieux (FR)", lang: "fr" },
@@ -173,6 +164,7 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
       { id: "sm10", name: "Alliance Infaillible (FR)", lang: "fr" },
       { id: "sm11", name: "Harmonie des Esprits (FR)", lang: "fr" },
       { id: "sm11.5", name: "Destinées Occultes (FR)", lang: "fr" },
+      { id: "sma", name: "Destinées Occultes Shiny (FR)", lang: "en" },
       { id: "sm12", name: "Éclipse Cosmique (FR)", lang: "fr" }
     ]
   },
@@ -198,7 +190,7 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
     ]
   },
   {
-    blockName: "Bloc Écarlate & Violet (EV)",
+    blockName: "Bloc Écarlate & Violet",
     sets: [
       { id: "sv01", name: "Écarlate et Violet (FR)", lang: "fr" },
       { id: "sv02", name: "Évolutions à Paldea (FR)", lang: "fr" },
@@ -219,7 +211,7 @@ export const POKEMON_BLOCKS: PokemonBlock[] = [
     ]
   },
   {
-    blockName: "Bloc Méga-Évolution (ME)",
+    blockName: "Bloc Méga-Évolution",
     sets: [
       { id: "me01", name: "Méga-Évolution (FR)", lang: "fr" },
       { id: "me02", name: "Flammes Fantasmagoriques (FR)", lang: "fr" },

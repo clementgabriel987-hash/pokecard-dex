@@ -1,29 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// 1. On charge uniquement ta police Figma (Outfit)
+const outfit = Outfit({
   subsets: ["latin"],
+  variable: "--font-outfit",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+// 2. On garde tes métadonnées intactes
 export const metadata: Metadata = {
   title: "Mon Classeur Pokémon en Ligne",
-  description: "Crée par le Gabrioul",
+  description: "Créé par le Gabrioul",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// 3. Un seul RootLayout qui englobe tout ton site
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="fr"
+      // On injecte la variable de la police ici
+      className={`${outfit.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* On applique le fond sombre et on dit au body d'utiliser la police */}
+      <body className="min-h-full flex flex-col font-sans bg-[#09090B] text-white">
+        {children}
+      </body>
     </html>
   );
 }

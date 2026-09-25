@@ -1,22 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
-export interface ZoomCard {
+interface Card {
   id: string;
   name: string;
   localId: string;
   image: string;
-  seriesName?: string;
+  rarity?: string;
+  pricing?: any;
+  cardmarket?: any;
 }
 
 interface CardZoomModalProps {
-  card: ZoomCard | null;
+  card: Card | null;
   onClose: () => void;
   isNormalOwned: boolean;
   isFoilOwned: boolean;
   onToggleOwnership: (id: string, type: "normal" | "foil") => void;
-  seriesId: string;
+  seriesId?: string;
 }
 
 export default function CardZoomModal({
@@ -25,222 +28,176 @@ export default function CardZoomModal({
   isNormalOwned,
   isFoilOwned,
   onToggleOwnership,
-  seriesId,
 }: CardZoomModalProps) {
-  const [zoomScale, setZoomScale] = useState<number>(1);
-  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialPinchDistRef = useRef<number | null>(null);
-  const initialPinchScaleRef = useRef<number>(1);
+  const [price, setPrice] = useState<string>("...");
 
-  // Réinitialiser le zoom dès que la carte change ou s'ouvre
+  // Calcul du prix au chargement de la modale
   useEffect(() => {
-    if (card) {
-      setZoomScale(1);
-      setPanOffset({ x: 0, y: 0 });
-    }
+    if (!card) return;
+
+    const fetchPrice = async () => {
+      // 1. On essaie de lire le prix déjà présent dans les props
+      let p = card.pricing?.cardmarket?.avg || card.cardmarket?.prices?.averageSellPrice || 0;
+      
+      if (p > 0) {
+        setPrice(p.toFixed(2).replace(".", ","));
+        return;
+      }
+
+      // 2. Sinon on interroge l'API
+      try {
+        const res = await fetch(`https://api.tcgdex.net/v2/fr/cards/${card.id}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const cm = data?.pricing?.cardmarket;
+        const fetchedPrice = cm?.avg || cm?.trend || cm?.low || 0;
+        
+        if (fetchedPrice > 0) {
+          setPrice(fetchedPrice.toFixed(2).replace(".", ","));
+        } else {
+          setPrice("N/A");
+        }
+      } catch (err) {
+        setPrice("N/A");
+      }
+    };
+
+    fetchPrice();
   }, [card]);
+
+  // Fermer la modale si on appuie sur Echap
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   if (!card) return null;
 
-  // Zoom avec la molette de la souris
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.2 : 0.2;
-    setZoomScale((prev) => {
-      const next = Math.min(Math.max(0.8, prev + delta), 4.5);
-      if (next <= 1) setPanOffset({ x: 0, y: 0 });
-      return next;
-    });
-  };
-
-  // Déplacement à la souris (drag)
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoomScale <= 1) return;
-    setIsDragging(true);
-    dragStartRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPanOffset({
-      x: e.clientX - dragStartRef.current.x,
-      y: e.clientY - dragStartRef.current.y,
-    });
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  // Pinch-to-zoom & déplacement tactile (mobile / tablette)
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      initialPinchDistRef.current = dist;
-      initialPinchScaleRef.current = zoomScale;
-    } else if (e.touches.length === 1 && zoomScale > 1) {
-      setIsDragging(true);
-      dragStartRef.current = {
-        x: e.touches[0].clientX - panOffset.x,
-        y: e.touches[0].clientY - panOffset.y,
-      };
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const ratio = dist / initialPinchDistRef.current;
-      const nextScale = Math.min(Math.max(0.8, initialPinchScaleRef.current * ratio), 4.5);
-      setZoomScale(nextScale);
-      if (nextScale <= 1) setPanOffset({ x: 0, y: 0 });
-    } else if (e.touches.length === 1 && isDragging) {
-      setPanOffset({
-        x: e.touches[0].clientX - dragStartRef.current.x,
-        y: e.touches[0].clientY - dragStartRef.current.y,
-      });
-    }
-  };
-
-  const handleTouchEnd = () => {
-    initialPinchDistRef.current = null;
-    setIsDragging(false);
-  };
-
-  const resetZoom = () => {
-    setZoomScale(1);
-    setPanOffset({ x: 0, y: 0 });
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 select-none">
-      <div className="fixed inset-0 bg-black/90 backdrop-blur-md transition-opacity" onClick={onClose}></div>
-
-      <div className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-5 md:p-7 shadow-2xl z-10 overflow-hidden flex flex-col md:flex-row gap-6 items-center">
-        {/* Bouton Fermer */}
-        <button
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm bg-black/80 font-['Outfit'] animate-fade-in"
+      onClick={onClose}
+    >
+      {/* Conteneur principal de la modale */}
+      <div 
+        className="bg-[#09090B] rounded-[32px] max-w-4xl w-full flex flex-col md:flex-row p-4 md:p-6 gap-6 md:gap-8 border border-white/10 relative"
+        onClick={(e) => e.stopPropagation()} // Empêche le clic à l'intérieur de fermer la modale
+      >
+        
+        {/* Bouton Fermer (Croix) */}
+        <button 
           onClick={onClose}
-          className="absolute top-4 right-4 bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center font-bold text-sm transition cursor-pointer z-30"
+          className="absolute top-4 right-6 text-zinc-500 hover:text-white text-3xl transition-colors z-10"
         >
-          ✕
+          ×
         </button>
 
-        {/* Partie gauche : Visuel & Zoom interactif */}
-        <div className="w-full md:w-1/2 flex flex-col items-center">
-          <div
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            className={`relative w-full h-[340px] md:h-[400px] flex items-center justify-center bg-slate-950/70 p-2 rounded-2xl border border-slate-800/80 overflow-hidden ${
-              zoomScale > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in"
-            }`}
-          >
-            <img
-              src={card.image}
-              alt={card.name}
-              draggable={false}
-              style={{
-                transform: `scale(${zoomScale}) translate(${panOffset.x / zoomScale}px, ${panOffset.y / zoomScale}px)`,
-                transition: isDragging ? "none" : "transform 0.15s ease-out",
-              }}
-              className="max-h-full max-w-full object-contain pointer-events-none drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
+        {/* COLONNE GAUCHE : L'Image */}
+        <div className="flex-1 bg-[#18181B] rounded-[24px] border border-white/10 p-6 flex items-center justify-center min-h-[300px]">
+          {card.image ? (
+            <img 
+              src={card.image} 
+              alt={card.name} 
+              className="w-full max-w-[320px] rounded-xl drop-shadow-[0_20px_30px_rgba(0,0,0,0.5)]"
             />
-
-            <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-[10px] px-2 py-0.5 rounded-full text-slate-400 pointer-events-none border border-white/5">
-              Molette / Écarter pour zoomer
-            </div>
-          </div>
-
-          {/* Contrôles du zoom */}
-          <div className="flex items-center gap-2 mt-2.5 bg-slate-950 px-3 py-1 rounded-full border border-slate-800 text-xs text-slate-400">
-            <button
-              onClick={() => setZoomScale((s) => Math.max(0.8, Number((s - 0.3).toFixed(1))))}
-              className="px-2 py-0.5 hover:text-white font-bold cursor-pointer transition"
-              title="Dézoomer"
-            >
-              −
-            </button>
-            <span className="font-mono text-yellow-400 font-bold min-w-[45px] text-center">
-              {Math.round(zoomScale * 100)}%
-            </span>
-            <button
-              onClick={() => setZoomScale((s) => Math.min(4.5, Number((s + 0.3).toFixed(1))))}
-              className="px-2 py-0.5 hover:text-white font-bold cursor-pointer transition"
-              title="Zoomer"
-            >
-              +
-            </button>
-            <button
-              onClick={resetZoom}
-              className="ml-2 pl-2 border-l border-slate-800 text-[11px] text-slate-400 hover:text-white cursor-pointer transition"
-              title="Réinitialiser à 100%"
-            >
-              ↺ Reset
-            </button>
-          </div>
-
-          {/* Bouton Cardmarket sous l'image */}
-          <a
-            href={`https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full mt-3 bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/40 text-blue-300 text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
-          >
-            <span>🛒</span> Rechercher sur Cardmarket
-          </a>
+          ) : (
+            <div className="text-6xl opacity-20">🃏</div>
+          )}
         </div>
 
-        {/* Partie droite : Informations & Possession */}
-        <div className="w-full md:w-1/2 flex flex-col justify-between self-stretch">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2.5 py-0.5 rounded-md font-extrabold">
-                #{card.localId}
+        {/* COLONNE DROITE : Les Infos */}
+        <div className="flex-1 flex flex-col gap-6 pt-4">
+          
+          {/* Tags : Numéro et Rareté */}
+          <div className="flex items-center gap-3">
+            <span className="bg-[#18181B] text-white border border-white/10 px-4 py-1.5 rounded-lg text-sm">
+              #{card.localId}
+            </span>
+            {card.rarity && (
+              <span className="bg-rose-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium">
+                {card.rarity}
               </span>
-              <span className="text-xs text-slate-400">
-                {card.seriesName || seriesId.toUpperCase()}
-              </span>
-            </div>
-
-            <h2 className="text-2xl font-black text-white mb-4">{card.name}</h2>
+            )}
           </div>
 
-          <div className="space-y-2 mt-4">
-            <span className="text-xs text-slate-400 font-semibold block mb-1">Dans ma collection :</span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onToggleOwnership(card.id, "normal")}
-                className={`py-2.5 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
-                  isNormalOwned
-                    ? "bg-yellow-500 text-slate-950 shadow-md"
-                    : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"
-                }`}
+          {/* Titre */}
+          <h2 className="text-white text-3xl md:text-4xl font-normal">
+            {card.name} {card.seriesName ? card.seriesName : ""}
+          </h2>
+
+          {/* Bloc Prix et Wishlist */}
+          <div className="flex flex-col gap-2 mt-2">
+            <span className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">
+              Cote du marché :
+            </span>
+            <div className="bg-[#18181B] border border-white/10 rounded-2xl p-5 flex items-center justify-between">
+              <span className="text-green-500 text-4xl font-medium tracking-tight">
+                {price !== "N/A" ? `${price} €` : "N/A"}
+              </span>
+              <button 
+                onClick={() => alert("Fonction Wishlist depuis la modale à venir !")}
+                className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded-full flex items-center gap-2 text-[15px] transition-colors"
               >
-                {isNormalOwned ? "✓ Normale acquise" : "+ Normale"}
-              </button>
-              <button
-                onClick={() => onToggleOwnership(card.id, "foil")}
-                className={`py-2.5 px-2 rounded-xl text-xs font-bold transition cursor-pointer text-center ${
-                  isFoilOwned
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800"
-                }`}
-              >
-                {isFoilOwned ? "✨ Foil acquise" : "+ Foil"}
+                Wishlist <span className="text-white">🤍</span>
               </button>
             </div>
           </div>
+
+          {/* Bloc Collection (Boutons Normal / Foil) */}
+          <div className="flex flex-col gap-3 mt-4">
+            <span className="text-white text-sm">Ma Collection :</span>
+            
+            {/* Ligne NORMAL */}
+            <div 
+              className={`flex items-center justify-between px-5 py-3.5 rounded-xl cursor-pointer transition-all ${
+                isNormalOwned 
+                  ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]" 
+                  : "bg-[#18181B] text-zinc-400 border border-white/10 hover:border-rose-500/50"
+              }`}
+              onClick={() => onToggleOwnership(card.id, "normal")}
+            >
+              <span className="text-[17px]">Normal</span>
+              <div className="flex items-center gap-4 bg-black/20 px-3 py-1 rounded-lg">
+                <button 
+                  className="text-xl hover:text-white px-2"
+                  onClick={(e) => { e.stopPropagation(); if(isNormalOwned) onToggleOwnership(card.id, "normal"); }}
+                >-</button>
+                <span className="text-lg font-medium">{isNormalOwned ? "1" : "0"}</span>
+                <button 
+                  className="text-xl hover:text-white px-2"
+                  onClick={(e) => { e.stopPropagation(); if(!isNormalOwned) onToggleOwnership(card.id, "normal"); }}
+                >+</button>
+              </div>
+            </div>
+
+            {/* Ligne FOIL */}
+            <div 
+              className={`flex items-center justify-between px-5 py-3.5 rounded-xl cursor-pointer transition-all ${
+                isFoilOwned 
+                  ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]" 
+                  : "bg-[#18181B] text-zinc-400 border border-white/10 hover:border-rose-500/50"
+              }`}
+              onClick={() => onToggleOwnership(card.id, "foil")}
+            >
+              <span className="text-[17px]">Foil</span>
+              <div className="flex items-center gap-4 bg-black/20 px-3 py-1 rounded-lg">
+                <button 
+                  className="text-xl hover:text-white px-2"
+                  onClick={(e) => { e.stopPropagation(); if(isFoilOwned) onToggleOwnership(card.id, "foil"); }}
+                >-</button>
+                <span className="text-lg font-medium">{isFoilOwned ? "1" : "0"}</span>
+                <button 
+                  className="text-xl hover:text-white px-2"
+                  onClick={(e) => { e.stopPropagation(); if(!isFoilOwned) onToggleOwnership(card.id, "foil"); }}
+                >+</button>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </div>
     </div>
