@@ -574,7 +574,6 @@ export default function PokedexPage() {
                   <span className="text-zinc-400 text-xs md:text-sm mb-3 text-center w-full truncate px-2">{set.name}</span>
                   
                   <div className="flex-1 w-full relative flex items-center justify-center p-2">
-                    {/* On charge le logo localement depuis le dossier public/logos/ */}
                     <img 
                       src={`/logos/${set.id}.png`} 
                       alt={set.name} 
@@ -613,25 +612,24 @@ export default function PokedexPage() {
                       className="max-w-full max-h-full object-contain drop-shadow-md transition-transform hover:scale-105"
                       onError={(e) => {
                         const target = e.currentTarget as HTMLImageElement;
-                        target.style.display = 'none'; // Cache l'image si elle n'est pas trouvée
+                        target.style.display = 'none';
                         if (target.nextElementSibling) {
-                          (target.nextElementSibling as HTMLElement).style.display = 'flex'; // Affiche le fallback
+                          (target.nextElementSibling as HTMLElement).style.display = 'flex';
                         }
                       }}
                     />
-                    {/* Fallback de secours (affiché uniquement si tu n'as pas encore mis le logo dans le dossier) */}
                     <div className="hidden flex-col items-center justify-center w-full h-full border border-white/5 bg-[#09090B] rounded-xl">
                       <span className="text-zinc-600 text-xs font-bold uppercase tracking-widest">{currentSeriesObj?.id}</span>
                     </div>
                   </div>
                   
-                  {/* TITRE ET DATE DE SORTIE OFFICIELLE */}
+                  {/* TITRE ET DATE DE SORTIE OFFICIELLE (AVEC LE FIX 'as any') */}
                   <div className="flex flex-col">
                     <h1 className="text-white text-3xl font-normal">
                       {currentSeriesObj?.name || "Série Inconnue"}
                     </h1>
                     <p className="text-neutral-500 text-2xl font-normal mt-1">
-                      Date de sortie : {currentSeriesObj?.releaseDate || "Inconnue"}
+                      Date de sortie : {(currentSeriesObj as any)?.releaseDate || "Inconnue"}
                     </p>
                   </div>
                 </div>
