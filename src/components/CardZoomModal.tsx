@@ -20,6 +20,7 @@ interface CardZoomModalProps {
   isFoilOwned: boolean;
   onToggleOwnership: (id: string, type: "normal" | "foil") => void;
   seriesId?: string;
+  seriesName?: string;
 }
 
 export default function CardZoomModal({
@@ -125,7 +126,7 @@ export default function CardZoomModal({
 
           {/* Titre */}
           <h2 className="text-white text-3xl md:text-4xl font-normal">
-            {card.name} {card.seriesName ? card.seriesName : ""}
+            {card.name} {card.seriesName ? card.seriesName: ""}
           </h2>
 
           {/* Bloc Prix et Wishlist */}

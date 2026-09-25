@@ -2,6 +2,7 @@ export interface PokemonSet {
   id: string;
   name: string;
   lang: string;
+  seriesName?: string;
 }
 
 export interface PokemonBlock {
