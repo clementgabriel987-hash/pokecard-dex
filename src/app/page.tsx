@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { get, set } from "idb-keyval";
 import { supabase } from "../lib/supabase";
 import { POKEMON_BLOCKS, ALL_FLAT_SERIES, TCG_IO_ONLY_SETS, PokemonSet, PokemonBlock } from "../constants/pokemonSets";
+import { POKEMON_ITEMS, PokemonItem } from "../constants/pokemonItems";
 import CardZoomModal from "../components/CardZoomModal";
 import CardSkeleton from "../components/CardSkeleton";
 import CardItem from "../components/CardItem";
@@ -34,15 +34,17 @@ interface CardDetails {
 }
 
 type UserCollectionJSON = Record<string, CardDetails>;
+type UserItemCollection = Record<string, { sealed: number; opened: number }>;
 
 export default function PokedexPage() {
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
   
-  const [showExtensionMenu, setShowExtensionMenu] = useState<boolean>(true);
+  const [currentView, setCurrentView] = useState<"EXTENSIONS" | "CARDS" | "ITEMS">("EXTENSIONS");
+  const [selectedItemType, setSelectedItemType] = useState<string | null>(null);
 
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
-  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("pages");
+  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("standard"); // 👈 Remis en standard (scroll infini)
   const [currentGlobalBinderPage, setCurrentGlobalBinderPage] = useState<number>(1);
   const [binderSelectedSeries, setBinderSelectedSeries] = useState<string>("ALL");
 
@@ -68,13 +70,10 @@ export default function PokedexPage() {
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userCollection, setUserCollection] = useState<UserCollectionJSON>({});
+  const [userItemCollection, setUserItemCollection] = useState<UserItemCollection>({});
   
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
-
-  const [isCalculatingCost, setIsCalculatingCost] = useState<boolean>(false);
-  const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
-  const [costProgress, setCostProgress] = useState<string>("");
 
   const supabaseSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -96,24 +95,13 @@ export default function PokedexPage() {
     loadCollection();
   }, [currentUser]);
 
-  useEffect(() => {
-    setCalculatedCost(null);
-    setCostProgress("");
-  }, [selectedSeriesId]);
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
       setIsGlobalBinder(false);
-      setShowExtensionMenu(false);
+      setCurrentView("CARDS");
       setActiveSearch(searchInput.trim());
     }
-  };
-
-  const handleBackToSeries = () => {
-    setIsGlobalBinder(false);
-    setActiveSearch("");
-    setSearchInput("");
   };
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
@@ -135,7 +123,7 @@ export default function PokedexPage() {
   };
 
   useEffect(() => {
-    if (showExtensionMenu && !isGlobalBinder && !activeSearch) return;
+    if (currentView !== "CARDS" && !isGlobalBinder && !activeSearch) return;
 
     async function fetchCards() {
       setVisibleCount(40);
@@ -285,7 +273,7 @@ export default function PokedexPage() {
       } catch { setCards([]); } finally { setLoading(false); }
     }
     fetchCards();
-  }, [selectedSeriesId, isGlobalBinder, activeSearch, currentUser, showExtensionMenu]);
+  }, [selectedSeriesId, isGlobalBinder, activeSearch, currentUser, currentView]);
 
   const extractFilters = (cardList: Card[]) => {
     const illsets = new Set<string>();
@@ -339,44 +327,12 @@ export default function PokedexPage() {
     debouncedSupabaseSave(newCollection);
   };
 
-  const calculateRealMissingCost = async () => {
-    if (cards.length === 0 || isCalculatingCost) return;
-    const missingCards = cards.filter((c) => { const cData = userCollection[c.id]; return !cData?.normalOwned && !cData?.foilOwned; });
-    if (missingCards.length === 0) { setCalculatedCost(0); return; }
-    setIsCalculatingCost(true);
-    let totalCost = 0;
-    const currentSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === selectedSeriesId);
-    const lang = currentSeries?.lang || "fr";
-
-    for (let i = 0; i < missingCards.length; i += 6) {
-      const chunk = missingCards.slice(i, i + 6);
-      const prices = await Promise.all(
-        chunk.map(async (card) => {
-          const cacheKey = `tcgdex_real_price_${card.id}`;
-          const cached = await get<number>(cacheKey);
-          if (cached !== undefined && cached !== null) return cached;
-          try {
-            const res = await fetch(`https://api.tcgdex.net/v2/${lang}/cards/${card.id}`);
-            if (!res.ok) return 0;
-            const data = await res.json();
-            const cm = data?.pricing?.cardmarket;
-            const tcg = data?.pricing?.tcgplayer;
-            let cardPrice = 0;
-            if (cm) cardPrice = cm.avg || cm.trend || cm.avg30 || cm.low || cm["avg-holo"] || 0;
-            if (cardPrice <= 0 && tcg) {
-              const usd = tcg.normal?.marketPrice || tcg.normal?.midPrice || tcg.reverse?.marketPrice || tcg.holofoil?.marketPrice || 0;
-              cardPrice = (usd || 0) * 0.92;
-            }
-            const finalPrice = Math.max(0, parseFloat(cardPrice.toFixed(2)));
-            await set(cacheKey, finalPrice);
-            return finalPrice;
-          } catch (e) { return 0; }
-        })
-      );
-      totalCost += prices.reduce((acc, p) => acc + p, 0);
-    }
-    setCalculatedCost(totalCost);
-    setIsCalculatingCost(false);
+  const updateItemCount = (itemId: string, type: "sealed" | "opened", change: number) => {
+    setUserItemCollection(prev => {
+      const current = prev[itemId] || { sealed: 0, opened: 0 };
+      const newValue = Math.max(0, current[type] + change);
+      return { ...prev, [itemId]: { ...current, [type]: newValue } };
+    });
   };
 
   const ownedSeriesList = useMemo(() => {
@@ -420,7 +376,7 @@ export default function PokedexPage() {
   const foilCollected = cards.filter((c) => userCollection[c.id]?.foilOwned).length;
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
   const currentSeriesObj = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
-
+  
   const itemsPerGlobalPage = 9;
   const totalGlobalPages = Math.ceil(filteredCards.length / itemsPerGlobalPage) || 1;
 
@@ -443,8 +399,10 @@ export default function PokedexPage() {
     return () => { if (currentSentinel) observer.unobserve(currentSentinel); };
   }, [visibleCount, filteredCards.length, isGlobalBinder, binderViewStyle]);
 
+  const ITEM_TYPES = ["ETB", "DISPLAY", "BOOSTER", "COFFRET", "POKÉBOX", "DECK", "TRIPACK", "AUTRE"];
+
   return (
-    <main className="min-h-screen bg-[#09090B] text-white relative flex flex-col font-sans pb-12 font-['Outfit']">
+    <main className="min-h-screen bg-[#09090B] text-white relative flex flex-col font-sans pb-12 font-['Outfit'] overflow-x-hidden">
       
       <CardZoomModal
         card={zoomedCard}
@@ -458,33 +416,42 @@ export default function PokedexPage() {
         seriesId={selectedSeriesId}
       />
 
-      {/* Sidebar Mobile */}
+      {/* SIDEBAR MOBILE */}
       <div className={`fixed inset-0 z-[60] flex transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
-        <div className={`relative w-80 bg-[#18181B] border-r border-white/10 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className={`relative w-4/5 max-w-[320px] bg-[#18181B] border-r border-white/10 h-full shadow-2xl p-6 flex flex-col justify-between z-10 transition-transform duration-300 ease-out overflow-y-auto ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div>
             <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
               <h2 className="text-lg font-bold text-rose-500">MENU</h2>
-              <button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white text-xl">✕</button>
+              <button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white text-2xl">✕</button>
             </div>
             <div className="space-y-4">
-              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-3.5 rounded-xl text-sm transition">👑 Progression & Master Sets</button>
-              <button onClick={() => { setIsGlobalBinder(true); setActiveSearch(""); setIsSidebarOpen(false); }} className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-3.5 rounded-xl text-sm transition">✨ Ma Collection</button>
-              <Link href="/wishlist" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-3.5 rounded-xl text-sm transition">❤️ Wishlist</Link>
-              <Link href="/statistiques" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-3.5 rounded-xl text-sm transition">📈 Statistiques</Link>
+              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">👑 Progression & Master Sets</button>
+              <button 
+                onClick={() => { 
+                  setIsGlobalBinder(true); 
+                  setCurrentView("CARDS"); // 👈 FIX: Force l'affichage des cartes
+                  setActiveSearch(""); 
+                  setIsSidebarOpen(false); 
+                }} 
+                className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition"
+              >
+                ✨ Ma Collection
+              </button>
+              <Link href="/wishlist" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">❤️ Wishlist</Link>
+              <Link href="/statistiques" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">📈 Statistiques</Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal Progression */}
       {isProgressionOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsProgressionOpen(false)}></div>
-          <div className="relative bg-[#18181B] border border-white/10 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10">
+          <div className="relative bg-[#18181B] border border-white/10 rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 md:p-6 shadow-2xl z-10">
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3">
               <h2 className="text-xl font-bold text-white">Progression</h2>
-              <button onClick={() => setIsProgressionOpen(false)} className="text-zinc-400 hover:text-white text-xl">✕</button>
+              <button onClick={() => setIsProgressionOpen(false)} className="text-zinc-400 hover:text-white text-2xl">✕</button>
             </div>
             <div className="space-y-4">
               {POKEMON_BLOCKS.map((block: PokemonBlock, index: number) => (
@@ -493,8 +460,8 @@ export default function PokedexPage() {
                   <div className="space-y-2">
                     {block.sets.map((set: PokemonSet) => (
                       <div key={set.id} className="flex justify-between items-center text-sm bg-[#18181B] p-3 rounded-xl border border-white/5">
-                        <span className="text-zinc-300">{set.name}</span>
-                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex((b: PokemonBlock) => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-lg transition hover:bg-rose-500 hover:text-white">
+                        <span className="text-zinc-300 truncate mr-2">{set.name}</span>
+                        <button onClick={() => { setSelectedBlockIndex(POKEMON_BLOCKS.findIndex((b: PokemonBlock) => b.blockName === block.blockName)); setSelectedSeriesId(set.id); setIsGlobalBinder(false); setActiveSearch(""); setIsProgressionOpen(false); }} className="bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg transition hover:bg-rose-500 hover:text-white shrink-0">
                           Ouvrir
                         </button>
                       </div>
@@ -512,46 +479,70 @@ export default function PokedexPage() {
         setSearchInput={setSearchInput}
         handleSearchSubmit={handleSearchSubmit}
         isGlobalBinder={isGlobalBinder}
-        setIsGlobalBinder={setIsGlobalBinder}
+        // 👈 FIX: Gère correctement le clic sur Ma Collection depuis le Header
+        setIsGlobalBinder={(val) => {
+          setIsGlobalBinder(val);
+          if (val) {
+            setCurrentView("CARDS");
+            setActiveSearch("");
+          }
+        }}
         onOpenSidebar={() => setIsSidebarOpen(true)}
+        currentView={currentView}
         onGoToExtensions={() => {
           setIsGlobalBinder(false);
           setActiveSearch("");
-          setShowExtensionMenu(true);
+          setCurrentView("EXTENSIONS");
+        }}
+        onGoToItems={() => {
+          setIsGlobalBinder(false);
+          setActiveSearch("");
+          const currentBlockName = POKEMON_BLOCKS[selectedBlockIndex]?.blockName.toUpperCase() || "";
+          if (currentBlockName.includes("PROMO")) {
+            const firstNormalBlockIndex = POKEMON_BLOCKS.findIndex(b => !b.blockName.toUpperCase().includes("PROMO"));
+            if (firstNormalBlockIndex !== -1) {
+              setSelectedBlockIndex(firstNormalBlockIndex);
+              setSelectedSeriesId(POKEMON_BLOCKS[firstNormalBlockIndex].sets[0].id);
+            }
+          }
+          setCurrentView("ITEMS");
+          setSelectedItemType(null);
         }}
       />
 
-      <div className="max-w-[1260px] mx-auto w-full px-6 md:px-0 pt-10 flex flex-col gap-6">
+      {/* CONTAINER PRINCIPAL ADAPTÉ POUR MOBILE (px-4 au lieu de px-6) */}
+      <div className="max-w-[1260px] mx-auto w-full px-4 md:px-8 lg:px-0 pt-6 md:pt-10 flex flex-col gap-6">
         
-        {/* VUE 1 : MENU DES EXTENSIONS */}
-        {showExtensionMenu && !activeSearch && !isGlobalBinder ? (
+        {/* ========================================= */}
+        {/* VUE 1 : MENU DES EXTENSIONS (CATALOGUE) */}
+        {/* ========================================= */}
+        {currentView === "EXTENSIONS" && !activeSearch && !isGlobalBinder && (
           <div className="w-full flex flex-col animate-fade-in">
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-10 gap-6">
               <div>
-                <h1 className="text-white text-[32px] md:text-[40px] font-normal leading-tight">Toutes Les Extensions</h1>
-                <p className="text-zinc-500 text-lg mt-1">Gérer votre collection a travers les différentes ères de Pokémon</p>
+                <h1 className="text-white text-3xl md:text-[40px] font-normal leading-tight">Toutes Les Extensions</h1>
+                <p className="text-zinc-500 text-base md:text-lg mt-1">Gérer votre collection a travers les différentes ères</p>
               </div>
-              <div className="flex bg-[#18181B] border border-white/10 rounded-2xl p-4 gap-6 shrink-0">
-                <div className="flex flex-col items-center px-4 border-r border-white/10">
-                  <span className="text-white text-sm mb-1 font-medium">Séries Complétées</span>
+              <div className="flex bg-[#18181B] border border-white/10 rounded-2xl p-4 gap-4 md:gap-6 w-full md:w-auto shrink-0 justify-around md:justify-start">
+                <div className="flex flex-col items-center px-2 md:px-4 border-r border-white/10 w-1/2 md:w-auto">
+                  <span className="text-white text-xs md:text-sm mb-1 font-medium text-center">Séries Complétées</span>
                   <span className="text-zinc-400 text-sm">0/{ALL_FLAT_SERIES.length}</span>
                 </div>
-                <div className="flex flex-col items-center px-4">
-                  <span className="text-white text-sm mb-1 font-medium">Cartes Uniques :</span>
+                <div className="flex flex-col items-center px-2 md:px-4 w-1/2 md:w-auto">
+                  <span className="text-white text-xs md:text-sm mb-1 font-medium text-center">Cartes Uniques :</span>
                   <span className="text-rose-500 text-base">{uniqueCardsCount}</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-12">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-8 md:mb-12">
               {POKEMON_BLOCKS.map((block, index) => (
                 <button
                   key={block.blockName}
                   onClick={() => setSelectedBlockIndex(index)}
-                  className={`py-3.5 px-2 rounded-xl text-center text-sm font-normal transition-all duration-300 ${
+                  className={`py-3 md:py-3.5 px-2 rounded-xl text-center text-xs md:text-sm font-normal transition-all duration-300 ${
                     selectedBlockIndex === index 
-                      ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)] scale-105" 
+                      ? "bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)] scale-[1.02] md:scale-105" 
                       : "bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/40"
                   }`}
                 >
@@ -560,20 +551,19 @@ export default function PokedexPage() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 lg:gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
               {currentBlock.sets.map((set) => (
                 <div
                   key={set.id}
                   onClick={() => {
                     setSelectedSeriesId(set.id);
-                    setShowExtensionMenu(false);
+                    setCurrentView("CARDS");
                     setActiveSearch("");
                   }}
-                  className="bg-[#18181B] border border-white/10 rounded-[24px] p-4 flex flex-col items-center justify-between cursor-pointer hover:border-rose-500/50 hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-300 aspect-[4/3] group"
+                  className="bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-3 md:p-4 flex flex-col items-center justify-between cursor-pointer hover:border-rose-500/50 hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-300 aspect-[4/3] group"
                 >
-                  <span className="text-zinc-400 text-xs md:text-sm mb-3 text-center w-full truncate px-2">{set.name}</span>
-                  
-                  <div className="flex-1 w-full relative flex items-center justify-center p-2">
+                  <span className="text-zinc-400 text-[11px] md:text-sm mb-2 md:mb-3 text-center w-full truncate px-1">{set.name}</span>
+                  <div className="flex-1 w-full relative flex items-center justify-center p-1 md:p-2">
                     <img 
                       src={`/logos/${set.id}.png`} 
                       alt={set.name} 
@@ -586,173 +576,254 @@ export default function PokedexPage() {
                         }
                       }}
                     />
-                    
                     <div className="hidden flex-col items-center text-center w-full h-full justify-center">
-                      <span className="text-yellow-500 text-sm font-bold mb-1">Zone en travaux 🚧</span>
-                      <span className="text-[10px] text-zinc-500 leading-tight">Charpenti transporte <br/> actuellement les poutres...</span>
+                      <span className="text-yellow-500 text-xs md:text-sm font-bold mb-1">En travaux 🚧</span>
+                      <span className="text-[9px] md:text-[10px] text-zinc-500 leading-tight">Charpenti transporte <br/> des poutres...</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-
           </div>
-        ) : (
-          /* VUE 2 : LA VUE DÉTAILLÉE (CARTES ET FILTRES) */
-          <div className="flex flex-col gap-6 animate-fade-in">
+        )}
+
+        {/* ========================================= */}
+        {/* VUE 2 : LA VUE DES CARTES DÉTAILLÉES */}
+        {/* ========================================= */}
+        {currentView === "CARDS" && (
+          <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
+            
+            {/* 👈 FIX: Titre global pour la vue Ma Collection */}
+            {isGlobalBinder && (
+              <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-end mb-2 gap-4">
+                <div>
+                  <h1 className="text-white text-3xl md:text-[40px] font-normal leading-tight">Ma Collection</h1>
+                  <p className="text-zinc-500 text-base md:text-lg mt-1">Toutes les cartes que tu possèdes</p>
+                </div>
+              </div>
+            )}
+
             {(!isGlobalBinder && !activeSearch) && (
-              <div className="w-full bg-[#18181B] rounded-[24px] border border-white/10 px-10 py-8 flex flex-col md:flex-row justify-between items-start md:items-center mt-2 gap-6">
+              <div className="w-full bg-[#18181B] rounded-2xl md:rounded-[24px] border border-white/10 p-5 md:p-8 flex flex-col xl:flex-row justify-between items-start xl:items-center mt-2 gap-6">
                 
-                <div className="flex items-center gap-6">
-                  {/* LE NOUVEAU BLOC LOGO DYNAMIQUE */}
-                  <div className="w-[122px] h-[67px] relative flex items-center justify-center shrink-0">
-                    <img 
-                      src={`/logos/${currentSeriesObj?.id}.png`} 
-                      alt={currentSeriesObj?.name} 
-                      className="max-w-full max-h-full object-contain drop-shadow-md transition-transform hover:scale-105"
-                      onError={(e) => {
-                        const target = e.currentTarget as HTMLImageElement;
-                        target.style.display = 'none';
-                        if (target.nextElementSibling) {
-                          (target.nextElementSibling as HTMLElement).style.display = 'flex';
-                        }
-                      }}
-                    />
-                    <div className="hidden flex-col items-center justify-center w-full h-full border border-white/5 bg-[#09090B] rounded-xl">
-                      <span className="text-zinc-600 text-xs font-bold uppercase tracking-widest">{currentSeriesObj?.id}</span>
+                {/* Section gauche (Bouton + Logo + Textes) */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 w-full">
+                  <div className="flex items-center gap-3 md:gap-4 shrink-0">
+                    <div 
+                      className="w-12 h-12 md:w-14 md:h-14 bg-[#09090B] border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/5 transition group shrink-0" 
+                      onClick={() => { setCurrentView("EXTENSIONS"); setActiveSearch(""); }}
+                    >
+                      <span className="text-white text-lg md:text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                    </div>
+                    <div className="w-20 h-11 md:w-[122px] md:h-[67px] relative flex items-center justify-center shrink-0 bg-white/5 rounded-lg md:bg-transparent">
+                      <img src={`/logos/${currentSeriesObj?.id}.png`} alt={currentSeriesObj?.name} className="max-w-[90%] max-h-[90%] object-contain drop-shadow-md" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   </div>
-                  
-                  {/* TITRE ET DATE DE SORTIE OFFICIELLE (AVEC LE FIX 'as any') */}
                   <div className="flex flex-col">
-                    <h1 className="text-white text-3xl font-normal">
-                      {currentSeriesObj?.name || "Série Inconnue"}
-                    </h1>
-                    <p className="text-neutral-500 text-2xl font-normal mt-1">
-                      Date de sortie : {(currentSeriesObj as any)?.releaseDate || "Inconnue"}
-                    </p>
+                    <h1 className="text-white text-xl md:text-3xl font-normal leading-tight">{currentSeriesObj?.name || "Série Inconnue"}</h1>
+                    <p className="text-neutral-500 text-sm md:text-xl font-normal mt-1">Sortie : {(currentSeriesObj as any)?.releaseDate || "Inconnue"}</p>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-12">
-                  <div className="flex flex-col items-end gap-2 w-72">
-                    <span className="text-white text-xl font-normal tracking-wide">
-                      {normalCollected + foilCollected}/{totalCards || 0}
-                    </span>
-                    <div className="w-full h-2 bg-white rounded-full overflow-hidden shadow-inner">
-                      <div 
-                        className="bg-rose-500 h-full rounded-full transition-all duration-1000" 
-                        style={{ width: `${totalCards > 0 ? ((normalCollected + foilCollected) / totalCards) * 100 : 0}%` }}
-                      ></div>
+
+                {/* Section droite (Jauge + Bouton) */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 w-full xl:w-auto xl:justify-end">
+                  <div className="flex flex-col items-end gap-1.5 md:gap-2 w-full sm:w-64 md:w-72">
+                    <span className="text-white text-lg md:text-xl font-normal tracking-wide">{normalCollected + foilCollected}/{totalCards || 0}</span>
+                    <div className="w-full h-1.5 md:h-2 bg-white rounded-full overflow-hidden shadow-inner">
+                      <div className="bg-rose-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalCards > 0 ? ((normalCollected + foilCollected) / totalCards) * 100 : 0}%` }}></div>
                     </div>
                   </div>
-                  
-                  <button onClick={() => alert("Fonctionnalité Wishlist globale à venir !")} className="bg-rose-500 text-white text-xl font-normal px-8 py-3 rounded-full outline outline-1 outline-white/10 hover:bg-rose-600 transition-colors shadow-[0_0_15px_rgba(244,63,94,0.3)] flex items-center gap-2">
+                  <button onClick={() => alert("Fonctionnalité Wishlist globale à venir !")} className="w-full sm:w-auto bg-rose-500 text-white text-base md:text-xl font-normal px-6 py-2.5 md:px-8 md:py-3 rounded-full outline outline-1 outline-white/10 hover:bg-rose-600 transition-colors shadow-[0_0_15px_rgba(244,63,94,0.3)] flex justify-center items-center gap-2">
                     Whislist <span>🤍</span>
                   </button>
                 </div>
               </div>
             )}
 
-            {activeSearch && (
-              <div className="bg-[#18181B] border border-white/10 p-6 rounded-[24px] flex items-center justify-between">
-                <h2 className="text-xl">Résultats pour : <span className="text-rose-500">{activeSearch}</span></h2>
-                <button onClick={handleBackToSeries} className="px-6 py-2 bg-[#09090B] rounded-full border border-white/10 hover:border-white/30 transition">
-                  Fermer la recherche
-                </button>
-              </div>
-            )}
-
+            {/* Barre de Filtres et Recherche */}
             {(!isGlobalBinder) && (
-              <div className="w-full flex items-center gap-5 mt-4 mb-4">
-                <div className="relative group shrink-0">
-                  <select 
-                    value={selectedStatus} 
-                    onChange={(e) => setSelectedStatus(e.target.value)} 
-                    className="appearance-none bg-rose-500 hover:bg-rose-600 text-white text-xl font-normal px-8 py-3 pr-12 rounded-full outline outline-1 outline-white/10 cursor-pointer transition-colors shadow-[0_0_15px_rgba(244,63,94,0.2)]"
-                  >
+              <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-5 mt-2 md:mt-4 mb-2 md:mb-4">
+                <div className="relative group shrink-0 w-full sm:w-auto">
+                  <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full sm:w-auto appearance-none bg-rose-500 hover:bg-rose-600 text-white text-base md:text-xl font-normal px-6 md:px-8 py-3 md:py-3 pr-12 rounded-full outline outline-1 outline-white/10 cursor-pointer transition-colors shadow-[0_0_15px_rgba(244,63,94,0.2)]">
                     <option value="ALL">Trier par</option>
                     <option value="MISSING">Manquantes</option>
                     <option value="NORMAL">Possédées (Normal)</option>
                     <option value="FOIL">Possédées (Foil)</option>
                   </select>
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white text-xl">⌄</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white text-lg md:text-xl">⌄</span>
                 </div>
-                <form onSubmit={handleSearchSubmit} className="flex-1 relative h-[52px]">
-                  <input 
-                    type="text" 
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={`Rechercher dans la série ${currentSeriesObj?.name || "30 ans"} (#001 Noeuneuf...)`}
-                    className="w-full h-full bg-[#18181B] border border-white/10 rounded-full pl-8 pr-14 py-3.5 text-neutral-500 text-[16px] font-normal outline-none focus:border-rose-500 transition-colors"
-                  />
-                  <button type="submit" className="absolute right-6 top-1/2 -translate-y-1/2 text-white hover:text-rose-400 transition-colors">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <form onSubmit={handleSearchSubmit} className="flex-1 relative h-[48px] md:h-[52px] w-full">
+                  <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder={`Rechercher dans ${currentSeriesObj?.name || "..."}...`} className="w-full h-full bg-[#18181B] border border-white/10 rounded-full pl-6 md:pl-8 pr-12 md:pr-14 py-2 md:py-3.5 text-neutral-400 text-sm md:text-[16px] font-normal outline-none focus:border-rose-500 transition-colors" />
+                  <button type="submit" className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-white hover:text-rose-400 transition-colors">
+                    <svg width="20" height="20" className="md:w-[22px] md:h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                   </button>
                 </form>
               </div>
             )}
 
-            {isGlobalBinder && (
-               <div className="flex items-center justify-between bg-[#18181B] p-4 rounded-[24px] border border-white/10 mt-2 mb-4">
-                 <select value={binderSelectedSeries} onChange={(e) => { setBinderSelectedSeries(e.target.value); setCurrentGlobalBinderPage(1); }} className="bg-[#09090B] border border-white/10 text-white px-4 py-2 rounded-full outline-none focus:border-rose-500">
-                    <option value="ALL">Toutes mes séries ({cards.length} cartes)</option>
-                    {ownedSeriesList.map((s: PokemonSet) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                  <div className="flex gap-2">
-                    <button onClick={() => setBinderViewStyle("pages")} className={`px-4 py-2 rounded-full text-sm transition ${binderViewStyle === "pages" ? "bg-rose-500 text-white" : "bg-[#09090B] text-zinc-400 border border-white/10"}`}>Mode Classeur</button>
-                    <button onClick={() => setBinderViewStyle("standard")} className={`px-4 py-2 rounded-full text-sm transition ${binderViewStyle === "standard" ? "bg-rose-500 text-white" : "bg-[#09090B] text-zinc-400 border border-white/10"}`}>Mode Grille</button>
-                  </div>
-               </div>
-            )}
-
             {loading && cards.length === 0 ? (
               <CardSkeleton count={10} />
-            ) : filteredCards.length > 0 ? (
-              <div className="mb-12">
-                {isGlobalBinder && binderViewStyle === "pages" ? (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center bg-[#18181B] border border-white/10 p-4 rounded-3xl">
-                      <button onClick={() => setCurrentGlobalBinderPage((p) => Math.max(1, p - 1))} disabled={currentGlobalBinderPage === 1} className="px-4 py-2 bg-[#09090B] border border-white/10 rounded-xl disabled:opacity-30">Précédent</button>
-                      <span className="text-zinc-400">Page <span className="text-white font-bold">{currentGlobalBinderPage}</span> / {totalGlobalPages}</span>
-                      <button onClick={() => setCurrentGlobalBinderPage((p) => Math.min(totalGlobalPages, p + 1))} disabled={currentGlobalBinderPage === totalGlobalPages} className="px-4 py-2 bg-[#09090B] border border-white/10 rounded-xl disabled:opacity-30">Suivant</button>
-                    </div>
-                    <div className="bg-[#18181B]/50 border-2 border-rose-500/20 rounded-[32px] p-6 md:p-10 relative">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        {displayedCards.map((card) => {
-                          const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
-                          return <CardItem key={card.id} card={card} cardData={userCollection[card.id]} isGlobalBinder={isGlobalBinder} cardDefaultLang={cardSeries?.lang || "fr"} hasImageError={Boolean(failedImages[card.id])} onImageError={handleImageError} onZoom={(c) => setZoomedCard(c as Card)} onToggleWishlist={toggleWishlist} onToggleOwnership={toggleCardOwnership} onToggleLanguage={toggleCardLanguage} />;
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                      {displayedCards.map((card) => {
-                        const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
-                        return <CardItem key={card.id} card={card} cardData={userCollection[card.id]} isGlobalBinder={isGlobalBinder} cardDefaultLang={cardSeries?.lang || "fr"} hasImageError={Boolean(failedImages[card.id])} onImageError={handleImageError} onZoom={(c) => setZoomedCard(c as Card)} onToggleWishlist={toggleWishlist} onToggleOwnership={toggleCardOwnership} onToggleLanguage={toggleCardLanguage} />;
-                      })}
-                    </div>
-                    {visibleCount < filteredCards.length && (
-                      <div ref={sentinelRef} className="py-12 flex justify-center">
-                        <div className="px-6 py-3 bg-[#18181B] border border-white/10 rounded-full animate-pulse text-zinc-400">Chargement de la suite...</div>
-                      </div>
-                    )}
-                  </div>
-                )}
+            ) : !loading && isGlobalBinder && cards.length === 0 ? (
+              // 👈 FIX: Écran quand la collection est totalement vide
+              <div className="w-full flex flex-col items-center justify-center bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-10 md:p-16 mt-4 shadow-2xl">
+                <span className="text-6xl mb-6 drop-shadow-[0_0_20px_rgba(244,63,94,0.3)]">📭</span>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 text-center">Ta collection est vide !</h2>
+                <p className="text-zinc-400 text-center max-w-lg mb-8">
+                  Tu n'as encore ajouté aucune carte à ta collection. Retourne dans les extensions, ouvre une série et clique sur les cartes que tu possèdes pour les ajouter !
+                </p>
+                <button 
+                  onClick={() => { 
+                    setIsGlobalBinder(false); 
+                    setCurrentView("EXTENSIONS"); 
+                  }} 
+                  className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-3.5 rounded-full font-medium transition shadow-[0_0_20px_rgba(244,63,94,0.4)] text-lg"
+                >
+                  Découvrir les cartes
+                </button>
               </div>
             ) : (
-              <div className="text-center bg-[#18181B] border border-white/10 rounded-[24px] p-12 mt-8">
-                <span className="text-4xl mb-4 block opacity-50">📭</span>
-                <p className="text-zinc-400 text-lg">Aucune carte trouvée pour cette sélection.</p>
+              <div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                  {displayedCards.map((card) => {
+                    const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? card.id.split("-")[0] : selectedSeriesId));
+                    return <CardItem key={card.id} card={card} cardData={userCollection[card.id]} isGlobalBinder={isGlobalBinder} cardDefaultLang={cardSeries?.lang || "fr"} hasImageError={Boolean(failedImages[card.id])} onImageError={handleImageError} onZoom={(c) => setZoomedCard(c as Card)} onToggleWishlist={toggleWishlist} onToggleOwnership={toggleCardOwnership} onToggleLanguage={toggleCardLanguage} />;
+                  })}
+                </div>
+                
+                {visibleCount < filteredCards.length && (
+                  <div ref={sentinelRef} className="h-20 w-full flex items-center justify-center mt-8">
+                    <span className="text-zinc-500 animate-pulse text-sm">Chargement de la suite...</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
-        
+
+        {/* ========================================= */}
+        {/* VUE 3 : LA VUE DES ITEMS SCELLÉS (CATÉGORIES) */}
+        {/* ========================================= */}
+        {currentView === "ITEMS" && !isGlobalBinder && (
+          <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
+            {!selectedItemType ? (
+              // --- SOUS-VUE A : LE MENU DES CATÉGORIES D'ITEMS ---
+              <>
+                <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-10 gap-4">
+                  <div>
+                    <h1 className="text-white text-3xl md:text-[40px] font-normal leading-tight">Tous Les Items</h1>
+                    <p className="text-zinc-500 text-base md:text-lg mt-1">Explorez votre collection scellée par type</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 lg:gap-8 mb-12">
+                  {ITEM_TYPES.map((type) => {
+                    const itemsOfType = POKEMON_ITEMS.filter(i => i.type === type);
+                    const count = itemsOfType.length;
+                    const coverImage = itemsOfType.length > 0 ? itemsOfType[0].image : null;
+
+                    return (
+                      <div
+                        key={type}
+                        onClick={() => setSelectedItemType(type)}
+                        className="bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-4 md:p-5 flex flex-col items-center justify-between cursor-pointer hover:border-rose-500/50 hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-300 aspect-[4/3] group relative"
+                      >
+                         <div className="flex-1 w-full min-h-0 relative flex items-center justify-center p-2 mb-2 md:mb-3">
+                           {coverImage ? (
+                             <img src={coverImage} alt={type} className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                           ) : (
+                             <div className="w-12 h-12 md:w-16 md:h-16 border-2 border-white/5 rounded-xl md:rounded-2xl bg-[#09090B]"></div>
+                           )}
+                         </div>
+                         <div className="flex flex-col items-center shrink-0">
+                           <h2 className="text-white text-base md:text-xl font-bold mb-0.5 tracking-wide relative z-10 text-center">{type}</h2>
+                           <span className="text-zinc-500 text-[11px] md:text-sm font-medium relative z-10">{count} produit{count > 1 ? "s" : ""}</span>
+                         </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            ) : (
+              // --- SOUS-VUE B : LA LISTE DES ITEMS D'UN TYPE SPÉCIFIQUE ---
+              <>
+                <div className="w-full bg-[#18181B] rounded-2xl md:rounded-[24px] border border-white/10 p-5 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                  <div 
+                    className="w-12 h-12 md:w-14 md:h-14 bg-[#09090B] border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/5 transition group shrink-0" 
+                    onClick={() => setSelectedItemType(null)}
+                  >
+                    <span className="text-white text-lg md:text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <h1 className="text-white text-2xl md:text-3xl font-normal">Catégorie : {selectedItemType}</h1>
+                    <p className="text-neutral-500 text-sm md:text-xl font-normal mt-1">Gérez vos produits de type {selectedItemType}</p>
+                  </div>
+                </div>
+                
+                {(() => {
+                  const itemsOfType = POKEMON_ITEMS.filter(item => item.type === selectedItemType);
+                  if (itemsOfType.length === 0) {
+                     return (
+                       <div className="text-center bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-8 md:p-12 mt-4">
+                         <span className="text-3xl md:text-4xl mb-4 block opacity-50">📦</span>
+                         <p className="text-zinc-400 text-base md:text-lg">Aucun item de ce type répertorié pour l'instant.</p>
+                       </div>
+                     )
+                  }
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mt-2 md:mt-4">
+                      {itemsOfType.map(item => {
+                         const itemSeries = ALL_FLAT_SERIES.find(s => s.id === item.seriesId);
+                         const data = userItemCollection[item.id] || { sealed: 0, opened: 0 };
+                         return (
+                            <div key={item.id} className="bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-5 md:p-6 flex flex-col justify-between hover:border-rose-500/30 transition-colors">
+                              <div className="flex justify-between items-start mb-4">
+                                <span className="bg-[#09090B] text-rose-400 border border-white/10 px-3 py-1.5 rounded-lg text-[11px] md:text-xs font-bold tracking-wider max-w-[150px] md:max-w-[180px] truncate">
+                                  {itemSeries?.name || item.seriesId}
+                                </span>
+                              </div>
+                              
+                              <div className="h-40 md:h-48 w-full flex items-center justify-center mb-5 md:mb-6">
+                                <img 
+                                  src={item.image} 
+                                  alt={item.name} 
+                                  className="max-h-full max-w-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] transition-transform hover:scale-105" 
+                                  onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/200x200/09090b/4b5563?text=Image+Manquante"; }} 
+                                />
+                              </div>
+
+                              <h3 className="text-white text-base md:text-lg font-medium leading-tight mb-5 md:mb-6 h-10 md:h-12 line-clamp-2">{item.name}</h3>
+
+                              <div className="flex flex-col gap-2 md:gap-3">
+                                <div className="flex items-center justify-between bg-[#09090B] border border-white/10 p-2.5 md:p-3 rounded-xl">
+                                  <span className="text-zinc-400 text-xs md:text-sm">Scellées</span>
+                                  <div className="flex items-center gap-2 md:gap-3">
+                                    <button onClick={() => updateItemCount(item.id, "sealed", -1)} className="text-zinc-500 hover:text-white text-lg md:text-xl px-2">-</button>
+                                    <span className="text-white font-medium w-4 text-center">{data.sealed}</span>
+                                    <button onClick={() => updateItemCount(item.id, "sealed", 1)} className="text-zinc-500 hover:text-white text-lg md:text-xl px-2">+</button>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between bg-[#09090B] border border-white/10 p-2.5 md:p-3 rounded-xl">
+                                  <span className="text-zinc-400 text-xs md:text-sm">Ouvertes</span>
+                                  <div className="flex items-center gap-2 md:gap-3">
+                                    <button onClick={() => updateItemCount(item.id, "opened", -1)} className="text-zinc-500 hover:text-white text-lg md:text-xl px-2">-</button>
+                                    <span className="text-white font-medium w-4 text-center">{data.opened}</span>
+                                    <button onClick={() => updateItemCount(item.id, "opened", 1)} className="text-zinc-500 hover:text-white text-lg md:text-xl px-2">+</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                         )
+                      })}
+                    </div>
+                  )
+                })()}
+              </>
+            )}
+          </div>
+        )}
+
         {showScrollTop && (
-          <button onClick={scrollToTop} className="fixed bottom-8 right-8 z-50 bg-rose-500 hover:bg-rose-400 text-white w-12 h-12 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.4)] flex items-center justify-center text-xl transition cursor-pointer">↑</button>
+          <button onClick={scrollToTop} className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-rose-500 hover:bg-rose-400 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.4)] flex items-center justify-center text-lg md:text-xl transition cursor-pointer">↑</button>
         )}
       </div>
     </main>
