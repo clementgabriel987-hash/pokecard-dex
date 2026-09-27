@@ -14,7 +14,7 @@ import Header from "../components/Header";
 interface Card {
   id: string | number;
   name: string;
-  localId?: string;
+  localId: string;
   image: string;
   illustrator?: string;
   rarity?: string;
@@ -127,7 +127,6 @@ export default function PokedexPage() {
     setFailedImages((prev) => ({ ...prev, [stringId]: true }));
   };
 
-  // Chargement des cartes (Pokémon ou Yu-Gi-Oh!)
   useEffect(() => {
     async function fetchCards() {
       setVisibleCount(40);
@@ -140,7 +139,6 @@ export default function PokedexPage() {
       setFailedImages({});
       setLoading(true);
 
-      // 1. GESTION YU-GI-OH!
       if (currentTcg === "yugioh") {
         try {
           const response = await fetch("https://db.ygoprodeck.com/api/v7/cardinfo.php");
@@ -169,7 +167,6 @@ export default function PokedexPage() {
         return;
       }
 
-      // 2. GESTION POKÉMON
       if (currentView !== "CARDS" && !isGlobalBinder && !activeSearch) {
         setLoading(false);
         return;
@@ -214,7 +211,7 @@ export default function PokedexPage() {
                     const json = await res.json();
                     if (json && Array.isArray(json.data)) {
                       seriesCards = json.data.map((c: any) => ({
-                        id: `${series.id}-${c.number}`, name: c.name, localId: c.number, image: c.images?.large || c.images?.small || "", illustrator: c.artist || "Inconnu", rarity: c.rarity || "Commune", seriesName: series.name, cardmarket: c.cardmarket,
+                        id: `${series.id}-${c.number}`, name: c.name, localId: String(c.number || ""), image: c.images?.large || c.images?.small || "", illustrator: c.artist || "Inconnu", rarity: c.rarity || "Commune", seriesName: series.name, cardmarket: c.cardmarket,
                       }));
                       await set(cacheKey, seriesCards);
                     }
@@ -225,7 +222,7 @@ export default function PokedexPage() {
                     const data = await res.json();
                     if (data && Array.isArray(data.cards)) {
                       seriesCards = data.cards.map((c: any) => ({
-                        id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${c.localId}/high.png`, illustrator: "Inconnu", rarity: "Inconnue", seriesName: series.name,
+                        id: c.id, name: c.name || "Inconnue", localId: String(c.localId || "?"), image: c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${series.lang}/${series.id}/${c.localId}/high.png`, illustrator: "Inconnu", rarity: "Inconnue", seriesName: series.name,
                       }));
                       await set(cacheKey, seriesCards);
                     }
@@ -261,7 +258,7 @@ export default function PokedexPage() {
                 illustrator = cardData.illustrator || "Inconnu"; rarity = cardData.rarity || "Inconnue"; seriesName = cardData.set?.name || "Série inconnue";
                 if (cardData.image) imageUrl = `${cardData.image}/high.png`;
               } catch {}
-              return { id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: imageUrl, illustrator, rarity, seriesName };
+              return { id: c.id, name: c.name || "Inconnue", localId: String(c.localId || "?"), image: imageUrl, illustrator, rarity, seriesName };
             }));
             setCards(formatted);
             extractFilters(formatted);
@@ -288,7 +285,7 @@ export default function PokedexPage() {
           const currentSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === selectedSeriesId);
           if (json && Array.isArray(json.data) && json.data.length > 0) {
             const formatted = json.data.map((c: any) => ({
-              id: `${selectedSeriesId}-${c.number}`, name: c.name, localId: c.number, image: c.images?.large || c.images?.small || "", illustrator: c.artist || "Inconnu", rarity: c.rarity || "Commune", seriesName: currentSeries?.name, cardmarket: c.cardmarket
+              id: `${selectedSeriesId}-${c.number}`, name: c.name, localId: String(c.number || ""), image: c.images?.large || c.images?.small || "", illustrator: c.artist || "Inconnu", rarity: c.rarity || "Commune", seriesName: currentSeries?.name, cardmarket: c.cardmarket
             }));
             await set(cacheKey, formatted);
             setCards(formatted);
@@ -302,7 +299,7 @@ export default function PokedexPage() {
           const data = await response.json();
           if (data && data.cards) {
             const formattedCards = data.cards.map((c: any) => ({
-              id: c.id, name: c.name || "Inconnue", localId: c.localId || "?", image: c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`, illustrator: "Inconnu", rarity: "Inconnue", seriesName: currentSeries?.name
+              id: c.id, name: c.name || "Inconnue", localId: String(c.localId || "?"), image: c.image ? `${c.image}/high.png` : `https://assets.tcgdex.net/${lang}/${selectedSeriesId}/${c.localId}/high.png`, illustrator: "Inconnu", rarity: "Inconnue", seriesName: currentSeries?.name
             }));
             await set(cacheKey, formattedCards);
             setCards(formattedCards);
@@ -445,7 +442,7 @@ export default function PokedexPage() {
     <main className="min-h-screen bg-[#09090B] text-white relative flex flex-col font-sans pb-12 font-['Outfit'] overflow-x-hidden">
       
       <CardZoomModal
-        card={zoomedCard ? { ...zoomedCard, id: String(zoomedCard.id) } : null}
+        card={zoomedCard ? { ...zoomedCard, id: String(zoomedCard.id), localId: zoomedCard.localId || "" } : null}
         onClose={() => setZoomedCard(null)}
         isNormalOwned={Boolean(zoomedCard && userCollection[String(zoomedCard.id)]?.normalOwned)}
         isFoilOwned={Boolean(zoomedCard && userCollection[String(zoomedCard.id)]?.foilOwned)}
@@ -572,7 +569,7 @@ export default function PokedexPage() {
                 {displayedCards.map((card) => (
                   <CardItem 
                     key={card.id} 
-                    card={{ ...card, id: String(card.id) }} 
+                    card={{ ...card, id: String(card.id), localId: card.localId || "" }} 
                     cardData={userCollection[String(card.id)]} 
                     isGlobalBinder={isGlobalBinder} 
                     cardDefaultLang="fr" 
@@ -750,7 +747,7 @@ export default function PokedexPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                       {displayedCards.map((card) => {
                         const cardSeries = ALL_FLAT_SERIES.find((s: PokemonSet) => s.id === (isGlobalBinder ? String(card.id).split("-")[0] : selectedSeriesId));
-                        return <CardItem key={card.id} card={{ ...card, id: String(card.id) }} cardData={userCollection[String(card.id)]} isGlobalBinder={isGlobalBinder} cardDefaultLang={cardSeries?.lang || "fr"} hasImageError={Boolean(failedImages[String(card.id)])} onImageError={handleImageError} onZoom={(c) => setZoomedCard(c as Card)} onToggleWishlist={toggleWishlist} onToggleOwnership={toggleCardOwnership} onToggleLanguage={toggleCardLanguage} />;
+                        return <CardItem key={card.id} card={{ ...card, id: String(card.id), localId: card.localId || "" }} cardData={userCollection[String(card.id)]} isGlobalBinder={isGlobalBinder} cardDefaultLang={cardSeries?.lang || "fr"} hasImageError={Boolean(failedImages[String(card.id)])} onImageError={handleImageError} onZoom={(c) => setZoomedCard(c as Card)} onToggleWishlist={toggleWishlist} onToggleOwnership={toggleCardOwnership} onToggleLanguage={toggleCardLanguage} />;
                       })}
                     </div>
                     
