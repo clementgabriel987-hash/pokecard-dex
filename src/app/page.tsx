@@ -37,6 +37,8 @@ type UserCollectionJSON = Record<string, CardDetails>;
 type UserItemCollection = Record<string, { sealed: number; opened: number }>;
 
 export default function PokedexPage() {
+  const [currentTcg, setCurrentTcg] = useState<"pokemon" | "yugioh">("pokemon");
+
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(0);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(POKEMON_BLOCKS[0].sets[0].id);
   
@@ -346,7 +348,6 @@ export default function PokedexPage() {
     return Object.values(userCollection).filter(c => c.normalOwned || c.foilOwned).length;
   }, [userCollection]);
 
-  // Calcul unique des cartes possédées (compte chaque carte de la série 1 seule fois, peu importe normal/foil)
   const uniqueCollectedCount = useMemo(() => {
     return cards.filter((c) => {
       const cardData = userCollection[c.id];
@@ -513,13 +514,12 @@ export default function PokedexPage() {
           setCurrentView("ITEMS");
           setSelectedItemType(null);
         }}
+        currentTcg={currentTcg}
+        onToggleTcg={(tcg) => setCurrentTcg(tcg)}
       />
 
       <div className="max-w-[1260px] mx-auto w-full px-4 md:px-8 lg:px-0 pt-6 md:pt-10 flex flex-col gap-6">
         
-        {/* ========================================= */}
-        {/* VUE 1 : MENU DES EXTENSIONS (CATALOGUE) */}
-        {/* ========================================= */}
         {currentView === "EXTENSIONS" && !activeSearch && !isGlobalBinder && (
           <div className="w-full flex flex-col animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-10 gap-6">
@@ -591,9 +591,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* ========================================= */}
-        {/* VUE 2 : LA VUE DES CARTES DÉTAILLÉES */}
-        {/* ========================================= */}
         {currentView === "CARDS" && (
           <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
             
@@ -629,7 +626,6 @@ export default function PokedexPage() {
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 w-full xl:w-auto xl:justify-end">
                   <div className="flex flex-col items-end gap-1.5 md:gap-2 w-full sm:w-64 md:w-72">
-                    {/* Utilisation de uniqueCollectedCount pour ne pas compter les foils en double */}
                     <span className="text-white text-lg md:text-xl font-normal tracking-wide">{uniqueCollectedCount} / {totalCards || 0}</span>
                     <div className="w-full h-1.5 md:h-2 bg-white rounded-full overflow-hidden shadow-inner">
                       <div className="bg-rose-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalCards > 0 ? (uniqueCollectedCount / totalCards) * 100 : 0}%` }}></div>
@@ -700,9 +696,6 @@ export default function PokedexPage() {
           </div>
         )}
 
-        {/* ========================================= */}
-        {/* VUE 3 : LA VUE DES ITEMS SCELLÉS (CATÉGORIES) */}
-        {/* ========================================= */}
         {currentView === "ITEMS" && !isGlobalBinder && (
           <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
             {!selectedItemType ? (
