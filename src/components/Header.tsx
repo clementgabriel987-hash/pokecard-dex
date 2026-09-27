@@ -9,9 +9,11 @@ interface HeaderProps {
   isGlobalBinder: boolean;
   setIsGlobalBinder: (val: boolean) => void;
   onOpenSidebar: () => void;
+  currentView: "EXTENSIONS" | "CARDS" | "ITEMS";
   onGoToExtensions: () => void;
   onGoToItems: () => void;
-  currentView?: "EXTENSIONS" | "CARDS" | "ITEMS"; 
+  currentTcg: "pokemon" | "yugioh";
+  onToggleTcg: (tcg: "pokemon" | "yugioh") => void;
 }
 
 export default function Header({
@@ -21,86 +23,93 @@ export default function Header({
   isGlobalBinder,
   setIsGlobalBinder,
   onOpenSidebar,
+  currentView,
   onGoToExtensions,
   onGoToItems,
-  currentView = "EXTENSIONS"
+  currentTcg,
+  onToggleTcg,
 }: HeaderProps) {
   return (
-    <header className="w-full max-w-[1260px] mx-auto h-20 md:h-24 bg-[#18181B] rounded-[32px] border border-white/10 flex items-center justify-between px-6 md:px-10 mt-6 shadow-2xl relative z-40 font-['Outfit']">
-      
-      <nav className="hidden lg:flex items-center gap-10 h-full">
+    <header className="w-full bg-[#18181B] border-b border-white/10 sticky top-0 z-40 backdrop-blur-md bg-opacity-9ulf">
+      <div className="max-w-[1260px] mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between gap-4">
         
-        <div className="relative flex flex-col items-center group cursor-pointer h-full justify-center" onClick={() => setIsGlobalBinder(true)}>
-          <span className={`text-xl flex items-center gap-1 transition-colors ${isGlobalBinder ? "text-white" : "text-zinc-500 hover:text-white"}`}>
-            Ma Collection <span className="text-sm mt-1">⌄</span>
-          </span>
-          {isGlobalBinder && <div className="absolute bottom-4 w-12 h-1.5 bg-rose-500 rounded-full"></div>}
-        </div>
+        {/* HAUT À GAUCHE : Sélecteur de TCG + Menu / Logo */}
+        <div className="flex items-center gap-3 md:gap-4 shrink-0">
+          <button 
+            onClick={onOpenSidebar}
+            className="bg-[#09090B] border border-white/10 text-white p-2.5 rounded-xl hover:bg-white/5 transition flex items-center justify-center"
+            title="Ouvrir le menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
 
-        <div className="relative flex flex-col items-center group cursor-pointer h-full justify-center" onClick={onGoToExtensions}>
-          <span className={`text-xl flex items-center gap-1 transition-colors ${!isGlobalBinder && currentView === "EXTENSIONS" ? "text-white" : "text-zinc-500 hover:text-white"}`}>
-            Extension <span className="text-sm mt-1">⌄</span>
-          </span>
-          {!isGlobalBinder && currentView === "EXTENSIONS" && <div className="absolute bottom-4 w-12 h-1.5 bg-rose-500 rounded-full"></div>}
-        </div>
-
-        <div className="relative flex flex-col items-center group cursor-pointer h-full justify-center" onClick={onGoToItems}>
-          <span className={`text-xl flex items-center gap-1 transition-colors ${currentView === "ITEMS" ? "text-white" : "text-zinc-500 hover:text-white"}`}>
-            Items <span className="text-sm mt-1">⌄</span>
-          </span>
-          {currentView === "ITEMS" && <div className="absolute bottom-4 w-12 h-1.5 bg-rose-500 rounded-full"></div>}
-        </div>
-        
-        <div className="relative flex flex-col items-center group cursor-pointer h-full justify-center">
-          <span className="text-xl flex items-center gap-1 text-zinc-500 group-hover:text-white transition-colors">
-            Outils <span className="text-sm mt-1">⌄</span>
-          </span>
-          
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 pt-2 w-72 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
-            <div className="bg-[#09090B] border border-white/10 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col">
-              <Link href="/intercalaires" className="flex items-center gap-4 px-5 py-4 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5 group/link">
-                <div className="w-10 h-10 rounded-full bg-[#18181B] border border-white/10 flex items-center justify-center group-hover/link:border-rose-500/30 transition-colors">
-                  <span className="text-lg">🗂️</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-[16px]">Générateur</span>
-                  <span className="text-xs text-zinc-500">Créer des intercalaires</span>
-                </div>
-              </Link>
-              <Link href="/centrage" className="flex items-center gap-4 px-5 py-4 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors group/link">
-                <div className="w-10 h-10 rounded-full bg-[#18181B] border border-white/10 flex items-center justify-center group-hover/link:border-rose-500/30 transition-colors">
-                  <span className="text-lg">📏</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-[16px]">Calculateur PCA</span>
-                  <span className="text-xs text-zinc-500">Estimer son centrage</span>
-                </div>
-              </Link>
-            </div>
+          {/* Sélecteur TCG */}
+          <div className="bg-[#09090B] border border-white/10 p-1 rounded-xl flex items-center gap-1">
+            <button
+              onClick={() => onToggleTcg("pokemon")}
+              className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                currentTcg === "pokemon"
+                  ? "bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.4)]"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              ⚡ Pokémon
+            </button>
+            <button
+              onClick={() => onToggleTcg("yugioh")}
+              className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                currentTcg === "yugioh"
+                  ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              🎴 Yu-Gi-Oh!
+            </button>
           </div>
         </div>
-      </nav>
 
-      <div className="flex-1 max-w-lg mx-8 hidden md:block">
-        <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-          <button type="submit" className="absolute left-4 text-zinc-500 hover:text-rose-400 text-xl transition-colors">🔍</button>
-          <input 
-            type="text" 
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Rechercher un(e) pokémon/série/item/...." 
-            className="w-full bg-[#09090B] border border-white/10 text-neutral-500 pl-14 pr-6 py-3 rounded-full outline-none focus:border-rose-500/50 transition-colors text-base"
-          />
-        </form>
-      </div>
+        {/* NAVIGATION CENTRALE / DROITE (Boutons Vues) */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <button
+            onClick={onGoToExtensions}
+            className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
+              currentView === "EXTENSIONS" && !isGlobalBinder
+                ? "bg-white/10 text-white border border-white/10"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            Extensions
+          </button>
 
-      <div className="flex items-center gap-4">
-        <button onClick={onOpenSidebar} className="lg:hidden w-12 h-12 bg-[#09090B] border border-white/10 rounded-full flex items-center justify-center text-xl hover:text-rose-400 transition-colors">☰</button>
-        
-        {/* 👈 LE BOUTON EST MAINTENANT UN LIEN VERS /profil */}
-        <Link href="/profil" className="w-14 h-14 rounded-full bg-[#09090B] border border-white/10 overflow-hidden flex items-center justify-center cursor-pointer hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all duration-300">
-          <span className="text-2xl">👤</span>
-        </Link>
+          {currentTcg === "pokemon" && (
+            <button
+              onClick={onGoToItems}
+              className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
+                currentView === "ITEMS" && !isGlobalBinder
+                  ? "bg-white/10 text-white border border-white/10"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Items Scellés
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsGlobalBinder(true)}
+            className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
+              isGlobalBinder
+                ? "bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.3)]"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            Ma Collection
+          </button>
+        </div>
+
       </div>
     </header>
   );
