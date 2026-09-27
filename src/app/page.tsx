@@ -430,10 +430,10 @@ export default function PokedexPage() {
           <div>
             <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
               <h2 className="text-lg font-bold text-rose-500">MENU</h2>
-              <button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white text-2xl">✕</button>
+              <button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white text-2xl">X</button>
             </div>
             <div className="space-y-4">
-              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">👑 Progression & Master Sets</button>
+              <button onClick={() => { setIsProgressionOpen(true); setIsSidebarOpen(false); }} className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">Progression & Master Sets</button>
               <button 
                 onClick={() => { 
                   setIsGlobalBinder(true); 
@@ -443,10 +443,10 @@ export default function PokedexPage() {
                 }} 
                 className="w-full text-left bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition"
               >
-                ✨ Ma Collection
+                Ma Collection
               </button>
-              <Link href="/wishlist" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">❤️ Wishlist</Link>
-              <Link href="/statistiques" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">📈 Statistiques</Link>
+              <Link href="/wishlist" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">Wishlist</Link>
+              <Link href="/statistiques" className="w-full block bg-[#09090B] hover:bg-white/5 border border-white/10 p-4 rounded-xl text-[15px] transition">Statistiques</Link>
             </div>
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function PokedexPage() {
           <div className="relative bg-[#18181B] border border-white/10 rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 md:p-6 shadow-2xl z-10">
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3">
               <h2 className="text-xl font-bold text-white">Progression</h2>
-              <button onClick={() => setIsProgressionOpen(false)} className="text-zinc-400 hover:text-white text-2xl">✕</button>
+              <button onClick={() => setIsProgressionOpen(false)} className="text-zinc-400 hover:text-white text-2xl">X</button>
             </div>
             <div className="space-y-4">
               {POKEMON_BLOCKS.map((block: PokemonBlock, index: number) => (
@@ -581,7 +581,7 @@ export default function PokedexPage() {
                       }}
                     />
                     <div className="hidden flex-col items-center text-center w-full h-full justify-center">
-                      <span className="text-yellow-500 text-xs md:text-sm font-bold mb-1">En travaux 🚧</span>
+                      <span className="text-yellow-500 text-xs md:text-sm font-bold mb-1">En travaux</span>
                       <span className="text-[9px] md:text-[10px] text-zinc-500 leading-tight">Charpenti transporte <br/> des poutres...</span>
                     </div>
                   </div>
@@ -612,7 +612,7 @@ export default function PokedexPage() {
                       className="w-12 h-12 md:w-14 md:h-14 bg-[#09090B] border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/5 transition group shrink-0" 
                       onClick={() => { setCurrentView("EXTENSIONS"); setActiveSearch(""); }}
                     >
-                      <span className="text-white text-lg md:text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                      <span className="text-white text-lg md:text-xl group-hover:-translate-x-1 transition-transform">&larr;</span>
                     </div>
                     <div className="w-20 h-11 md:w-[122px] md:h-[67px] relative flex items-center justify-center shrink-0 bg-white/5 rounded-lg md:bg-transparent">
                       <img src={`/logos/${currentSeriesObj?.id}.png`} alt={currentSeriesObj?.name} className="max-w-[90%] max-h-[90%] object-contain drop-shadow-md" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -632,7 +632,7 @@ export default function PokedexPage() {
                     </div>
                   </div>
                   <button onClick={() => alert("Fonctionnalité Wishlist globale à venir !")} className="w-full sm:w-auto bg-rose-500 text-white text-base md:text-xl font-normal px-6 py-2.5 md:px-8 md:py-3 rounded-full outline outline-1 outline-white/10 hover:bg-rose-600 transition-colors shadow-[0_0_15px_rgba(244,63,94,0.3)] flex justify-center items-center gap-2">
-                    Whislist <span>🤍</span>
+                    Wishlist
                   </button>
                 </div>
               </div>
@@ -647,7 +647,7 @@ export default function PokedexPage() {
                     <option value="NORMAL">Possédées (Normal)</option>
                     <option value="FOIL">Possédées (Foil)</option>
                   </select>
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white text-lg md:text-xl">⌄</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white text-lg md:text-xl">&or;</span>
                 </div>
                 <form onSubmit={handleSearchSubmit} className="flex-1 relative h-[48px] md:h-[52px] w-full">
                   <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder={`Rechercher dans ${currentSeriesObj?.name || "..."}...`} className="w-full h-full bg-[#18181B] border border-white/10 rounded-full pl-6 md:pl-8 pr-12 md:pr-14 py-2 md:py-3.5 text-neutral-400 text-sm md:text-[16px] font-normal outline-none focus:border-rose-500 transition-colors" />
@@ -662,7 +662,6 @@ export default function PokedexPage() {
               <CardSkeleton count={10} />
             ) : !loading && isGlobalBinder && cards.length === 0 ? (
               <div className="w-full flex flex-col items-center justify-center bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-10 md:p-16 mt-4 shadow-2xl">
-                <span className="text-6xl mb-6 drop-shadow-[0_0_20px_rgba(244,63,94,0.3)]">📭</span>
                 <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 text-center">Ta collection est vide !</h2>
                 <p className="text-zinc-400 text-center max-w-lg mb-8">
                   Tu n'as encore ajouté aucune carte à ta collection. Retourne dans les extensions, ouvre une série et clique sur les cartes que tu possèdes pour les ajouter !
@@ -742,7 +741,7 @@ export default function PokedexPage() {
                     className="w-12 h-12 md:w-14 md:h-14 bg-[#09090B] border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/5 transition group shrink-0" 
                     onClick={() => setSelectedItemType(null)}
                   >
-                    <span className="text-white text-lg md:text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                    <span className="text-white text-lg md:text-xl group-hover:-translate-x-1 transition-transform">&larr;</span>
                   </div>
                   <div className="flex flex-col">
                     <h1 className="text-white text-2xl md:text-3xl font-normal">Catégorie : {selectedItemType}</h1>
@@ -755,7 +754,6 @@ export default function PokedexPage() {
                   if (itemsOfType.length === 0) {
                      return (
                        <div className="text-center bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-8 md:p-12 mt-4">
-                         <span className="text-3xl md:text-4xl mb-4 block opacity-50">📦</span>
                          <p className="text-zinc-400 text-base md:text-lg">Aucun item de ce type répertorié pour l'instant.</p>
                        </div>
                      )
@@ -814,7 +812,7 @@ export default function PokedexPage() {
         )}
 
         {showScrollTop && (
-          <button onClick={scrollToTop} className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-rose-500 hover:bg-rose-400 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.4)] flex items-center justify-center text-lg md:text-xl transition cursor-pointer">↑</button>
+          <button onClick={scrollToTop} className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-rose-500 hover:bg-rose-400 text-white w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.4)] flex items-center justify-center text-lg md:text-xl transition cursor-pointer">&uarr;</button>
         )}
       </div>
     </main>
