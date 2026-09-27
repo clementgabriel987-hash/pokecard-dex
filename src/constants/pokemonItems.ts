@@ -2,18 +2,21 @@ export interface PokemonItem {
   id: string;
   name: string;
   seriesId: string;
-  // 👇 Ajoute "POKÉBOX" et "ULTRA_PREMIUM(UPC)" dans cette liste
   type: "ETB" | "DISPLAY" | "BOOSTER" | "COFFRET" | "TRIPACK" | "POKÉBOX" | "AUTRE" | "UPC";
   image: string;
   price_estimate?: number;
 }
+
+// Lien direct vers le dépôt public de la communauté pour piocher les assets en live
+const GITHUB_ASSETS_URL = "https://raw.githubusercontent.com/1niceroli/ptcg-assets/main";
+
 export const POKEMON_ITEMS: PokemonItem[] = [
   {
     id: "me03-etb",
     name: "Elite Trainer Box - Équilibre Parfait",
     seriesId: "me03",
     type: "ETB",
-    image: "/items/me03-etb.png", // L'image à placer dans public/items/
+    image: `${GITHUB_ASSETS_URL}/items/me03-etb.png`,
     price_estimate: 65.00
   },
   {
@@ -21,16 +24,15 @@ export const POKEMON_ITEMS: PokemonItem[] = [
     name: "Display 36 Boosters - Équilibre Parfait",
     seriesId: "me03",
     type: "DISPLAY",
-    image: "/items/me03-display.png",
+    image: `${GITHUB_ASSETS_URL}/items/me03-display.png`,
     price_estimate: 180.00
   },
-  // Tu pourras ajouter tous tes autres items ici en copiant-collant ces blocs !
   {
-    id: "30ans-etb", // Un ID unique pour cet objet
+    id: "30ans-etb",
     name: "Elite Trainer Box - 30 Ans",
-    seriesId: "30c", // L'ID qui relie cet objet à la série dans pokemonSets.ts
+    seriesId: "30c",
     type: "ETB",
-    image: "/items/30ans-etb.png", // Le nom exact que tu dois donner à ton image !
+    image: `${GITHUB_ASSETS_URL}/items/30ans-etb.png`,
     price_estimate: 79.99
   },
   {
@@ -38,615 +40,615 @@ export const POKEMON_ITEMS: PokemonItem[] = [
     name: "Pokébox Zeraora - Nuit Noire",
     seriesId: "me05",
     type: "POKÉBOX",
-    image: "/items/me05-pokebox-zeraora.png"
+    image: `${GITHUB_ASSETS_URL}/items/me05-pokebox-zeraora.png`
   },
-    {
+  {
     id: "me05-pokebox-darkrai",
     name: "Pokébox Darkrai - Nuit Noire",
     seriesId: "me05",
     type: "POKÉBOX",
-    image: "/items/me05-pokebox-darkrai.png"
+    image: `${GITHUB_ASSETS_URL}/items/me05-pokebox-darkrai.png`
   },
-      {
+  {
     id: "me05-pokebox-dracolosse",
     name: "Pokébox Dracolosse - Nuit Noire",
     seriesId: "me05",
     type: "POKÉBOX",
-    image: "/items/me05-pokebox-dracolosse.png"
+    image: `${GITHUB_ASSETS_URL}/items/me05-pokebox-dracolosse.png`
   },
-     {
+  {
     id: "me02.5-pokebox-dracaufeu y",
     name: "Pokébox Dracaufeu Y - Héros Transcendant",
     seriesId: "me02.5",
     type: "POKÉBOX",
-    image: "/items/me02.5-pokebox-dracaufeu y.png"
+    image: `${GITHUB_ASSETS_URL}/items/me02.5-pokebox-dracaufeu y.png`
   },
-     {
+  {
     id: "me02.5-pokebox-dracaufeu x",
     name: "Pokébox Dracaufeu X - Héros Transcendant",
     seriesId: "me02.5",
     type: "POKÉBOX",
-    image: "/items/me02.5-pokebox-dracaufeux.png"
+    image: `${GITHUB_ASSETS_URL}/items/me02.5-pokebox-dracaufeux.png`
   },
-     {
+  {
     id: "me01-coffret-mega-florizarre",
     name: "Coffret Mega Florizarre - Collection Premium",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-coffret-mega-florizarre.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-coffret-mega-florizarre.png`
   },
-     {
+  {
     id: "me01-coffret-mega-lucario",
     name: "Coffret Mega Lucario - Collection Figurine",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-coffret-mega-lucario.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-coffret-mega-lucario.png`
   },
-    {
+  {
     id: "me04-coffret-mega-amphinobi",
     name: "Coffret Mega Amphinobi - Collection Premium",
     seriesId: "me04",
     type: "COFFRET",
-    image: "/items/me04-coffret-mega-amphinobi.png"
+    image: `${GITHUB_ASSETS_URL}/items/me04-coffret-mega-amphinobi.png`
   },
-    {
+  {
     id: "me01-premiers Partenaires Collection illustration Série 1",
     name: "Premiers Partenaires Collection illustration Série 1",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-premiers-partenaires-collection-illustration-série-1.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-premiers-partenaires-collection-illustration-série-1.png`
   },
   {
     id: "me01-premiers Partenaires Collection illustration Série 2",
     name: "Premiers Partenaires Collection illustration Série 2",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-premiers-partenaires-collection-illustration-série-2.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-premiers-partenaires-collection-illustration-série-2.png`
   },
-   {
+  {
     id: "me01-premiers Partenaires Collection illustration Série 3",
     name: "Premiers Partenaires Collection illustration Série 3",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-premiers-partenaires-collection-illustration-série-3.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-premiers-partenaires-collection-illustration-série-3.png`
   },
-    {
+  {
     id: "me02-Collection Ultra-Premium Méga‑Dracaufeu X",
     name: "Collection Ultra-Premium Méga‑Dracaufeu X",
     seriesId: "me02",
     type: "UPC",
-    image: "/items/me02-Collection Ultra-Premium Méga‑DracaufeuX.png"
+    image: `${GITHUB_ASSETS_URL}/items/me02-Collection Ultra-Premium Méga‑DracaufeuX.png`
   },
-   {
+  {
     id: "me05-pokebox-melodelfe",
     name: "Pokébox Melodelfe - Nuit Noire",
     seriesId: "me05",
     type: "POKÉBOX",
-    image: "/items/me05-pokebox-melodelfe.png"
+    image: `${GITHUB_ASSETS_URL}/items/me05-pokebox-melodelfe.png`
   },
-    {
+  {
     id: "me05-pokebox-ectoplasma",
     name: "Pokébox Ectoplasma - Nuit Noire",
     seriesId: "me05",
     type: "POKÉBOX",
-    image: "/items/me05-pokebox-ectoplasma.png"
+    image: `${GITHUB_ASSETS_URL}/items/me05-pokebox-ectoplasma.png`
   },
-      {
+  {
     id: "me02-Pikachu 30ans",
     name: "Coffret Pikachu 30 ans",
     seriesId: "me02",
     type: "COFFRET",
-    image: "/items/me02-pikachu-30ans.png"
+    image: `${GITHUB_ASSETS_URL}/items/me02-pikachu-30ans.png`
   },
-       {
+  {
     id: "me01-mega-latias",
     name: "Coffret Mega-Latias",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-mega-latias.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-mega-latias.png`
   },
-       {
+  {
     id: "me01-mega-kangourex",
     name: "Coffret Mega-Kangourex",
     seriesId: "me01",
     type: "COFFRET",
-    image: "/items/me01-mega-kangourex.png"
+    image: `${GITHUB_ASSETS_URL}/items/me01-mega-kangourex.png`
   },
- {
+  {
     id: "pack-récompense-série9",
     name: "Pack Récompense Série 9",
     seriesId: "me01",
     type: "BOOSTER",
-    image: "/items/pack-récompense-série9.png"
+    image: `${GITHUB_ASSETS_URL}/items/pack-récompense-série9.png`
   },
   {
     id: "bw8-etb",
     name: "Elite Trainer Box - Tempête Plasma",
     seriesId: "bw8",
     type: "ETB",
-    image: "/items/bw8-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/bw8-etb.png`,
   },
   {
     id: "bw10-etb",
     name: "Elite Trainer Box - Explosion Plasma",
     seriesId: "bw10",
     type: "ETB",
-    image: "/items/bw10-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/bw10-etb.png`,
   },
   {
     id: "xy1-etb-xerneas",
     name: "Elite Trainer Box - XY (Xerneas)",
     seriesId: "xy1",
     type: "ETB",
-    image: "/items/xy1-etb-xerneas.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy1-etb-xerneas.png`,
   },
   {
     id: "xy1-etb-yveltal",
     name: "Elite Trainer Box - XY (Yveltal)",
     seriesId: "xy1",
     type: "ETB",
-    image: "/items/xy1-etb-yveltal.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy1-etb-yveltal.png`,
   },
   {
     id: "xy3-etb",
     name: "Elite Trainer Box - Poings Furieux",
     seriesId: "xy3",
     type: "ETB",
-    image: "/items/xy3-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy3-etb.png`,
   },
   {
     id: "xy4-etb",
     name: "Elite Trainer Box - Vigueur Spectrale",
     seriesId: "xy4",
     type: "ETB",
-    image: "/items/xy4-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy4-etb.png`,
   },
   {
     id: "xy5-etb-groudon",
     name: "Elite Trainer Box - Primo-Choc (Primo-Groudon)",
     seriesId: "xy5",
     type: "ETB",
-    image: "/items/xy5-etb-groudon.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy5-etb-groudon.png`,
   },
   {
     id: "xy5-etb-kyogre",
     name: "Elite Trainer Box - Primo-Choc (Primo-Kyogre)",
     seriesId: "xy5",
     type: "ETB",
-    image: "/items/xy5-etb-kyogre.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy5-etb-kyogre.png`,
   },
   {
     id: "xy6-etb",
     name: "Elite Trainer Box - Ciel Rugissant",
     seriesId: "xy6",
     type: "ETB",
-    image: "/items/xy6-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy6-etb.png`,
   },
   {
     id: "xy7-etb",
     name: "Elite Trainer Box - Origines Antiques",
     seriesId: "xy7",
     type: "ETB",
-    image: "/items/xy7-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy7-etb.png`,
   },
   {
     id: "xy8-etb-mewtwox",
     name: "Elite Trainer Box - Impulsion Turbo (Mega Mewtwo X)",
     seriesId: "xy8",
     type: "ETB",
-    image: "/items/xy8-etb-mewtwox.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy8-etb-mewtwox.png`,
   },
   {
     id: "xy8-etb-mewtwoy",
     name: "Elite Trainer Box - Impulsion Turbo (Mega Mewtwo Y)",
     seriesId: "xy8",
     type: "ETB",
-    image: "/items/xy8-etb-mewtwoy.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy8-etb-mewtwoy.png`,
   },
   {
     id: "xy9-etb",
     name: "Elite Trainer Box - Rupture Turbo",
     seriesId: "xy9",
     type: "ETB",
-    image: "/items/xy9-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy9-etb.png`,
   },
   {
     id: "xy10-etb",
     name: "Elite Trainer Box - Impact des Destins",
     seriesId: "xy10",
     type: "ETB",
-    image: "/items/xy10-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy10-etb.png`,
   },
   {
     id: "xy11-etb",
     name: "Elite Trainer Box - Offensive Vapeur",
     seriesId: "xy11",
     type: "ETB",
-    image: "/items/xy11-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy11-etb.png`,
   },
   {
     id: "xy12-etb-dracaufeu",
     name: "Elite Trainer Box - Évolutions (Dracaufeu)",
     seriesId: "xy12",
     type: "ETB",
-    image: "/items/xy12-etb-dracaufeu.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy12-etb-dracaufeu.png`,
   },
   {
     id: "xy12-etb-tortank",
     name: "Elite Trainer Box - Évolutions (Tortank)",
     seriesId: "xy12",
     type: "ETB",
-    image: "/items/xy12-etb-tortank.png",
+    image: `${GITHUB_ASSETS_URL}/items/xy12-etb-tortank.png`,
   },
   {
     id: "gen-etb",
     name: "Elite Trainer Box - Générations",
     seriesId: "gen",
     type: "ETB",
-    image: "/items/gen-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/gen-etb.png`,
   },
   {
     id: "sm1-etb-solgaleo",
     name: "Elite Trainer Box - Soleil et Lune (Solgaleo)",
     seriesId: "sm1",
     type: "ETB",
-    image: "/items/sm1-etb-solgaleo.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm1-etb-solgaleo.png`,
   },
   {
     id: "sm1-etb-lunala",
     name: "Elite Trainer Box - Soleil et Lune (Lunala)",
     seriesId: "sm1",
     type: "ETB",
-    image: "/items/sm1-etb-lunala.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm1-etb-lunala.png`,
   },
   {
     id: "sm2-etb",
     name: "Elite Trainer Box - Gardiens Ascendants",
     seriesId: "sm2",
     type: "ETB",
-    image: "/items/sm2-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm2-etb.png`,
   },
   {
     id: "sm3-etb",
     name: "Elite Trainer Box - Ombres Ardentes",
     seriesId: "sm3",
     type: "ETB",
-    image: "/items/sm3-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm3-etb.png`,
   },
   {
     id: "sm35-etb",
     name: "Elite Trainer Box - Légendes Brillantes",
     seriesId: "sm3.5",
     type: "ETB",
-    image: "/items/sm35-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm35-etb.png`,
   },
   {
     id: "sm4-etb",
     name: "Elite Trainer Box - Invasion Carmin",
     seriesId: "sm4",
     type: "ETB",
-    image: "/items/sm4-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm4-etb.png`,
   },
   {
     id: "sm5-etb-criniere",
     name: "Elite Trainer Box - Ultra-Prisme (Necrozma Crinière du Couchant)",
     seriesId: "sm5",
     type: "ETB",
-    image: "/items/sm5-etb-criniere.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm5-etb-criniere.png`,
   },
   {
     id: "sm5-etb-ailes",
     name: "Elite Trainer Box - Ultra-Prisme (Necrozma Ailes de l'Aurore)",
     seriesId: "sm5",
     type: "ETB",
-    image: "/items/sm5-etb-ailes.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm5-etb-ailes.png`,
   },
   {
     id: "sm6-etb",
     name: "Elite Trainer Box - Lumière Interdite",
     seriesId: "sm6",
     type: "ETB",
-    image: "/items/sm6-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm6-etb.png`,
   },
   {
     id: "sm7-etb",
     name: "Elite Trainer Box - Tempête Céleste",
     seriesId: "sm7",
     type: "ETB",
-    image: "/items/sm7-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm7-etb.png`,
   },
   {
     id: "sm75-etb",
     name: "Elite Trainer Box - Majesté des Dragons",
     seriesId: "sm7.5",
     type: "ETB",
-    image: "/items/sm75-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm75-etb.png`,
   },
   {
     id: "sm8-etb",
     name: "Elite Trainer Box - Tonnerre Perdu",
     seriesId: "sm8",
     type: "ETB",
-    image: "/items/sm8-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm8-etb.png`,
   },
   {
     id: "sm9-etb",
     name: "Elite Trainer Box - Duo de Choc",
     seriesId: "sm9",
     type: "ETB",
-    image: "/items/sm9-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm9-etb.png`,
   },
   {
     id: "sm10-etb",
     name: "Elite Trainer Box - Alliance Infaillible",
     seriesId: "sm10",
     type: "ETB",
-    image: "/items/sm10-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm10-etb.png`,
   },
   {
     id: "sm11-etb",
     name: "Elite Trainer Box - Harmonie des Esprits",
     seriesId: "sm11",
     type: "ETB",
-    image: "/items/sm11-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm11-etb.png`,
   },
   {
     id: "sm115-etb",
     name: "Elite Trainer Box - Destinées Occultes",
     seriesId: "sm11.5",
     type: "ETB",
-    image: "/items/sm115-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm115-etb.png`,
   },
   {
     id: "sm12-etb",
     name: "Elite Trainer Box - Éclipse Cosmique",
     seriesId: "sm12",
     type: "ETB",
-    image: "/items/sm12-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sm12-etb.png`,
   },
   {
     id: "swsh1-etb-zacian",
     name: "Elite Trainer Box - Épée et Bouclier (Zacian)",
     seriesId: "swsh1",
     type: "ETB",
-    image: "/items/swsh1-etb-zacian.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh1-etb-zacian.png`,
   },
   {
     id: "swsh1-etb-zamazenta",
     name: "Elite Trainer Box - Épée et Bouclier (Zamazenta)",
     seriesId: "swsh1",
     type: "ETB",
-    image: "/items/swsh1-etb-zamazenta.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh1-etb-zamazenta.png`,
   },
   {
     id: "swsh2-etb",
     name: "Elite Trainer Box - Clash des Rebelles",
     seriesId: "swsh2",
     type: "ETB",
-    image: "/items/swsh2-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh2-etb.png`,
   },
   {
     id: "swsh3-etb",
     name: "Elite Trainer Box - Ténèbres Embrasées",
     seriesId: "swsh3",
     type: "ETB",
-    image: "/items/swsh3-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh3-etb.png`,
   },
   {
     id: "swsh35-etb",
     name: "Elite Trainer Box - La Voie du Maître",
     seriesId: "swsh3.5",
     type: "ETB",
-    image: "/items/swsh35-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh35-etb.png`,
   },
   {
     id: "swsh4-etb",
     name: "Elite Trainer Box - Voltage Éclatant",
     seriesId: "swsh4",
     type: "ETB",
-    image: "/items/swsh4-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh4-etb.png`,
   },
   {
     id: "swsh45-etb",
     name: "Elite Trainer Box - Destinées Radieuses",
     seriesId: "swsh4.5",
     type: "ETB",
-    image: "/items/swsh45-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh45-etb.png`,
   },
   {
     id: "swsh5-etb-mille",
     name: "Elite Trainer Box - Styles de Combat (Mille Poings)",
     seriesId: "swsh5",
     type: "ETB",
-    image: "/items/swsh5-etb-mille.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh5-etb-mille.png`,
   },
   {
     id: "swsh5-etb-unique",
     name: "Elite Trainer Box - Styles de Combat (Poing Final)",
     seriesId: "swsh5",
     type: "ETB",
-    image: "/items/swsh5-etb-unique.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh5-etb-unique.png`,
   },
   {
     id: "swsh6-etb-effroi",
     name: "Elite Trainer Box - Règne de Glace (Cavalier d'Effroi)",
     seriesId: "swsh6",
     type: "ETB",
-    image: "/items/swsh6-etb-effroi.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh6-etb-effroi.png`,
   },
   {
     id: "swsh6-etb-froid",
     name: "Elite Trainer Box - Règne de Glace (Cavalier du Froid)",
     seriesId: "swsh6",
     type: "ETB",
-    image: "/items/swsh6-etb-froid.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh6-etb-froid.png`,
   },
   {
     id: "swsh7-etb-bleu",
     name: "Elite Trainer Box - Évolution Céleste (Givrali/Nymphali)",
     seriesId: "swsh7",
     type: "ETB",
-    image: "/items/swsh7-etb-bleu.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh7-etb-bleu.png`,
   },
   {
     id: "swsh7-etb-orange",
     name: "Elite Trainer Box - Évolution Céleste (Phyllali/Pyroli)",
     seriesId: "swsh7",
     type: "ETB",
-    image: "/items/swsh7-etb-orange.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh7-etb-orange.png`,
   },
   {
     id: "swsh8-etb",
     name: "Elite Trainer Box - Poing de Fusion",
     seriesId: "swsh8",
     type: "ETB",
-    image: "/items/swsh8-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh8-etb.png`,
   },
   {
     id: "swsh9-etb",
     name: "Elite Trainer Box - Stars Étincelantes",
     seriesId: "swsh9",
     type: "ETB",
-    image: "/items/swsh9-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh9-etb.png`,
   },
   {
     id: "swsh10-etb",
     name: "Elite Trainer Box - Astres Radieux",
     seriesId: "swsh10",
     type: "ETB",
-    image: "/items/swsh10-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh10-etb.png`,
   },
   {
     id: "pgo-etb",
     name: "Elite Trainer Box - Pokémon GO",
     seriesId: "pgo",
     type: "ETB",
-    image: "/items/pgo-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/pgo-etb.png`,
   },
   {
     id: "swsh11-etb",
     name: "Elite Trainer Box - Origine Perdue",
     seriesId: "swsh11",
     type: "ETB",
-    image: "/items/swsh11-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh11-etb.png`,
   },
   {
     id: "swsh12-etb",
     name: "Elite Trainer Box - Tempête Argentée",
     seriesId: "swsh12",
     type: "ETB",
-    image: "/items/swsh12-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh12-etb.png`,
   },
   {
     id: "swsh125-etb",
     name: "Elite Trainer Box - Zénith Suprême",
     seriesId: "swsh12.5",
     type: "ETB",
-    image: "/items/swsh125-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/swsh125-etb.png`,
   },
   {
     id: "sv1-etb-koraidon",
     name: "Elite Trainer Box - Écarlate et Violet (Koraidon)",
     seriesId: "sv1",
     type: "ETB",
-    image: "/items/sv1-etb-koraidon.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv1-etb-koraidon.png`,
   },
   {
     id: "sv1-etb-miraidon",
     name: "Elite Trainer Box - Écarlate et Violet (Miraidon)",
     seriesId: "sv1",
     type: "ETB",
-    image: "/items/sv1-etb-miraidon.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv1-etb-miraidon.png`,
   },
   {
     id: "sv2-etb",
     name: "Elite Trainer Box - Évolutions à Paldéa",
     seriesId: "sv2",
     type: "ETB",
-    image: "/items/sv2-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv2-etb.png`,
   },
   {
     id: "sv3-etb",
     name: "Elite Trainer Box - Flammes Obsidiennes",
     seriesId: "sv3",
     type: "ETB",
-    image: "/items/sv3-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv3-etb.png`,
   },
   {
     id: "sv35-etb",
     name: "Elite Trainer Box - Écarlate et Violet 151",
     seriesId: "sv3.5",
     type: "ETB",
-    image: "/items/sv35-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv35-etb.png`,
   },
   {
     id: "sv4-etb-rugit",
     name: "Elite Trainer Box - Faille Paradoxe (Rugit-Lune)",
     seriesId: "sv4",
     type: "ETB",
-    image: "/items/sv4-etb-rugit.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv4-etb-rugit.png`,
   },
   {
     id: "sv4-etb-garde",
     name: "Elite Trainer Box - Faille Paradoxe (Garde-de-Fer)",
     seriesId: "sv4",
     type: "ETB",
-    image: "/items/sv4-etb-garde.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv4-etb-garde.png`,
   },
   {
     id: "sv45-etb",
     name: "Elite Trainer Box - Destinées de Paldéa",
     seriesId: "sv4.5",
     type: "ETB",
-    image: "/items/sv45-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv45-etb.png`,
   },
   {
     id: "sv5-etb-vert",
     name: "Elite Trainer Box - Forces Temporelles (Vert-de-Fer)",
     seriesId: "sv5",
     type: "ETB",
-    image: "/items/sv5-etb-vert.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv5-etb-vert.png`,
   },
   {
     id: "sv5-etb-serpe",
     name: "Elite Trainer Box - Forces Temporelles (Serpente-Eau)",
     seriesId: "sv5",
     type: "ETB",
-    image: "/items/sv5-etb-serpe.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv5-etb-serpe.png`,
   },
   {
     id: "sv6-etb",
     name: "Elite Trainer Box - Mascarade Crépusculaire",
     seriesId: "sv6",
     type: "ETB",
-    image: "/items/sv6-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv6-etb.png`,
   },
   {
     id: "sv65-etb",
     name: "Elite Trainer Box - Fable Nébuleuse",
     seriesId: "sv6.5",
     type: "ETB",
-    image: "/items/sv65-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv65-etb.png`,
   },
   {
     id: "sv7-etb",
     name: "Elite Trainer Box - Couronne Stellaire",
     seriesId: "sv7",
     type: "ETB",
-    image: "/items/sv7-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv7-etb.png`,
   },
   {
     id: "sv8-etb",
     name: "Elite Trainer Box - Étincelles Déferlantes",
     seriesId: "sv8",
     type: "ETB",
-    image: "/items/sv8-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv8-etb.png`,
   },
   {
     id: "sv85-etb",
     name: "Elite Trainer Box - Évolutions Prismatiques",
     seriesId: "sv8.5",
     type: "ETB",
-    image: "/items/sv85-etb.png",
+    image: `${GITHUB_ASSETS_URL}/items/sv85-etb.png`,
   }
 ];
