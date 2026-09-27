@@ -44,7 +44,7 @@ export default function PokedexPage() {
   const [selectedItemType, setSelectedItemType] = useState<string | null>(null);
 
   const [isGlobalBinder, setIsGlobalBinder] = useState<boolean>(false);
-  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("standard"); // 👈 Remis en standard (scroll infini)
+  const [binderViewStyle, setBinderViewStyle] = useState<"standard" | "pages">("standard");
   const [currentGlobalBinderPage, setCurrentGlobalBinderPage] = useState<number>(1);
   const [binderSelectedSeries, setBinderSelectedSeries] = useState<string>("ALL");
 
@@ -346,6 +346,14 @@ export default function PokedexPage() {
     return Object.values(userCollection).filter(c => c.normalOwned || c.foilOwned).length;
   }, [userCollection]);
 
+  // Calcul unique des cartes possédées (compte chaque carte de la série 1 seule fois, peu importe normal/foil)
+  const uniqueCollectedCount = useMemo(() => {
+    return cards.filter((c) => {
+      const cardData = userCollection[c.id];
+      return cardData?.normalOwned || cardData?.foilOwned;
+    }).length;
+  }, [cards, userCollection]);
+
   const filteredCards = cards.filter((card) => {
     if (isGlobalBinder && binderSelectedSeries !== "ALL") {
       const cardSeriesId = card.id.split("-")[0];
@@ -372,8 +380,6 @@ export default function PokedexPage() {
   });
 
   const totalCards = cards.length;
-  const normalCollected = cards.filter((c) => userCollection[c.id]?.normalOwned).length;
-  const foilCollected = cards.filter((c) => userCollection[c.id]?.foilOwned).length;
   const currentBlock = POKEMON_BLOCKS[selectedBlockIndex];
   const currentSeriesObj = ALL_FLAT_SERIES.find(s => s.id === selectedSeriesId);
   
@@ -430,7 +436,7 @@ export default function PokedexPage() {
               <button 
                 onClick={() => { 
                   setIsGlobalBinder(true); 
-                  setCurrentView("CARDS"); // 👈 FIX: Force l'affichage des cartes
+                  setCurrentView("CARDS"); 
                   setActiveSearch(""); 
                   setIsSidebarOpen(false); 
                 }} 
@@ -479,7 +485,6 @@ export default function PokedexPage() {
         setSearchInput={setSearchInput}
         handleSearchSubmit={handleSearchSubmit}
         isGlobalBinder={isGlobalBinder}
-        // 👈 FIX: Gère correctement le clic sur Ma Collection depuis le Header
         setIsGlobalBinder={(val) => {
           setIsGlobalBinder(val);
           if (val) {
@@ -510,7 +515,6 @@ export default function PokedexPage() {
         }}
       />
 
-      {/* CONTAINER PRINCIPAL ADAPTÉ POUR MOBILE (px-4 au lieu de px-6) */}
       <div className="max-w-[1260px] mx-auto w-full px-4 md:px-8 lg:px-0 pt-6 md:pt-10 flex flex-col gap-6">
         
         {/* ========================================= */}
@@ -593,7 +597,6 @@ export default function PokedexPage() {
         {currentView === "CARDS" && (
           <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
             
-            {/* 👈 FIX: Titre global pour la vue Ma Collection */}
             {isGlobalBinder && (
               <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-end mb-2 gap-4">
                 <div>
@@ -606,7 +609,6 @@ export default function PokedexPage() {
             {(!isGlobalBinder && !activeSearch) && (
               <div className="w-full bg-[#18181B] rounded-2xl md:rounded-[24px] border border-white/10 p-5 md:p-8 flex flex-col xl:flex-row justify-between items-start xl:items-center mt-2 gap-6">
                 
-                {/* Section gauche (Bouton + Logo + Textes) */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 w-full">
                   <div className="flex items-center gap-3 md:gap-4 shrink-0">
                     <div 
@@ -625,12 +627,12 @@ export default function PokedexPage() {
                   </div>
                 </div>
 
-                {/* Section droite (Jauge + Bouton) */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 w-full xl:w-auto xl:justify-end">
                   <div className="flex flex-col items-end gap-1.5 md:gap-2 w-full sm:w-64 md:w-72">
-                    <span className="text-white text-lg md:text-xl font-normal tracking-wide">{normalCollected + foilCollected}/{totalCards || 0}</span>
+                    {/* Utilisation de uniqueCollectedCount pour ne pas compter les foils en double */}
+                    <span className="text-white text-lg md:text-xl font-normal tracking-wide">{uniqueCollectedCount} / {totalCards || 0}</span>
                     <div className="w-full h-1.5 md:h-2 bg-white rounded-full overflow-hidden shadow-inner">
-                      <div className="bg-rose-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalCards > 0 ? ((normalCollected + foilCollected) / totalCards) * 100 : 0}%` }}></div>
+                      <div className="bg-rose-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalCards > 0 ? (uniqueCollectedCount / totalCards) * 100 : 0}%` }}></div>
                     </div>
                   </div>
                   <button onClick={() => alert("Fonctionnalité Wishlist globale à venir !")} className="w-full sm:w-auto bg-rose-500 text-white text-base md:text-xl font-normal px-6 py-2.5 md:px-8 md:py-3 rounded-full outline outline-1 outline-white/10 hover:bg-rose-600 transition-colors shadow-[0_0_15px_rgba(244,63,94,0.3)] flex justify-center items-center gap-2">
@@ -640,7 +642,6 @@ export default function PokedexPage() {
               </div>
             )}
 
-            {/* Barre de Filtres et Recherche */}
             {(!isGlobalBinder) && (
               <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-5 mt-2 md:mt-4 mb-2 md:mb-4">
                 <div className="relative group shrink-0 w-full sm:w-auto">
@@ -664,7 +665,6 @@ export default function PokedexPage() {
             {loading && cards.length === 0 ? (
               <CardSkeleton count={10} />
             ) : !loading && isGlobalBinder && cards.length === 0 ? (
-              // 👈 FIX: Écran quand la collection est totalement vide
               <div className="w-full flex flex-col items-center justify-center bg-[#18181B] border border-white/10 rounded-2xl md:rounded-[24px] p-10 md:p-16 mt-4 shadow-2xl">
                 <span className="text-6xl mb-6 drop-shadow-[0_0_20px_rgba(244,63,94,0.3)]">📭</span>
                 <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 text-center">Ta collection est vide !</h2>
@@ -706,7 +706,6 @@ export default function PokedexPage() {
         {currentView === "ITEMS" && !isGlobalBinder && (
           <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
             {!selectedItemType ? (
-              // --- SOUS-VUE A : LE MENU DES CATÉGORIES D'ITEMS ---
               <>
                 <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-10 gap-4">
                   <div>
@@ -744,7 +743,6 @@ export default function PokedexPage() {
                 </div>
               </>
             ) : (
-              // --- SOUS-VUE B : LA LISTE DES ITEMS D'UN TYPE SPÉCIFIQUE ---
               <>
                 <div className="w-full bg-[#18181B] rounded-2xl md:rounded-[24px] border border-white/10 p-5 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                   <div 
