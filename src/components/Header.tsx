@@ -14,6 +14,9 @@ interface HeaderProps {
   onGoToItems: () => void;
   currentTcg: "pokemon" | "yugioh";
   onToggleTcg: (tcg: "pokemon" | "yugioh") => void;
+  currentUser: any;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 export default function Header({
@@ -28,12 +31,15 @@ export default function Header({
   onGoToItems,
   currentTcg,
   onToggleTcg,
+  currentUser,
+  onLogin,
+  onLogout,
 }: HeaderProps) {
   return (
-    <header className="w-full bg-[#18181B] border-b border-white/10 sticky top-0 z-40 backdrop-blur-md bg-opacity-9ulf">
+    <header className="w-full bg-[#18181B] border-b border-white/10 sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
       <div className="max-w-[1260px] mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between gap-4">
         
-        {/* HAUT À GAUCHE : Sélecteur de TCG + Menu / Logo */}
+        {/* HAUT A GAUCHE : Selecteur TCG + Menu */}
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
           <button 
             onClick={onOpenSidebar}
@@ -47,7 +53,7 @@ export default function Header({
             </svg>
           </button>
 
-          {/* Sélecteur TCG */}
+          {/* Selecteur TCG */}
           <div className="bg-[#09090B] border border-white/10 p-1 rounded-xl flex items-center gap-1">
             <button
               onClick={() => onToggleTcg("pokemon")}
@@ -57,7 +63,7 @@ export default function Header({
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              ⚡ Pokémon
+              Pokemon
             </button>
             <button
               onClick={() => onToggleTcg("yugioh")}
@@ -67,13 +73,13 @@ export default function Header({
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              🎴 Yu-Gi-Oh!
+              Yu-Gi-Oh!
             </button>
           </div>
         </div>
 
-        {/* NAVIGATION CENTRALE / DROITE (Boutons Vues) */}
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* NAVIGATION CENTRALE */}
+        <div className="hidden md:flex items-center gap-2 md:gap-3">
           <button
             onClick={onGoToExtensions}
             className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
@@ -108,6 +114,30 @@ export default function Header({
           >
             Ma Collection
           </button>
+        </div>
+
+        {/* HAUT A DROITE : Bouton Connexion / Profil */}
+        <div className="flex items-center gap-3">
+          {currentUser ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-400 hidden lg:inline truncate max-w-[150px]">
+                {currentUser.email}
+              </span>
+              <button
+                onClick={onLogout}
+                className="bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium transition"
+              >
+                Deconnexion
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition shadow-[0_0_10px_rgba(244,63,94,0.3)]"
+            >
+              Connexion
+            </button>
+          )}
         </div>
 
       </div>
