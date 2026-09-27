@@ -141,7 +141,7 @@ export default function PokedexPage() {
 
       if (currentTcg === "yugioh") {
         try {
-          const response = await fetch("https://db.ygoprodeck.com/api/v7/cardinfo.phplanguage=fr");
+          const response = await fetch("https://db.ygoprodeck.com/api/v7/cardinfo.php?language=fr");
           if (!response.ok) throw new Error();
           const data = await response.json();
           if (data && Array.isArray(data.data)) {
@@ -550,6 +550,15 @@ export default function PokedexPage() {
           setIsGlobalBinder(false);
           setCurrentView("EXTENSIONS");
           setActiveSearch("");
+        }}
+        currentUser={currentUser}
+        onLogin={async () => {
+          const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+          if (error) alert("Erreur de connexion : " + error.message);
+        }}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
         }}
       />
 
