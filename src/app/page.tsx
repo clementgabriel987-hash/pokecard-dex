@@ -141,7 +141,7 @@ export default function PokedexPage() {
 
       if (currentTcg === "yugioh") {
         try {
-          const response = await fetch("https://db.ygoprodeck.com/api/v7/cardinfo.php");
+          const response = await fetch("https://db.ygoprodeck.com/api/v7/cardinfo.phplanguage=fr");
           if (!response.ok) throw new Error();
           const data = await response.json();
           if (data && Array.isArray(data.data)) {
