@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
+import { POKEMON_BLOCKS } from "../../../constants/pokemonSets";
 
 interface SetItem {
   id: string;
@@ -11,227 +12,6 @@ interface SetItem {
   block: string;
   lang: string;
 }
-
-const POKEMON_BLOCKS = [
-  {
-    blockName: "⭐ Cartes Promotionnelles",
-    sets: [
-      { id: "svp", name: "Scarlet & Violet Promos", lang: "fr" },
-      { id: "swshp", name: "SWSH Black Star Promos", lang: "fr" },
-      { id: "smp", name: "SM Black Star Promos", lang: "fr" },
-      { id: "xyp", name: "XY Black Star Promos", lang: "fr" },
-      { id: "bwp", name: "BW Black Star Promos", lang: "fr" },
-      { id: "hgss.p", name: "HGSS Black Star Promos", lang: "en" },
-      { id: "dpp", name: "DP Black Star Promos", lang: "en" },
-      { id: "basep", name: "Wizards Black Star Promos", lang: "en" },
-      { id: "mep", name: "Mega-Evolution Black Star Promos", lang: "en" }
-    ]
-  },
-  {
-    blockName: "🍔 Collections McDonald's",
-    sets: [
-      { id: "mcd11", name: "McDonald's Collection 2011", lang: "en" },
-      { id: "mcd12", name: "McDonald's Collection 2012", lang: "en" },
-      { id: "mcd14", name: "McDonald's Collection 2014", lang: "en" },
-      { id: "mcd15", name: "McDonald's Collection 2015", lang: "en" },
-      { id: "mcd16", name: "McDonald's Collection 2016", lang: "en" },
-      { id: "mcd17", name: "McDonald's Collection 2017", lang: "en" },
-      { id: "mcd18", name: "McDonald's Collection 2018", lang: "en" },
-      { id: "mcd19", name: "McDonald's Collection 2019", lang: "en" },
-      { id: "mcd21", name: "McDonald's Collection 2021", lang: "en" },
-      { id: "mcd22", name: "McDonald's Collection 2022", lang: "en" }
-    ]
-  },
-  {
-    blockName: "📦 Hors-Séries & Spéciales",
-    sets: [
-      { id: "det1", name: "Détective Pikachu", lang: "en" },
-      { id: "pgo", name: "Pokémon GO", lang: "en" },
-      { id: "rumble", name: "Pokémon Rumble", lang: "en" },
-      { id: "pop1", name: "POP Series 1", lang: "fr" },
-      { id: "pop2", name: "POP Series 2", lang: "fr" },
-      { id: "pop3", name: "POP Series 3", lang: "fr" },
-      { id: "pop4", name: "POP Series 4", lang: "fr" },
-      { id: "pop5", name: "POP Series 5", lang: "fr" },
-      { id: "pop6", name: "POP Series 6", lang: "fr" },
-      { id: "pop7", name: "POP Series 7", lang: "fr" },
-      { id: "pop8", name: "POP Series 8", lang: "fr" },
-      { id: "pop9", name: "POP Series 9", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Wizards (Classic)",
-    sets: [
-      { id: "base1", name: "Base Set (FR)", lang: "fr" },
-      { id: "base2", name: "Jungle (FR)", lang: "fr" },
-      { id: "base3", name: "Fossile (FR)", lang: "fr" },
-      { id: "base4", name: "Base Set 2 (EN)", lang: "en" },
-      { id: "gym1", name: "Gym Heroes (EN)", lang: "en" },
-      { id: "neo1", name: "Neo Genesis (FR)", lang: "fr" },
-      { id: "neo2", name: "Neo Discovery (FR)", lang: "fr" },
-      { id: "neo3", name: "Neo Revelation (EN)", lang: "en" },
-      { id: "neo4", name: "Neo Destiny (EN)", lang: "en" }
-    ]
-  },
-  {
-    blockName: "Bloc EX (Ruby & Sapphire)",
-    sets: [
-      { id: "ex1", name: "EX Rubis & Saphir (FR)", lang: "fr" },
-      { id: "ex2", name: "EX Tempête de Sable (FR)", lang: "fr" },
-      { id: "ex3", name: "EX Dragon (FR)", lang: "fr" },
-      { id: "ex4", name: "EX Team Magma vs Team Aqua (FR)", lang: "fr" },
-      { id: "ex5", name: "EX Légendes Oubliées (FR)", lang: "fr" },
-      { id: "ex6", name: "EX Rouge Feu & Vert Feuille (FR)", lang: "fr" },
-      { id: "ex7", name: "EX Team Rocket Returns (EN)", lang: "en" },
-      { id: "ex8", name: "EX Deoxys (FR)", lang: "fr" },
-      { id: "ex9", name: "EX Émeraude (FR)", lang: "fr" },
-      { id: "ex10", name: "EX Forces Cachées (FR)", lang: "fr" },
-      { id: "ex11", name: "EX Espèces Delta (FR)", lang: "fr" },
-      { id: "ex12", name: "EX Créateurs de Légendes (FR)", lang: "fr" },
-      { id: "ex13", name: "EX Fantômes Holon (FR)", lang: "fr" },
-      { id: "ex14", name: "EX Gardiens de Cristal (FR)", lang: "fr" },
-      { id: "ex15", name: "EX Île des Dragons (FR)", lang: "fr" },
-      { id: "ex16", name: "EX Gardiens du Pouvoir (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Diamant & Perle",
-    sets: [
-      { id: "dp1", name: "Diamant & Perle (FR)", lang: "en" },
-      { id: "dp2", name: "Trésors Mystérieux (FR)", lang: "fr" },
-      { id: "dp3", name: "Merveilles Secrètes (FR)", lang: "fr" },
-      { id: "dp4", name: "Aube Majestueuse (FR)", lang: "fr" },
-      { id: "dp5", name: "Éveil des Légendes (FR)", lang: "fr" },
-      { id: "dp6", name: "Tempête (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Platine",
-    sets: [
-      { id: "pl1", name: "Platine de base (FR)", lang: "fr" },
-      { id: "pl2", name: "Rivaux Émergents (FR)", lang: "fr" },
-      { id: "pl3", name: "Vainqueurs Suprêmes (FR)", lang: "fr" },
-      { id: "pl4", name: "Arceus (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc HeartGold & SoulSilver (HGSS)",
-    sets: [
-      { id: "hgss1", name: "HeartGold & SoulSilver (FR)", lang: "fr" },
-      { id: "hgss2", name: "HS - Déchaîné (FR)", lang: "fr" },
-      { id: "hgss3", name: "HS - Indomptable (FR)", lang: "fr" },
-      { id: "hgss4", name: "HS - Triomphant (FR)", lang: "fr" },
-      { id: "col1", name: "L'Appel des Légendes (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Noir & Blanc",
-    sets: [
-      { id: "bw1", name: "Noir & Blanc (FR)", lang: "fr" },
-      { id: "bw2", name: "Pouvoirs Émergents (FR)", lang: "fr" },
-      { id: "bw3", name: "Nobles Victoires (FR)", lang: "fr" },
-      { id: "bw4", name: "Destinées Futures (FR)", lang: "fr" },
-      { id: "bw5", name: "Explorateurs Obscurs (FR)", lang: "fr" },
-      { id: "bw6", name: "Dragons Exaltés (FR)", lang: "fr" },
-      { id: "dv1", name: "Coffret des Dragons (Dragon Vault)", lang: "en" },
-      { id: "bw7", name: "Frontières Franchies (FR)", lang: "fr" },
-      { id: "bw8", name: "Tempête Plasma (FR)", lang: "fr" },
-      { id: "bw9", name: "Glaciation Plasma (FR)", lang: "fr" },
-      { id: "bw10", name: "Explosion Plasma (FR)", lang: "fr" },
-      { id: "bw11", name: "Trésors Légendaires (EN)", lang: "en" }
-    ]
-  },
-  {
-    blockName: "Bloc XY",
-    sets: [
-      { id: "xy1", name: "XY de base (FR)", lang: "fr" },
-      { id: "xy2", name: "Étincelles (FR)", lang: "fr" },
-      { id: "xy3", name: "Poings Furieux (FR)", lang: "fr" },
-      { id: "xy4", name: "Vigueur Spectrale (FR)", lang: "fr" },
-      { id: "xy5", name: "Primo-Choc (FR)", lang: "fr" },
-      { id: "xy6", name: "Ciel Rugissant (FR)", lang: "fr" },
-      { id: "xy7", name: "Origines Antiques (FR)", lang: "fr" },
-      { id: "xy8", name: "Impulsion Turbo (FR)", lang: "fr" },
-      { id: "xy9", name: "Rupture Turbo (FR)", lang: "fr" },
-      { id: "xy10", name: "Impact des Destins (FR)", lang: "fr" },
-      { id: "xy11", name: "Offensive Vapeur (FR)", lang: "fr" },
-      { id: "xy12", name: "Évolutions (FR)", lang: "fr" },
-      { id: "g1", name: "Générations (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Soleil & Lune",
-    sets: [
-      { id: "sm1", name: "Soleil et Lune (FR)", lang: "fr" },
-      { id: "sm2", name: "Gardiens Ascendants (FR)", lang: "fr" },
-      { id: "sm3", name: "Ombres Ardentes (FR)", lang: "fr" },
-      { id: "sm3.5", name: "Légendes Brillantes (FR)", lang: "fr" },
-      { id: "sm4", name: "Invasion Carmin (FR)", lang: "fr" },
-      { id: "sm5", name: "Ultra-Prisme (FR)", lang: "fr" },
-      { id: "sm6", name: "Lumière Interdite (FR)", lang: "fr" },
-      { id: "sm7", name: "Tempête Céleste (FR)", lang: "fr" },
-      { id: "sm8", name: "Tonnerre Perdu (FR)", lang: "fr" },
-      { id: "sm9", name: "Duo de Choc (FR)", lang: "fr" },
-      { id: "sm10", name: "Alliance Infaillible (FR)", lang: "fr" },
-      { id: "sm11", name: "Harmonie des Esprits (FR)", lang: "fr" },
-      { id: "sm11.5", name: "Destinées Occultes (FR)", lang: "fr" },
-      { id: "sm12", name: "Éclipse Cosmique (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Épée & Bouclier",
-    sets: [
-      { id: "swsh1", name: "Épée et Bouclier (FR)", lang: "fr" },
-      { id: "swsh2", name: "Clash des Rebelles (FR)", lang: "fr" },
-      { id: "swsh3", name: "Ténèbres Embrasées (FR)", lang: "fr" },
-      { id: "swsh3.5", name: "La Voie du Maître (FR)", lang: "fr" },
-      { id: "swsh4", name: "Voltage Éclatant (FR)", lang: "fr" },
-      { id: "swsh4.5", name: "Destinées Radieuses (FR)", lang: "fr" },
-      { id: "swsh5", name: "Styles de Combat (FR)", lang: "fr" },
-      { id: "swsh6", name: "Règne de Glace (FR)", lang: "fr" },
-      { id: "swsh7", name: "Évolution Céleste (FR)", lang: "fr" },
-      { id: "cel25", name: "Célébrations (FR)", lang: "fr" },
-      { id: "swsh8", name: "Poing de Fusion (FR)", lang: "fr" },
-      { id: "swsh9", name: "Stars Étincelantes (FR)", lang: "fr" },
-      { id: "swsh10", name: "Astres Radieux (FR)", lang: "fr" },
-      { id: "swsh11", name: "Origine Perdue (FR)", lang: "fr" },
-      { id: "swsh12", name: "Tempête Argentée (FR)", lang: "fr" },
-      { id: "swsh12.5", name: "Zénith Suprême (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Écarlate & Violet (EV)",
-    sets: [
-      { id: "sv01", name: "Écarlate et Violet (FR)", lang: "fr" },
-      { id: "sv02", name: "Évolutions à Paldea (FR)", lang: "fr" },
-      { id: "sv03", name: "Flammes Obsidiennes (FR)", lang: "fr" },
-      { id: "sv03.5", name: "151 (FR)", lang: "fr" },
-      { id: "sv04", name: "Faille Paradoxe (FR)", lang: "fr" },
-      { id: "sv04.5", name: "Destinées de Paldea (FR)", lang: "fr" },
-      { id: "sv05", name: "Forces Temporelles (FR)", lang: "fr" },
-      { id: "sv06", name: "Mascarade Crépusculaire (FR)", lang: "fr" },
-      { id: "sv06.5", name: "Fable Nébuleuse (FR)", lang: "fr" },
-      { id: "sv07", name: "Couronne Stellaire (FR)", lang: "fr" },
-      { id: "sv08", name: "Étincelles Déferlantes (FR)", lang: "fr" },
-      { id: "sv08.5", name: "Évolutions Prismatiques (FR)", lang: "fr" },
-      { id: "sv09", name: "Aventures Ensemble (FR)", lang: "fr" },
-      { id: "sv10", name: "Rivalités Destinées (FR)", lang: "fr" },
-      { id: "blk", name: "Foudre Noire (FR)", lang: "fr" },
-      { id: "wht", name: "Flamme Blanche (FR)", lang: "fr" }
-    ]
-  },
-  {
-    blockName: "Bloc Méga-Évolution (ME)",
-    sets: [
-      { id: "me01", name: "Méga-Évolution (FR)", lang: "fr" },
-      { id: "me02", name: "Flammes Fantasmagoriques (FR)", lang: "fr" },
-      { id: "me02.5", name: "Héros Transcendants (FR)", lang: "fr" },
-      { id: "me03", name: "Équilibre Parfait (FR)", lang: "fr" },
-      { id: "me04", name: "Chaos Ascendant (FR)", lang: "fr" },
-      { id: "me05", name: "Nuit Noire (FR)", lang: "fr" }
-    ]
-  }
-];
 
 const ALL_SETS_FLAT: SetItem[] = POKEMON_BLOCKS.flatMap((b) =>
   b.sets.map((s) => ({ ...s, block: b.blockName }))
@@ -243,7 +23,7 @@ const TCG_IO_SETS = [
   "mcd18", "mcd19", "mcd21", "mcd22"
 ];
 
-export default function IntercalairePage() {
+export default function IntercalairesPage() {
   const [selectedSetId, setSelectedSetId] = useState<string>(ALL_SETS_FLAT[0].id);
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [showStats, setShowStats] = useState<boolean>(true);
@@ -337,180 +117,213 @@ export default function IntercalairePage() {
     return `${url}.png`;
   };
 
-  const logoUrl = getImageUrl(setData?.logo);
+  const logoUrl = getImageUrl(setData?.logo) || `/logos/${currentSet.id}.png`;
   const symbolUrl = getImageUrl(setData?.symbol);
   const displayYear = setData?.releaseDate ? setData.releaseDate.slice(0, 4) : null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 print:bg-white print:text-black">
-      {/* Panneau de configuration (masqué à l'impression) */}
-      <div className="print:hidden max-w-5xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+    <main className="min-h-screen bg-[#09090B] text-white font-sans font-['Outfit'] print:bg-white print:text-black">
+      
+      {/* ========================================= */}
+      {/* INTERFACE UTILISATEUR (Masquée à l'impression) */}
+      {/* ========================================= */}
+      <div className="print:hidden max-w-[1260px] mx-auto px-4 md:px-8 py-10 flex flex-col gap-8">
+        
+        {/* En-tête et Navigation */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-white/10 pb-6">
           <div>
-            <h1 className="text-2xl font-black text-yellow-400">📑 Générateur d&apos;Intercalaires A4</h1>
-            <p className="text-xs text-slate-400">{ALL_SETS_FLAT.length} extensions disponibles pour tes classeurs.</p>
+            <Link href="/" className="text-zinc-500 hover:text-white transition text-sm mb-4 inline-block">
+              &larr; Retour au site
+            </Link>
+            <h1 className="text-3xl md:text-[40px] font-normal leading-tight text-white">
+              Générateur d'Intercalaires A4
+            </h1>
+            <p className="text-zinc-500 text-base md:text-lg mt-1">
+              {ALL_SETS_FLAT.length} extensions disponibles pour tes classeurs.
+            </p>
           </div>
-          <Link href="/" className="px-4 py-2 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl text-xs font-bold transition">
-            ⬅️ Retour au Classeur
-          </Link>
+
+          <button
+            onClick={() => window.print()}
+            className="w-full md:w-auto bg-rose-500 text-white text-base md:text-lg font-medium px-6 py-3 rounded-xl outline outline-1 outline-white/10 hover:bg-rose-600 transition-colors shadow-[0_0_15px_rgba(244,63,94,0.3)] shrink-0"
+          >
+            Imprimer / Sauvegarder en PDF
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Choisir l&apos;extension :
-            </label>
-            <select
-              value={selectedSetId}
-              onChange={(e) => setSelectedSetId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-2.5 text-xs outline-none focus:border-yellow-500 cursor-pointer"
-            >
-              {POKEMON_BLOCKS.map((block) => (
-                <optgroup key={block.blockName} label={block.blockName}>
-                  {block.sets.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
+        {/* Panneau de configuration DA Dark */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-[#18181B] border border-white/10 p-6 md:p-8 rounded-[24px]">
+          
+          <div className="flex flex-col gap-5">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-rose-500 mb-2.5">
+                Choisir l'extension :
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedSetId}
+                  onChange={(e) => setSelectedSetId(e.target.value)}
+                  className="w-full appearance-none bg-[#09090B] border border-white/10 text-white rounded-xl p-3.5 text-sm outline-none focus:border-rose-500 transition-colors cursor-pointer pr-10 shadow-inner"
+                >
+                  {POKEMON_BLOCKS.map((block) => (
+                    <optgroup key={block.blockName} label={block.blockName} className="bg-[#18181B] text-zinc-400">
+                      {block.sets.map((s) => (
+                        <option key={s.id} value={s.id} className="text-white">
+                          {s.name}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
-                </optgroup>
-              ))}
-            </select>
+                </select>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-rose-500 mb-2.5">
+                Annotation personnalisée :
+              </label>
+              <input
+                type="text"
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
+                placeholder="Ex: Classeur Principal #1"
+                className="w-full bg-[#09090B] border border-white/10 text-white rounded-xl p-3.5 text-sm outline-none focus:border-rose-500 transition-colors shadow-inner"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Annotation personnalisée :
-            </label>
-            <input
-              type="text"
-              value={customNote}
-              onChange={(e) => setCustomNote(e.target.value)}
-              placeholder="Ex: Classeur Anneaux #1"
-              className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-2.5 text-xs outline-none focus:border-yellow-500"
-            />
+          <div className="flex flex-col gap-5 justify-center bg-[#09090B] border border-white/5 rounded-xl p-5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-500">Options d'impression</h3>
+            
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                className="self-start px-4 py-2 bg-[#18181B] border border-white/10 rounded-lg text-sm font-medium hover:bg-white/5 transition cursor-pointer text-zinc-300"
+              >
+                {theme === "light" ? "Mode Clair (Éco d'encre)" : "Mode Sombre (Collector)"}
+              </button>
+              
+              <label className="flex items-center gap-3 text-sm text-zinc-300 cursor-pointer group w-max">
+                <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${showQRCode ? 'bg-rose-500 border-rose-500' : 'bg-[#18181B] border-white/10 group-hover:border-white/30'}`}>
+                  {showQRCode && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+                <input type="checkbox" className="hidden" checked={showQRCode} onChange={(e) => setShowQRCode(e.target.checked)} />
+                Afficher le QR Code d'accès rapide
+              </label>
+              
+              <label className="flex items-center gap-3 text-sm text-zinc-300 cursor-pointer group w-max">
+                <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${showStats ? 'bg-rose-500 border-rose-500' : 'bg-[#18181B] border-white/10 group-hover:border-white/30'}`}>
+                  {showStats && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+                <input type="checkbox" className="hidden" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
+                Afficher la progression de la collection
+              </label>
+            </div>
           </div>
-
-          <div className="flex gap-4 items-center flex-wrap">
-            <button
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-700 transition cursor-pointer"
-            >
-              {theme === "light" ? "☀️ Clair (Éco d'encre)" : "🌙 Sombre (Collector)"}
-            </button>
-            <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
-              <input type="checkbox" checked={showQRCode} onChange={(e) => setShowQRCode(e.target.checked)} />
-              QR Code
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
-              <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
-              Afficher ma progression
-            </label>
-          </div>
-
-          <div className="flex items-end justify-end">
-            <button
-              onClick={() => window.print()}
-              className="w-full md:w-auto px-6 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-            >
-              🖨️ Imprimer / Sauvegarder en PDF
-            </button>
-          </div>
+          
         </div>
       </div>
 
-      {/* Rendu feuille A4 (Calibré 1 seule page) */}
-      <div className="flex justify-center p-0 md:p-6 print:p-0 print:m-0">
+      {/* ========================================= */}
+      {/* RENDU FEUILLE A4 (Prévisualisation + Impression) */}
+      {/* ========================================= */}
+      <div className="flex justify-center p-0 md:p-6 print:p-0 print:m-0 w-full overflow-x-auto">
         <div
           id="intercalaire-page"
-          className={`w-[210mm] h-[297mm] max-h-[297mm] p-[10mm] flex flex-col justify-between border print:border-none shadow-2xl print:shadow-none transition-colors duration-200 overflow-hidden box-border ${
-            theme === "dark" ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-300 text-slate-900"
+          className={`w-[210mm] h-[297mm] max-h-[297mm] p-[10mm] flex flex-col justify-between border print:border-none shadow-2xl print:shadow-none transition-colors duration-200 overflow-hidden box-border shrink-0 ${
+            theme === "dark" ? "bg-[#09090B] border-white/10 text-white" : "bg-white border-zinc-200 text-zinc-900"
           }`}
         >
-          {/* En-tête */}
-          <div className="text-center border-b-2 pb-3 border-current shrink-0">
-            <span className="text-[11px] font-bold tracking-[0.25em] uppercase opacity-70 block mb-1">
+          {/* En-tête de la page A4 */}
+          <div className={`text-center border-b-2 pb-4 shrink-0 ${theme === "dark" ? "border-white/10" : "border-zinc-200"}`}>
+            <span className={`text-[12px] font-bold tracking-[0.25em] uppercase block mb-1 ${theme === "dark" ? "text-rose-500" : "text-rose-600"}`}>
               {currentSet.block}
             </span>
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-1">
+            <h2 className="text-4xl font-black uppercase tracking-tight mb-1">
               {currentSet.name}
             </h2>
             {displayYear && (
-              <span className="text-xs font-semibold opacity-65">
+              <span className={`text-sm font-semibold ${theme === "dark" ? "text-zinc-400" : "text-zinc-500"}`}>
                 Année de parution : {displayYear}
               </span>
             )}
           </div>
 
-          {/* Corps central */}
-          <div className="flex-1 flex flex-col items-center justify-center py-4 space-y-4 text-center">
+          {/* Corps central (Logo + Infos) */}
+          <div className="flex-1 flex flex-col items-center justify-center py-6 space-y-6 text-center">
             {logoUrl && !logoFailed ? (
               <img
                 src={logoUrl}
                 alt={currentSet.name}
-                className="max-h-28 md:max-h-32 max-w-xs md:max-w-sm object-contain drop-shadow-md"
+                className={`max-h-36 max-w-sm object-contain ${theme === "dark" ? "drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" : "drop-shadow-sm"}`}
                 onError={() => setLogoFailed(true)}
               />
             ) : (
-              <div className="text-4xl">🃏</div>
+              <div className="w-24 h-24 border-2 border-dashed border-current/20 rounded-2xl flex items-center justify-center text-4xl opacity-50">
+                🃏
+              </div>
             )}
 
             {symbolUrl && !symbolFailed ? (
-              <div className="p-2.5 border-2 border-dashed border-current/20 rounded-full">
+              <div className={`p-3 border-2 rounded-full ${theme === "dark" ? "border-white/10 bg-[#18181B]" : "border-zinc-200 bg-zinc-50"}`}>
                 <img
                   src={symbolUrl}
                   alt="Symbole de l'extension"
-                  className="w-10 h-10 object-contain"
+                  className="w-12 h-12 object-contain"
                   onError={() => setSymbolFailed(true)}
                 />
               </div>
             ) : null}
 
-            <div className="space-y-0.5">
-              <div className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <div className="space-y-1">
+              <div className="text-3xl font-extrabold tracking-tight">
                 {setData?.cardCount?.official || "—"} Cartes
               </div>
               {setData?.cardCount?.total && setData.cardCount.total !== setData.cardCount.official && (
-                <div className="text-[11px] opacity-60 font-semibold">
+                <div className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-zinc-500"}`}>
                   {setData.cardCount.total} cartes avec les secrètes
                 </div>
               )}
             </div>
 
             {customNote && (
-              <div className="inline-block px-3.5 py-1 border border-current/30 rounded-full text-[11px] font-bold tracking-wider uppercase">
-                🏷️ {customNote}
+              <div className={`inline-block px-4 py-1.5 border rounded-full text-xs font-bold tracking-wider uppercase ${theme === "dark" ? "border-rose-500/30 text-rose-400 bg-rose-500/10" : "border-rose-200 text-rose-600 bg-rose-50"}`}>
+                {customNote}
               </div>
             )}
 
             {showStats && (
-              <div className="w-full max-w-sm border border-current/20 rounded-xl p-3 space-y-1.5 bg-current/5">
-                <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-70">
+              <div className={`w-full max-w-md border rounded-2xl p-4 mt-4 ${theme === "dark" ? "border-white/10 bg-[#18181B]" : "border-zinc-200 bg-zinc-50"}`}>
+                <div className={`text-[10px] font-extrabold uppercase tracking-wider text-center mb-3 ${theme === "dark" ? "text-zinc-500" : "text-zinc-400"}`}>
                   Progression du Classeur
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-left pt-1.5 border-t border-current/10">
+                <div className={`grid grid-cols-2 gap-4 text-center pt-3 border-t ${theme === "dark" ? "border-white/5" : "border-zinc-200"}`}>
                   <div>
-                    <span className="text-[9px] block opacity-60 font-bold uppercase">Cartes Normales</span>
-                    <span className="text-base font-black">{collectionCount.normal} possédées</span>
+                    <span className={`text-[10px] block font-bold uppercase mb-1 ${theme === "dark" ? "text-zinc-400" : "text-zinc-500"}`}>Cartes Normales</span>
+                    <span className="text-xl font-black">{collectionCount.normal} <span className="text-sm font-medium opacity-50">possédées</span></span>
                   </div>
                   <div>
-                    <span className="text-[9px] block opacity-60 font-bold uppercase">Cartes Foils</span>
-                    <span className="text-base font-black">{collectionCount.foil} possédées</span>
+                    <span className={`text-[10px] block font-bold uppercase mb-1 ${theme === "dark" ? "text-zinc-400" : "text-zinc-500"}`}>Cartes Foils</span>
+                    <span className="text-xl font-black">{collectionCount.foil} <span className="text-sm font-medium opacity-50">possédées</span></span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Pied de page avec QR Code remonté */}
-          <div className="border-t-2 pt-3 pb-1 border-current flex items-center justify-between shrink-0">
-            <div className="space-y-0.5 text-left">
-              <span className="text-[11px] font-bold uppercase tracking-wider block">Inventaire Numérique</span>
-              <span className="text-[10px] opacity-60 block">Scanne pour ouvrir l&apos;extension dans l&apos;application</span>
+          {/* Pied de page (QR Code) */}
+          <div className={`border-t-2 pt-4 pb-2 flex items-center justify-between shrink-0 ${theme === "dark" ? "border-white/10" : "border-zinc-200"}`}>
+            <div className="space-y-1 text-left">
+              <span className={`text-[12px] font-bold uppercase tracking-wider block ${theme === "dark" ? "text-white" : "text-zinc-900"}`}>Inventaire Numérique</span>
+              <span className={`text-[11px] block ${theme === "dark" ? "text-zinc-500" : "text-zinc-500"}`}>Scannez pour ouvrir l'extension sur le Pokédex</span>
             </div>
 
             {showQRCode && (
-              <div className="p-1.5 bg-white rounded-lg border border-slate-200 shadow-sm shrink-0">
-                <QRCodeSVG value={appSetUrl} size={58} />
+              <div className="p-2 bg-white rounded-xl border border-zinc-200 shrink-0">
+                <QRCodeSVG value={appSetUrl} size={64} />
               </div>
             )}
           </div>
@@ -529,6 +342,8 @@ export default function IntercalairePage() {
             background: white !important;
             height: 100% !important;
             overflow: hidden !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           #intercalaire-page {
             width: 210mm !important;
@@ -542,6 +357,6 @@ export default function IntercalairePage() {
           }
         }
       `}</style>
-    </div>
+    </main>
   );
 }
