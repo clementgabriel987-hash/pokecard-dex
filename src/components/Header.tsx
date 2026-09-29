@@ -37,13 +37,19 @@ export default function Header({
   onLogout,
 }: HeaderProps) {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
+  
+  const toolsRef = useRef<HTMLDivElement>(null);
+  const catalogueRef = useRef<HTMLDivElement>(null);
 
-  // Fermer le dropdown quand on clique en dehors
+  // Fermer les menus quand on clique en dehors
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
         setIsToolsOpen(false);
+      }
+      if (catalogueRef.current && !catalogueRef.current.contains(event.target as Node)) {
+        setIsCatalogueOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -71,29 +77,59 @@ export default function Header({
 
         {/* NAVIGATION CENTRALE */}
         <div className="flex flex-wrap md:flex-nowrap items-center gap-1.5 md:gap-3">
-          <button
-            onClick={onGoToExtensions}
-            className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition whitespace-nowrap ${
-              currentView === "EXTENSIONS" && !isGlobalBinder
-                ? "bg-white/10 text-white border border-white/10"
-                : "text-zinc-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            Extensions
-          </button>
-
-          {currentTcg === "pokemon" && (
+          
+          {/* MENU DÉROULANT CATALOGUE (Extensions + Items) */}
+          <div className="relative" ref={catalogueRef}>
             <button
-              onClick={onGoToItems}
-              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition whitespace-nowrap ${
-                currentView === "ITEMS" && !isGlobalBinder
+              onClick={() => setIsCatalogueOpen(!isCatalogueOpen)}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
+                (!isGlobalBinder && (currentView === "EXTENSIONS" || currentView === "ITEMS")) || isCatalogueOpen
                   ? "bg-white/10 text-white border border-white/10"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              Items Scelles
+              Catalogue
+              <svg 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={`transition-transform duration-200 ${isCatalogueOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </button>
-          )}
+
+            {isCatalogueOpen && (
+              <div className="absolute top-full left-0 mt-2 w-48 bg-[#18181B] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in">
+                <button 
+                  onClick={() => {
+                    onGoToExtensions();
+                    setIsCatalogueOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition border-b border-white/5"
+                >
+                  Extensions
+                </button>
+                
+                {currentTcg === "pokemon" && (
+                  <button 
+                    onClick={() => {
+                      onGoToItems();
+                      setIsCatalogueOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition"
+                  >
+                    Items Scelles
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => setIsGlobalBinder(true)}
@@ -107,7 +143,7 @@ export default function Header({
           </button>
 
           {/* MENU DÉROULANT OUTILS */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative" ref={toolsRef}>
             <button
               onClick={() => setIsToolsOpen(!isToolsOpen)}
               className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
@@ -141,7 +177,6 @@ export default function Header({
                 >
                   Generateur d'intercalaires
                 </Link>
-                {/* Tu pourras ajouter d'autres outils ici plus tard ! */}
               </div>
             )}
           </div>
