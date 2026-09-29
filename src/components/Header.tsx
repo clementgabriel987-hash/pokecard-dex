@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 interface HeaderProps {
@@ -35,6 +36,20 @@ export default function Header({
   onLogin,
   onLogout,
 }: HeaderProps) {
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsToolsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <header className="w-full bg-[#18181B] border-b border-white/10 sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
       <div className="max-w-[1260px] mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between gap-4">
@@ -55,7 +70,7 @@ export default function Header({
         </div>
 
         {/* NAVIGATION CENTRALE */}
-        <div className="flex items-center gap-1.5 md:gap-3 overflow-x-auto no-scrollbar">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-1.5 md:gap-3">
           <button
             onClick={onGoToExtensions}
             className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition whitespace-nowrap ${
@@ -90,6 +105,46 @@ export default function Header({
           >
             Ma Collection
           </button>
+
+          {/* MENU DÉROULANT OUTILS */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsToolsOpen(!isToolsOpen)}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
+                isToolsOpen
+                  ? "bg-white/10 text-white border border-white/10"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Outils
+              <svg 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={`transition-transform duration-200 ${isToolsOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            {isToolsOpen && (
+              <div className="absolute top-full left-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-56 bg-[#18181B] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in">
+                <Link 
+                  href="/outils/intercalaires"
+                  onClick={() => setIsToolsOpen(false)}
+                  className="block px-4 py-3 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition border-b border-white/5 last:border-0"
+                >
+                  Generateur d'intercalaires
+                </Link>
+                {/* Tu pourras ajouter d'autres outils ici plus tard ! */}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* HAUT A DROITE : Toggle TCG discret + Connexion */}
