@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import { supabase } from "../../../lib/supabase";
-import { POKEMON_BLOCKS } from "../../../constants/pokemonSets";
+import { supabase } from "../../lib/supabase";
+import { POKEMON_BLOCKS } from "../../constants/pokemonSets";
 
 interface SetItem {
   id: string;
