@@ -39,8 +39,8 @@ export default function Header({
     <header className="w-full bg-[#18181B] border-b border-white/10 sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
       <div className="max-w-[1260px] mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between gap-4">
         
-        {/* HAUT A GAUCHE : Selecteur TCG + Menu */}
-        <div className="flex items-center gap-3 md:gap-4 shrink-0">
+        {/* HAUT A GAUCHE : Bouton Menu classique */}
+        <div className="flex items-center shrink-0">
           <button 
             onClick={onOpenSidebar}
             className="bg-[#09090B] border border-white/10 text-white p-2.5 rounded-xl hover:bg-white/5 transition flex items-center justify-center"
@@ -52,37 +52,13 @@ export default function Header({
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-
-          {/* Selecteur TCG */}
-          <div className="bg-[#09090B] border border-white/10 p-1 rounded-xl flex items-center gap-1">
-            <button
-              onClick={() => onToggleTcg("pokemon")}
-              className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
-                currentTcg === "pokemon"
-                  ? "bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.4)]"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Pokemon
-            </button>
-            <button
-              onClick={() => onToggleTcg("yugioh")}
-              className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
-                currentTcg === "yugioh"
-                  ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Yu-Gi-Oh!
-            </button>
-          </div>
         </div>
 
         {/* NAVIGATION CENTRALE */}
-        <div className="hidden md:flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-1.5 md:gap-3 overflow-x-auto no-scrollbar">
           <button
             onClick={onGoToExtensions}
-            className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
+            className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition whitespace-nowrap ${
               currentView === "EXTENSIONS" && !isGlobalBinder
                 ? "bg-white/10 text-white border border-white/10"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -94,19 +70,19 @@ export default function Header({
           {currentTcg === "pokemon" && (
             <button
               onClick={onGoToItems}
-              className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition whitespace-nowrap ${
                 currentView === "ITEMS" && !isGlobalBinder
                   ? "bg-white/10 text-white border border-white/10"
                   : "text-zinc-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              Items Scellés
+              Items Scelles
             </button>
           )}
 
           <button
             onClick={() => setIsGlobalBinder(true)}
-            className={`px-3.5 py-2 rounded-xl text-xs md:text-sm font-medium transition ${
+            className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition whitespace-nowrap ${
               isGlobalBinder
                 ? "bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.3)]"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -116,8 +92,24 @@ export default function Header({
           </button>
         </div>
 
-        {/* HAUT A DROITE : Bouton Connexion / Profil */}
-        <div className="flex items-center gap-3">
+        {/* HAUT A DROITE : Toggle TCG discret + Connexion */}
+        <div className="flex items-center gap-3 shrink-0">
+          
+          <div className="flex bg-[#09090B] border border-white/10 p-0.5 rounded-lg items-center">
+            <button 
+              onClick={() => onToggleTcg("pokemon")} 
+              className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider transition ${currentTcg === "pokemon" ? "bg-rose-500 text-white" : "text-zinc-600 hover:text-zinc-300"}`}
+            >
+              PKMN
+            </button>
+            <button 
+              onClick={() => onToggleTcg("yugioh")} 
+              className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider transition ${currentTcg === "yugioh" ? "bg-amber-500 text-white" : "text-zinc-600 hover:text-zinc-300"}`}
+            >
+              YGO
+            </button>
+          </div>
+
           {currentUser ? (
             <div className="flex items-center gap-3">
               <span className="text-xs text-zinc-400 hidden lg:inline truncate max-w-[150px]">
@@ -133,7 +125,7 @@ export default function Header({
           ) : (
             <button
               onClick={onLogin}
-              className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition shadow-[0_0_10px_rgba(244,63,94,0.3)]"
+              className="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-medium transition shadow-[0_0_10px_rgba(244,63,94,0.3)]"
             >
               Connexion
             </button>
