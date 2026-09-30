@@ -171,7 +171,7 @@ export default function Header({
             {isToolsOpen && (
               <div className="absolute top-full left-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-56 bg-[#18181B] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in">
                 <Link 
-                  href="/outils/intercalaires"
+                  href="/intercalaires"
                   onClick={() => setIsToolsOpen(false)}
                   className="block px-4 py-3 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition border-b border-white/5 last:border-0"
                 >
